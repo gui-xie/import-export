@@ -1,0 +1,14 @@
+{
+  "private": "true",
+  "description": "imexport-table root package.json",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nx/js": "^19.8.0",
+    "nx": "^19.8.0"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

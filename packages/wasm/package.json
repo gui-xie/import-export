@@ -1,0 +1,38 @@
+{
+  "name": "@senlin/import-export-wasm",
+  "version": "0.0.1-beta.1",
+  "description": "Rust WebAssembly for import/export excel files",
+  "main": "pkg/imexport_wasm.js",
+  "types": "pkg/imexport_wasm.d.ts",
+  "scripts": {
+    "build": "wasm-pack build --release --target web",
+    "test": "wasm-pack test --headless --firefox",
+    "publish-dry-run": "pnpm publish --dry-run --no-git-checks",
+    "cargo-test": "cargo test"
+  },
+  "files": [
+    "pkg/imexport_wasm_bg.wasm",
+    "pkg/imexport_wasm.bg.wasm.d.ts",
+    "pkg/imexport_wasm.js",
+    "pkg/imexport_wasm.d.ts"
+  ],
+  "author": "senlin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gui-xie/import-export.git"
+  },
+  "keywords": [
+    "rust",
+    "wasm",
+    "import",
+    "export",
+    "excel",
+    "xlsx",
+    "sheet",
+    "spreadsheet",
+    "OpenXML",
+    "browser",
+    "client"
+  ]
+}

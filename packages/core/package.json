@@ -1,0 +1,62 @@
+{
+  "name": "@senlin/import-export",
+  "version": "0.0.1-beta.1",
+  "description": "Stencil Component for import/export excel files.",
+  "module": "dist/components/index.js",
+  "types": "dist/types/index.d.ts",
+  "files": [
+    "dist/"
+  ],
+  "exports": {
+    "./components": {
+      "types": "./dist/types/index.d.ts"
+    },
+    "./components/imexport-table.js": {
+      "import": "./dist/components/imexport-table.js",
+      "types": "./dist/components/imexport-table.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "stencil build",
+    "start": "stencil build --dev --watch --serve",
+    "test": "stencil test --spec --e2e",
+    "test.watch": "stencil test --spec --e2e --watchAll",
+    "generate": "stencil generate",
+    "publish-dry-run": "pnpm publish --dry-run --no-git-checks"
+  },
+  "devDependencies": {
+    "@rollup/plugin-terser": "^0.4.4",
+    "@stencil/core": "^4.7.0",
+    "@stencil/vue-output-target": "^0.8.9",
+    "@types/jest": "^29.5.6",
+    "@types/node": "^16.18.108",
+    "jest": "^29.7.0",
+    "jest-cli": "^29.7.0",
+    "puppeteer": "^21.9.0"
+  },
+  "author": "senlin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gui-xie/import-export.git"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "@senlin/import-export-wasm": "workspace:*"
+  },
+  "keywords": [
+    "stencil",
+    "webcomponents",
+    "rust",
+    "wasm",
+    "import",
+    "export",
+    "excel",
+    "xlsx",
+    "sheet",
+    "spreadsheet",
+    "OpenXML",
+    "browser",
+    "client"
+  ]
+}

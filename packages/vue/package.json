@@ -1,0 +1,40 @@
+{
+  "name": "@senlin/import-export-vue",
+  "version": "0.0.1-beta.1",
+  "description": "",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "npm run tsc",
+    "tsc": "tsc -p . --outDir ./dist",
+    "publish-dry-run": "pnpm publish --dry-run --no-git-checks"
+  },
+  "author": "senlin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gui-xie/import-export.git"
+  },
+  "dependencies": {
+    "@senlin/import-export": "workspace:*",
+    "vue": "3"
+  },
+  "keywords": [
+    "vue",
+    "web-components",
+    "imexport",
+    "imexport-table",
+    "xlsx",
+    "excel",
+    "import",
+    "export",
+    "OpenXML",
+    "spreadsheet",
+    "rust",
+    "wasm"
+  ]
+}
