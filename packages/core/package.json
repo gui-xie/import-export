@@ -5,7 +5,8 @@
   "module": "dist/components/index.js",
   "types": "dist/types/index.d.ts",
   "files": [
-    "dist/"
+    "dist/",
+    "README.md"
   ],
   "exports": {
     "./components": {

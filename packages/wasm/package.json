@@ -14,7 +14,8 @@
     "pkg/imexport_wasm_bg.wasm",
     "pkg/imexport_wasm.bg.wasm.d.ts",
     "pkg/imexport_wasm.js",
-    "pkg/imexport_wasm.d.ts"
+    "pkg/imexport_wasm.d.ts",
+    "README.md"
   ],
   "author": "senlin",
   "license": "MIT",
