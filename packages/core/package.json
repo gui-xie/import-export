@@ -1,5 +1,5 @@
 {
-  "name": "@senlin/import-export",
+  "name": "@senlinz/import-export",
   "version": "0.0.1-beta.1",
   "description": "Stencil Component for import/export excel files.",
   "module": "dist/components/index.js",
@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "fflate": "^0.8.2",
-    "@senlin/import-export-wasm": "workspace:*"
+    "@senlinz/import-export-wasm": "workspace:*"
   },
   "keywords": [
     "stencil",

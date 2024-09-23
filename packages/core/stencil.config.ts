@@ -12,7 +12,7 @@ export const config: Config = {
       externalRuntime: false,
     },
     vueOutputTarget({
-      componentCorePackage: '@senlin/import-export',
+      componentCorePackage: '@senlinz/import-export',
       proxiesFile: '../vue/lib/proxies.ts',
       includeImportCustomElements: true
     })

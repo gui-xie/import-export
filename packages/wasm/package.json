@@ -1,5 +1,5 @@
 {
-  "name": "@senlin/import-export-wasm",
+  "name": "@senlinz/import-export-wasm",
   "version": "0.0.1-beta.1",
   "description": "Rust WebAssembly for import/export excel files",
   "main": "pkg/imexport_wasm.js",

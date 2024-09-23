@@ -17,7 +17,7 @@ importers:
 
   examples/vue-app:
     dependencies:
-      '@senlin/import-export-vue':
+      '@senlinz/import-export-vue':
         specifier: workspace:^
         version: link:../../packages/vue
       vue:
@@ -54,7 +54,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@senlin/import-export-wasm':
+      '@senlinz/import-export-wasm':
         specifier: workspace:*
         version: link:../wasm
       fflate:
@@ -88,7 +88,7 @@ importers:
 
   packages/vue:
     dependencies:
-      '@senlin/import-export':
+      '@senlinz/import-export':
         specifier: workspace:*
         version: link:../core
       vue:

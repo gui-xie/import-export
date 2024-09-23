@@ -10,7 +10,7 @@
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
-    "@senlin/import-export-vue": "workspace:^",
+    "@senlinz/import-export-vue": "workspace:^",
     "vue": "^3.4.29"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 {
-  "name": "@senlin/import-export-vue",
+  "name": "@senlinz/import-export-vue",
   "version": "0.0.1-beta.1",
   "description": "",
   "main": "dist/index.js",
@@ -20,7 +20,7 @@
     "url": "git+https://github.com/gui-xie/import-export.git"
   },
   "dependencies": {
-    "@senlin/import-export": "workspace:*",
+    "@senlinz/import-export": "workspace:*",
     "vue": "3"
   },
   "keywords": [

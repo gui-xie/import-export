@@ -7,7 +7,7 @@
 </template>
 
 <script setup lang="ts">
-import { ImexportTable } from '@senlin/import-export-vue';
+import { ImexportTable } from '@senlinz/import-export-vue';
 import { onMounted, ref } from 'vue';
 
 const imexportTableRef = ref<InstanceType<typeof ImexportTable>>();

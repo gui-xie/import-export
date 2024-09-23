@@ -1,2 +1,2 @@
-# @senlin/import-export
-Web component for @senlin/import-export-wasm
+# @senlinz/import-export
+Web component for @senlinz/import-export-wasm

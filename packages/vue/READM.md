@@ -1,2 +1,2 @@
-# @senlin/import-export-vue 
-Vue wrapper for @senlin/import-export
+# @senlinz/import-export-vue 
+Vue wrapper for @senlinz/import-export
