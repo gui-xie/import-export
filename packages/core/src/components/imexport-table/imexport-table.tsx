@@ -35,7 +35,7 @@ export class ImexportTableComponent {
   }) {
     const info = this.getInfo();
     if (!!options.buffer) {
-      const items = fromExcel<T>(info, options.buffer);
+      const items = await fromExcel<T>(info, options.buffer);
       this.imported.emit(items);
     } else {
       this.fileInput.click();
@@ -97,7 +97,7 @@ export class ImexportTableComponent {
     const reader = new FileReader();
     reader.onload = async () => {
       const buffer = new Uint8Array(reader.result as ArrayBuffer);
-      const items = fromExcel(info, buffer);
+      const items = await fromExcel(info, buffer);
       this.imported.emit(items);
     };
     reader.readAsArrayBuffer(file);
