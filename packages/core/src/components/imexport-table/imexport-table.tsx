@@ -6,19 +6,10 @@ import {
   Event,
   Method
 } from '@stencil/core';
-import initAsync, {
-  createTemplate,
-  importData,
-  exportData,
-  ExcelInfo,
-  ExcelColumnInfo,
-  ExcelData,
-  ExcelRowData,
-  ExcelColumnData
-} from '@senlinz/import-export-wasm';
-import imexportWasm from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm';
-import { gunzipSync } from 'fflate';
 import { EventEmitter } from 'stream';
+import { type ExcelDefinition } from '../../types';
+import { fromExcel, toExcel, createExcel, initializeWasm } from '../../utils/utils';
+import { ExcelInfo, ExcelColumnInfo } from '@senlinz/import-export-wasm';
 
 @Component({
   tag: 'imexport-table',
@@ -27,33 +18,28 @@ import { EventEmitter } from 'stream';
 })
 export class ImexportTableComponent {
   @Prop()
-  info: {
-    name: string,
-    sheetName: string,
-    columns: { key: string, name: string }[]
-  } = {
-      name: 'senlin',
-      sheetName: 'senlin_sheet',
-      columns: [
-        { key: 'name', name: 'Name' },
-        { key: 'age', name: 'Age' }
-      ]
-    }
+  info: ExcelDefinition = {
+    name: 'senlin',
+    sheetName: 'senlin_sheet',
+    columns: [
+      { key: 'name', name: 'Name' },
+      { key: 'age', name: 'Age' }
+    ]
+  }
 
   @Event() imported: EventEmitter<any>;
 
   @Method()
-  async importExcel(options?: {
+  async importExcel<T>(options?: {
     buffer?: Uint8Array
   }) {
     const info = this.getInfo();
     if (!!options.buffer) {
-      const items = this.importBufferData(info, options.buffer);
+      const items = fromExcel<T>(info, options.buffer);
       this.imported.emit(items);
     } else {
       this.fileInput.click();
     }
-    return Promise.resolve();
   }
 
   @Method()
@@ -64,30 +50,17 @@ export class ImexportTableComponent {
   @Method()
   async epxortExcel(data: any[]) {
     const info = this.getInfo();
-    const rows = data.map(item => {
-      const columns = info.columns.map(column => {
-        const val = item[column.key];
-        return new ExcelColumnData(
-          column.key,
-          (val === undefined || val === null) ? '' : val.toString()
-        );
-      });
-      const row = new ExcelRowData(columns);
-      return row;
-    });
-    const excelData = new ExcelData(rows);
     this.setDownloadLink(info.name);
-    const buffer = exportData(info, excelData);
+    const buffer = await toExcel(info, data);
     this.download(buffer);
+  }
+
+  componentDidLoad() {
+    initializeWasm();
   }
 
   fileInput!: HTMLInputElement;
   linkInput!: HTMLAnchorElement;
-
-  async componentWillLoad() {
-    const wasm = gunzipSync(Uint8Array.from(atob(imexportWasm as any), c => c.charCodeAt(0)));
-    await initAsync(wasm);
-  }
 
   private setDownloadLink(name: string) {
     this.linkInput.download = `${name}.xlsx`;
@@ -102,11 +75,11 @@ export class ImexportTableComponent {
     this.linkInput.click();
   }
 
-  private exportTemplateHandler() {
+  private async exportTemplateHandler() {
     const info = this.getInfo();
 
     this.setDownloadLink(info.name);
-    const excelTemplate = createTemplate(info);
+    const excelTemplate = await createExcel(info);
     this.download(excelTemplate);
   }
 
@@ -118,34 +91,16 @@ export class ImexportTableComponent {
     );
   }
 
-  private getItems(data: ExcelData) {
-    const result = [] as any;
-    for (const row of data.rows) {
-      const item = {} as any;
-      for (const column of row.columns) {
-        item[column.key] = column.value;
-      }
-      result.push(item);
-    }
-    return result;
-  }
-
   private onFileChange(event: Event) {
     var info = this.getInfo();
     const file = (event.target as HTMLInputElement).files[0];
     const reader = new FileReader();
     reader.onload = async () => {
       const buffer = new Uint8Array(reader.result as ArrayBuffer);
-      const items = this.importBufferData(info, buffer);
+      const items = fromExcel(info, buffer);
       this.imported.emit(items);
     };
     reader.readAsArrayBuffer(file);
-  }
-
-  private importBufferData(info: ExcelInfo, buffer: Uint8Array) {
-    const data = importData(info, buffer);
-    const items = this.getItems(data);
-    return items;
   }
 
   render() {

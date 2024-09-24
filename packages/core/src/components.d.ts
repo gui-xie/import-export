@@ -5,16 +5,14 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
+import { ExcelDefinition } from "./types";
+export { ExcelDefinition } from "./types";
 export namespace Components {
     interface ImexportTable {
-        "epxortExcel": (data: any[]) => Promise<void>;
+        "epxortExcel": <T>(data: T[]) => Promise<void>;
         "exportExcelTemplate": () => Promise<void>;
-        "importExcel": (options?: { buffer?: Uint8Array; }) => Promise<void>;
-        "info": {
-    name: string,
-    sheetName: string,
-    columns: { key: string, name: string }[]
-  };
+        "importExcel": <T>(options?: { buffer?: Uint8Array; }) => Promise<void>;
+        "info": ExcelDefinition;
     }
 }
 export interface ImexportTableCustomEvent<T> extends CustomEvent<T> {
@@ -45,11 +43,7 @@ declare global {
 }
 declare namespace LocalJSX {
     interface ImexportTable {
-        "info"?: {
-    name: string,
-    sheetName: string,
-    columns: { key: string, name: string }[]
-  };
+        "info"?: ExcelDefinition;
         "onImported"?: (event: ImexportTableCustomEvent<any>) => void;
     }
     interface IntrinsicElements {
