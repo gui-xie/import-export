@@ -2,6 +2,7 @@ import { Config } from '@stencil/core';
 import imexportWasm from './rollup-plugin-imexport-wasm';
 import { vueOutputTarget } from '@stencil/vue-output-target';
 import terser from '@rollup/plugin-terser';
+import { OutputTarget } from '@stencil/core/internal';
 
 export const config: Config = {
   namespace: 'imexport-table',
@@ -11,13 +12,14 @@ export const config: Config = {
       customElementsExportBehavior: 'auto-define-custom-elements',
       externalRuntime: false,
       minify: true,
+      sourceMap: false
     },
     vueOutputTarget({
       componentCorePackage: '@senlinz/import-export',
       proxiesFile: '../vue/lib/proxies.ts',
       includeImportCustomElements: true
     })
-  ],
+  ] as OutputTarget[],
   testing: {
     browserHeadless: "new",
   },

@@ -8,6 +8,7 @@
     "@senlinz/import-export-wasm": "0.0.1-beta.1"
   },
   "changesets": [
+    "khaki-oranges-admire",
     "three-readers-act"
   ]
 }
