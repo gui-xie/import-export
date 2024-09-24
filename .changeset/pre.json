@@ -1,0 +1,13 @@
+{
+  "mode": "pre",
+  "tag": "beta",
+  "initialVersions": {
+    "vue-app": "0.0.0",
+    "@senlinz/import-export": "0.0.1-beta.1",
+    "@senlinz/import-export-vue": "0.0.1-beta.1",
+    "@senlinz/import-export-wasm": "0.0.1-beta.1"
+  },
+  "changesets": [
+    "three-readers-act"
+  ]
+}

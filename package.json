@@ -5,6 +5,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@changesets/cli": "^2.27.8",
     "@nx/js": "^19.8.0",
     "nx": "^19.8.0"
   },
