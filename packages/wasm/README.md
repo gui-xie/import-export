@@ -19,7 +19,6 @@
     <title>Demo (@senlin/import-export-wasm)</title>
 </head>
 
-
 <body>
     <button id="downloadTemplate">Download Template</button>
     <button id="exportWithData">Export With Data</button>
