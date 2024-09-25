@@ -2,6 +2,8 @@
 
 **@senlinz/import-export** is a simple Excel import/export library designed for use in browser environments. It leverages Rust compiled to WebAssembly (WASM) for its core logic and provides a web component built with Stencil.
 
+> **Note:** This library is currently in beta. Features and APIs may change.
+
 ## Features
 - Import and export Excel files in browser environments.
 - Rust WebAssembly core for efficient Excel data handling.
@@ -12,6 +14,7 @@
 ## Packages
 - **@senlinz/import-export**: The Stencil web component with the Rust WebAssembly core.
 - **@senlinz/import-export-wasm**: The Rust WebAssembly core library.
+    - README: [packages/wasm/README.md](./packages/wasm/README.md)
 - **@senlinz/import-export-vue**: The Vue wrapper for the Stencil web component.
 
 ## License

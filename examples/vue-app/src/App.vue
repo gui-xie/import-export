@@ -45,7 +45,7 @@ function createTemplate() {
 }
 
 function exportWithData() {
-  getImexportTableEl().epxortExcel([
+  getImexportTableEl().exportExcel([
     { name: 'Tom', age: 3, type: 'Cat' },
     { name: 'Jerry', age: null, type: 'Mouse' }
   ]);

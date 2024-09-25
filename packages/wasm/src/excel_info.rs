@@ -24,12 +24,13 @@ impl ExcelInfo {
 pub struct ExcelColumnInfo {
     pub key: String,
     pub name: String,
+    pub width: Option<f64>,
 }
 
 #[wasm_bindgen]
 impl ExcelColumnInfo {
     #[wasm_bindgen(constructor)]
-    pub fn new(key: String, name: String) -> ExcelColumnInfo {
-        ExcelColumnInfo { key, name }
+    pub fn new(key: String, name: String, width: Option<f64>) -> ExcelColumnInfo {
+        ExcelColumnInfo { key, name, width }
     }
 }

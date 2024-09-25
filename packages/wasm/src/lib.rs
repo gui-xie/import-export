@@ -22,6 +22,11 @@ fn create_template_workbook(info: &ExcelInfo) -> Workbook {
         worksheet
             .write_string(0, i as u16, column.name.as_str())
             .expect("Cannot write to worksheet");
+        if column.width.is_some() {
+            worksheet
+                .set_column_width(i as u16, column.width.unwrap())
+                .expect("Cannot set column width");
+        }
     }
     workbook
 }
@@ -78,7 +83,9 @@ pub fn import_data(info: ExcelInfo, excel_bytes: &[u8]) -> ExcelData {
 #[wasm_bindgen(js_name = exportData)]
 pub fn export_data(info: ExcelInfo, data: ExcelData) -> Vec<u8> {
     let mut workbook = create_template_workbook(&info);
-    let worksheet = workbook.worksheet_from_name(&info.sheet_name).expect("Cannot get worksheet");
+    let worksheet = workbook
+        .worksheet_from_name(&info.sheet_name)
+        .expect("Cannot get worksheet");
     for (i, row) in data.rows.iter().enumerate() {
         for (j, column) in row.columns.iter().enumerate() {
             worksheet
@@ -86,9 +93,7 @@ pub fn export_data(info: ExcelInfo, data: ExcelData) -> Vec<u8> {
                 .expect("Cannot write to worksheet");
         }
     }
-    workbook
-        .save_to_buffer()
-        .expect("Cannot save workbook")
+    workbook.save_to_buffer().expect("Cannot save workbook")
 }
 
 #[cfg(test)]

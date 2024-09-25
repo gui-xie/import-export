@@ -1,4 +1,5 @@
-import initAsync, {
+import {
+  initSync,
   createTemplate,
   importData,
   exportData,
@@ -12,10 +13,10 @@ import { gunzipSync } from 'fflate';
 
 let wasmInitialized = false;
 
-async function initializeWasm() {
+function initializeWasm() {
   if (!wasmInitialized) {
     const wasm = gunzipSync(Uint8Array.from(atob(imexportWasm as any), c => c.charCodeAt(0)));
-    await initAsync(wasm);
+    initSync({ module: wasm });
     wasmInitialized = true;
   }
 }

@@ -9,7 +9,7 @@ import { ExcelDefinition } from "./types";
 export { ExcelDefinition } from "./types";
 export namespace Components {
     interface ImexportTable {
-        "epxortExcel": (data: any[]) => Promise<void>;
+        "exportExcel": (data: any[]) => Promise<void>;
         "exportExcelTemplate": () => Promise<void>;
         "importExcel": <T>(options?: { buffer?: Uint8Array; }) => Promise<void>;
         "info": ExcelDefinition;

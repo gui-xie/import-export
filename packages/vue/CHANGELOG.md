@@ -1,5 +1,13 @@
 # @senlinz/import-export-vue
 
+## 0.0.1-beta.5
+
+### Patch Changes
+
+- fix
+- Updated dependencies
+  - @senlinz/import-export@0.0.1-beta.5
+
 ## 0.0.1-beta.4
 
 ### Patch Changes

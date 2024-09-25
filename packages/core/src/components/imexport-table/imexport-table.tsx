@@ -34,7 +34,7 @@ export class ImexportTableComponent {
     buffer?: Uint8Array
   }) {
     const info = this.getInfo();
-    if (!!options.buffer) {
+    if (!!options?.buffer) {
       const items = await fromExcel<T>(info, options.buffer);
       this.imported.emit(items);
     } else {
@@ -48,7 +48,7 @@ export class ImexportTableComponent {
   }
 
   @Method()
-  async epxortExcel(data: any[]) {
+  async exportExcel(data: any[]) {
     const info = this.getInfo();
     this.setDownloadLink(info.name);
     const buffer = await toExcel(info, data);
@@ -77,7 +77,6 @@ export class ImexportTableComponent {
 
   private async exportTemplateHandler() {
     const info = this.getInfo();
-
     this.setDownloadLink(info.name);
     const excelTemplate = await createExcel(info);
     this.download(excelTemplate);
@@ -108,6 +107,7 @@ export class ImexportTableComponent {
       <button
         onClick={_ => this.exportTemplateHandler()}>Create Template</button><br />
       <input type="file"
+        accept='.xlsx,.xls,.xlsm,.xlsb,.xla,.xlam,.ods'
         onChange={event => this.onFileChange(event)}
         ref={(el) => this.fileInput = el as HTMLInputElement} />
       <a ref={(el) => this.linkInput = el as HTMLAnchorElement}></a>

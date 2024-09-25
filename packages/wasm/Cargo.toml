@@ -2,6 +2,9 @@
 name = "imexport-wasm"
 version = "0.0.1"
 edition = "2021"
+description = "Rust WebAssembly for import/export Excel files"
+repository = "https://github.com/gui-xie/import-export"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -17,3 +20,4 @@ rust_xlsxwriter = {version="0.75.0", features = ["wasm"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
+

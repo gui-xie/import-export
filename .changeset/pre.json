@@ -8,6 +8,7 @@
     "@senlinz/import-export-wasm": "0.0.1-beta.1"
   },
   "changesets": [
+    "breezy-crews-pretend",
     "khaki-oranges-admire",
     "strange-cheetahs-guess",
     "three-readers-act"
