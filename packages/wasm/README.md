@@ -19,13 +19,14 @@
     <title>Demo (@senlin/import-export-wasm)</title>
 </head>
 
-<button id="downloadTemplate">Download Template</button>
-<button id="exportWithData">Export With Data</button>
-<button id="importWithData">Import With Data</button>
-<a id="download" style="display: none"></a>
-<input type="file" accept=".xlsx" id="file" style="display: none">
 
 <body>
+    <button id="downloadTemplate">Download Template</button>
+    <button id="exportWithData">Export With Data</button>
+    <button id="importWithData">Import With Data</button>
+    <a id="download" style="display: none"></a>
+    <input type="file" accept=".xlsx" id="file" style="display: none">
+
     <script type="module">
         import initAsync, { createTemplate, exportData, importData, ExcelInfo, ExcelColumnInfo, ExcelData, ExcelRowData, ExcelColumnData } from 'https://cdn.jsdelivr.net/npm/@senlinz/import-export-wasm/pkg/imexport_wasm.js';
         await initAsync({ path: 'https://cdn.jsdelivr.net/npm/@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm' });
