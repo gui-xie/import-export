@@ -13,8 +13,7 @@
 
 ## Packages
 - **@senlinz/import-export**: The Stencil web component with the Rust WebAssembly core.
-- **@senlinz/import-export-wasm**: The Rust WebAssembly core library.
-    - README: [packages/wasm/README.md](./packages/wasm/README.md)
+- **[@senlinz/import-export-wasm](./packages/wasm/README.md)**: The Rust WebAssembly core library.
 - **@senlinz/import-export-vue**: The Vue wrapper for the Stencil web component.
 
 ## License
