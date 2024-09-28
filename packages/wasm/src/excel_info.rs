@@ -5,6 +5,7 @@ pub struct ExcelInfo {
     pub name: String,
     pub sheet_name: String,
     pub columns: Vec<ExcelColumnInfo>,
+    pub author: Option<String>,
 }
 
 #[wasm_bindgen]
@@ -15,6 +16,7 @@ impl ExcelInfo {
             name,
             sheet_name,
             columns,
+            author: None,
         }
     }
 }
@@ -26,6 +28,15 @@ pub struct ExcelColumnInfo {
     pub name: String,
     pub width: Option<f64>,
     pub note: Option<String>,
+    pub data_type: ExcelDataType,
+    pub allowed_values: Option<Vec<String>>,
+}
+
+#[wasm_bindgen]
+#[derive(Clone, PartialEq)]
+pub enum ExcelDataType {
+    Text,
+    Number,
 }
 
 #[wasm_bindgen]
@@ -37,6 +48,8 @@ impl ExcelColumnInfo {
             name,
             width,
             note: None,
+            data_type: ExcelDataType::Text,
+            allowed_values: None
         }
     }
 }

@@ -19,17 +19,18 @@
     <title>Demo (@senlin/import-export-wasm)</title>
 </head>
 
-<body>
-    <button id="downloadTemplate">Download Template</button>
-    <button id="exportWithData">Export With Data</button>
-    <button id="importWithData">Import With Data</button>
-    <a id="download" style="display: none"></a>
-    <input type="file" accept=".xlsx" id="file" style="display: none">
+<button id="downloadTemplate">Download Template</button>
+<button id="exportWithData">Export With Data</button>
+<button id="importWithData">Import With Data</button>
+<a id="download" style="display: none"></a>
+<input type="file" accept=".xlsx" id="file" style="display: none">
 
+
+<body>
     <script type="module">
-        import initAsync, { createTemplate, exportData, importData, ExcelInfo, ExcelColumnInfo, ExcelData, ExcelRowData, ExcelColumnData } from 'https://cdn.jsdelivr.net/npm/@senlinz/import-export-wasm/pkg/imexport_wasm.js';
-        await initAsync({ path: 'https://cdn.jsdelivr.net/npm/@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm' });
-        
+        import initAsync, { createTemplate, exportData, importData, ExcelInfo, ExcelColumnInfo, ExcelData, ExcelRowData, ExcelColumnData, ExcelDataType } from './imexport_wasm.js';
+        await initAsync({ path: './imexport_wasm_bg.wasm' });
+
         const downloadEl = document.getElementById('download');
         const fileEl = document.getElementById('file');
 
@@ -37,9 +38,6 @@
         document.getElementById('downloadTemplate').addEventListener('click', downloadTemplate);
         document.getElementById('exportWithData').addEventListener('click', exportWithData);
         document.getElementById('importWithData').addEventListener('click', importWithData);
-
-        const res = await fetch('https://cdn.jsdelivr.net/npm/@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm');
-        const bytes = await res.arrayBuffer();
 
         function downloadTemplate() {
             const info = getExcelInfo();
@@ -90,10 +88,16 @@
 
         function getExcelInfo() {
             const excelName = "TomAndJerry";
+            const category = new ExcelColumnInfo("category", "Category");
+            category.width = 30;
+            category.note = "This is a category";
+            category.allowed_values = ["Cat", "Mouse"];
+            const age = new ExcelColumnInfo("age", "Age");
+            age.data_type = ExcelDataType.Number;
             const columns = [
                 new ExcelColumnInfo("name", "Name", 20),
-                new ExcelColumnInfo("age", "Age"),
-                new ExcelColumnInfo("category", "Category")
+                age,
+                category
             ];
             const info = new ExcelInfo(excelName, "sheet1", columns);
             return info;

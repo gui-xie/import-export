@@ -14,29 +14,17 @@ pub use excel_info::ExcelInfo;
 
 #[wasm_bindgen(js_name= createTemplate)]
 pub fn create_template(info: ExcelInfo) -> Result<Vec<u8>, JsValue> {
-    let workbook = create_template_buffer(&info);
-    if let Err(e) = workbook {
-        return Err(JsValue::from_str(&format!("{}", e)));
-    }
-    Ok(workbook.unwrap())
+    create_template_buffer(&info).map_err(|e| JsValue::from_str(&format!("{}", e)))
 }
 
 #[wasm_bindgen(js_name = importData)]
 pub fn import_data(info: ExcelInfo, excel_bytes: &[u8]) -> Result<ExcelData, JsValue> {
-    let data = import_data_buffer(info, excel_bytes);
-    if let Err(e) = data {
-        return Err(JsValue::from_str(&format!("{}", e)));
-    }
-    Ok(data.unwrap())
+    import_data_buffer(info, excel_bytes).map_err(|e| JsValue::from_str(&format!("{}", e)))
 }
 
 #[wasm_bindgen(js_name = exportData)]
 pub fn export_data(info: ExcelInfo, data: ExcelData) -> Result<Vec<u8>, JsValue> {
-    let buffer = export_data_buffer(&info, &data);
-    if let Err(e) = buffer {
-        return Err(JsValue::from_str(&format!("{}", e)));
-    }
-    Ok(buffer.unwrap())
+    export_data_buffer(&info, &data).map_err(|e| JsValue::from_str(&format!("{}", e)))
 }
 
 fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
@@ -56,6 +44,39 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
     Ok(workbook)
 }
 
+fn get_columns_index<'a>(
+    columns: &'a [ExcelColumnInfo],
+    range: &'a calamine::Range<calamine::Data>,
+) -> Vec<(usize, String)> {
+    let mut result = Vec::new();
+    for (i, value) in range[0].iter().enumerate() {
+        let column = columns.iter().find(|c| c.name == value.to_string());
+        if let Some(column) = column {
+            result.push((i, column.key.clone()));
+        }
+    }
+    result
+}
+
+fn get_rows_data<'a>(
+    columns: &'a Vec<(usize, String)>,
+    range: &'a calamine::Range<calamine::Data>,
+) -> Vec<ExcelRowData> {
+    range
+        .rows()
+        .skip(1)
+        .map(|r| ExcelRowData {
+            columns: columns
+                .iter()
+                .map(|(i, key)| ExcelColumnData {
+                    key: key.clone(),
+                    value: r.get(*i).unwrap_or(&calamine::Data::Empty).to_string(),
+                })
+                .collect(),
+        })
+        .collect()
+}
+
 fn import_data_buffer(
     info: ExcelInfo,
     excel_bytes: &[u8],
@@ -64,56 +85,62 @@ fn import_data_buffer(
     let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor)?;
     let mut excel_data = ExcelData { rows: Vec::new() };
     let range = workbook.worksheet_range(info.sheet_name.as_str())?;
+    let columns: Vec<(usize, String)> = get_columns_index(&info.columns, &range);
 
-    let columns: Vec<(usize, String)> = range
-        .rows()
-        .next()
-        .ok_or("No rows")? // Converts None to an error
-        .iter()
-        .enumerate()
-        .filter_map(|(col, value)| {
-            let column_name = value.to_string();
-            info.columns
-                .iter()
-                .find(|c| c.name == column_name)
-                .map(|column_info| (col, column_info.key.clone()))
-        })
-        .collect();
-
-    excel_data.rows = range
-        .rows()
-        .skip(1)
-        .map(|r| ExcelRowData {
-            columns: r
-                .iter()
-                .enumerate()
-                .filter_map(|(i, value)| {
-                    let column = columns.iter().find(|c| c.0 == i);
-                    if let Some((_, key)) = column {
-                        Some(ExcelColumnData {
-                            key: key.clone(),
-                            value: value.to_string(),
-                        })
-                    } else {
-                        None
-                    }
-                })
-                .collect(),
-        })
-        .collect();
+    excel_data.rows = get_rows_data(&columns, &range);
 
     Ok(excel_data)
 }
 
-fn export_data_buffer(info: &ExcelInfo, data: &ExcelData) -> Result<Vec<u8>, XlsxError> {
+fn export_data_buffer(
+    info: &ExcelInfo,
+    data: &ExcelData,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let mut workbook = create_template_workbook(&info)?;
-    let worksheet = workbook.worksheet_from_name(&info.sheet_name)?;
-    for (i, row) in data.rows.iter().enumerate() {
-        for (j, column) in row.columns.iter().enumerate() {
-            worksheet.write_string((i + 1) as u32, j as u16, column.value.as_str())?;
+    let is_number_column = info
+        .columns
+        .iter()
+        .map(|c| c.data_type == excel_info::ExcelDataType::Number)
+        .collect::<Vec<bool>>();
+    let mut worksheet = workbook.worksheet_from_name(&info.sheet_name)?;
+    let mut data_len = 0;
+    for (row_idx, row) in data.rows.iter().enumerate() {
+        data_len += 1;
+        for (col_idx, column) in row.columns.iter().enumerate() {
+            if column.value.is_empty() {
+                continue;
+            }
+            let cell_row = (row_idx + 1) as u32;
+            let cell_col = col_idx as u16;
+            if is_number_column[col_idx] {
+                worksheet.write_number(cell_row, cell_col, column.value.parse::<f64>()?)?;
+            } else {
+                worksheet.write_string(cell_row, cell_col, column.value.as_str())?;
+            }
         }
     }
+
+    info.columns.iter().enumerate().for_each(|(i, column)| {
+        add_data_validation(&mut worksheet, column, i as u16, data_len).unwrap();
+    });
+
     Ok(workbook.save_to_buffer()?)
+}
+
+fn add_data_validation(
+    worksheet: &mut Worksheet,
+    column: &ExcelColumnInfo,
+    column_index: u16,
+    last_row: u32,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let allowed_values = column.allowed_values.as_ref();
+    if allowed_values.is_none() {
+        return Ok(());
+    }
+    let allowed_values = allowed_values.unwrap();
+    let data_validation = DataValidation::new().allow_list_strings(allowed_values)?;
+    worksheet.add_data_validation(1, column_index, last_row, column_index, &data_validation)?;
+    Ok(())
 }
 
 fn create_template_buffer(info: &ExcelInfo) -> Result<Vec<u8>, XlsxError> {
@@ -136,11 +163,8 @@ mod tests {
             excel_info::ExcelColumnInfo::new("name".to_string(), "Name".to_string(), None),
             excel_info::ExcelColumnInfo::new("age".to_string(), "Age".to_string(), None),
         ];
-        let info = ExcelInfo {
-            name: "TestWorkbook".to_string(),
-            sheet_name: "sheet1".to_string(),
-            columns,
-        };
+        let info =
+            excel_info::ExcelInfo::new("TestWorkbook".to_string(), "sheet1".to_string(), columns);
 
         let excel_bytes: &[u8] = include_bytes!("./user-test.xlsx");
 
