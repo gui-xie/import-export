@@ -9,7 +9,7 @@ import {
 import { EventEmitter } from 'stream';
 import { type ExcelDefinition } from '../../types';
 import { fromExcel, toExcel, createExcel, initializeWasm } from '../../utils/utils';
-import { ExcelInfo, ExcelColumnInfo } from '@senlinz/import-export-wasm';
+import { ExcelInfo, ExcelColumnInfo, ExcelDataType } from '@senlinz/import-export-wasm';
 
 @Component({
   tag: 'imexport-table',
@@ -18,24 +18,24 @@ import { ExcelInfo, ExcelColumnInfo } from '@senlinz/import-export-wasm';
 })
 export class ImexportTableComponent {
   @Prop()
-  info: ExcelDefinition = {
+  info?: ExcelDefinition = {
     name: 'senlin',
     sheetName: 'senlin_sheet',
     columns: [
-      { key: 'name', name: 'Name' },
-      { key: 'age', name: 'Age' }
+      { key: 'name', name: 'Name', dataType: ExcelDataType.Text },
+      { key: 'age', name: 'Age', dataType: ExcelDataType.Number },
     ]
   }
 
   @Event() imported: EventEmitter<any>;
 
   @Method()
-  async importExcel<T>(options?: {
+  async importExcel(options?: {
     buffer?: Uint8Array
   }) {
     const info = this.getInfo();
     if (!!options?.buffer) {
-      const items = await fromExcel<T>(info, options.buffer);
+      const items = await fromExcel(info, options.buffer);
       this.imported.emit(items);
     } else {
       this.fileInput.click();
@@ -83,11 +83,20 @@ export class ImexportTableComponent {
   }
 
   private getInfo(): ExcelInfo {
-    return new ExcelInfo(
+    var info = new ExcelInfo(
       this.info.name,
       this.info.sheetName,
-      this.info.columns.map(c => new ExcelColumnInfo(c.key, c.name))
+      this.info.columns.map(c => {
+        const column = new ExcelColumnInfo(c.key, c.name);
+        column.data_type = c.dataType;
+        column.width = c.width;
+        column.note = c.note;
+        column.allowed_values = c.allowedValues;
+        return column;
+      })
     );
+    info.author = this.info.author;
+    return info;
   }
 
   private onFileChange(event: Event) {
@@ -102,15 +111,22 @@ export class ImexportTableComponent {
     reader.readAsArrayBuffer(file);
   }
 
+  private exportDataToExcel() {
+    // this.exportExcel(this.data);
+  }
+
   render() {
     return (<>
       <button
-        onClick={_ => this.exportTemplateHandler()}>Create Template</button><br />
+        onClick={_ => this.exportTemplateHandler()}>Download Template</button><br />
+      <button
+        onClick={_ => this.exportDataToExcel()}>Export Excel</button><br />
       <input type="file"
         accept='.xlsx,.xls,.xlsm,.xlsb,.xla,.xlam,.ods'
         onChange={event => this.onFileChange(event)}
         ref={(el) => this.fileInput = el as HTMLInputElement} />
       <a ref={(el) => this.linkInput = el as HTMLAnchorElement}></a>
+
     </>);
   }
 }

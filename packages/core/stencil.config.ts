@@ -5,20 +5,20 @@ import terser from '@rollup/plugin-terser';
 import { OutputTarget } from '@stencil/core/internal';
 
 export const config: Config = {
-  namespace: 'imexport-table',
+  namespace: 'import-export',
   outputTargets: [
     {
       type: 'dist-custom-elements',
       customElementsExportBehavior: 'auto-define-custom-elements',
       externalRuntime: false,
       minify: true,
-      sourceMap: false
+      sourcedMap: false
     },
     vueOutputTarget({
       componentCorePackage: '@senlinz/import-export',
       proxiesFile: '../vue/lib/proxies.ts',
       includeImportCustomElements: true
-    })
+    }),
   ] as OutputTarget[],
   testing: {
     browserHeadless: "new",

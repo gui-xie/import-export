@@ -11,8 +11,8 @@ export namespace Components {
     interface ImexportTable {
         "exportExcel": (data: any[]) => Promise<void>;
         "exportExcelTemplate": () => Promise<void>;
-        "importExcel": <T>(options?: { buffer?: Uint8Array; }) => Promise<void>;
-        "info": ExcelDefinition;
+        "importExcel": (options?: { buffer?: Uint8Array; }) => Promise<void>;
+        "info"?: ExcelDefinition;
     }
 }
 export interface ImexportTableCustomEvent<T> extends CustomEvent<T> {
