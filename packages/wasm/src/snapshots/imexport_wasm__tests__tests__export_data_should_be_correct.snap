@@ -1,0 +1,7 @@
+---
+source: src/tests.rs
+assertion_line: 54
+expression: result
+extension: xlsx
+snapshot_kind: binary
+---

@@ -1,0 +1,27 @@
+---
+source: src/tests.rs
+assertion_line: 25
+expression: snapshot
+snapshot_kind: text
+---
+ExcelData:
+  - ExcelRowData:
+    - ExcelColumnData:
+      key: name
+      value: Tom
+    - ExcelColumnData:
+      key: age
+      value: 3
+    - ExcelColumnData:
+      key: category
+      value: Cat
+  - ExcelRowData:
+    - ExcelColumnData:
+      key: name
+      value: Jerry
+    - ExcelColumnData:
+      key: age
+      value: 1
+    - ExcelColumnData:
+      key: category
+      value: Mouse

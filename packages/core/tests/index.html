@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IMPORT-EXPORT-TEST</title>
+</head>
+<button id="btnImport">Import</button>
+<button id="btnExport">Export</button>
+<button id="btnDownloadTemplate">Download Template</button>
+
+<body>
+  <script type="module">
+    import { getUtils } from './dist/index.js';
+    const {
+      importExcel,
+      exportExcel,
+      downloadExcelTemplate
+    } = getUtils();
+
+    const excelInfo = {
+      name: 'TomAndJerry',
+      sheetName: 'sheet1',
+      columns: [
+        { key: 'name', name: 'Name', dataType: 0, width: 20, note: 'required' },
+        { key: 'age', name: 'Age', dataType: 1, width: 4 },
+        { key: 'category', name: 'Category', dataType: 0, allowedValues: ['Cat', 'Mouse'] }
+      ],
+      author: 'senlinz'
+    };
+
+    btnImport.addEventListener('click', importClick);
+    btnExport.addEventListener('click', exportClick);
+    btnDownloadTemplate.addEventListener('click', downloadTemplateClick);
+
+    function exportClick() {
+      exportExcel(excelInfo, [
+        { name: 'Tom', age: 12, category: 'Cat' },
+        { name: 'Jerry', age: 13, category: 'Mouse' }
+      ]);
+    }
+
+    function importClick() {
+      importExcel(excelInfo).then(data => {
+        console.log('imported data:', data);
+      });
+    }
+
+    function downloadTemplateClick() {
+      downloadExcelTemplate(excelInfo);
+    }
+  </script>
+</body>
+
+</html>

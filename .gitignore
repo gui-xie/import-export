@@ -14,7 +14,9 @@ log.txt
 
 .stencil/
 .idea/
-.vscode/
+!.vscode/launch.json
+!.vscode/extensions.json
+.vscode/settings.json
 .sass-cache/
 .versions/
 node_modules/
@@ -26,3 +28,8 @@ UserInterfaceState.xcuserstate
 .env
 .nx/
 # examples/
+
+test-results/
+tests/dist/
+coverage/
+test-download/

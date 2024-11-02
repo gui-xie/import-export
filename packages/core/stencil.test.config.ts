@@ -1,6 +1,5 @@
 import { Config } from '@stencil/core';
 import imexportWasm from './rollup-plugin-imexport-wasm';
-import { vueOutputTarget } from '@stencil/vue-output-target';
 import terser from '@rollup/plugin-terser';
 import { OutputTarget } from '@stencil/core/internal';
 
@@ -12,18 +11,9 @@ export const config: Config = {
       customElementsExportBehavior: 'auto-define-custom-elements',
       externalRuntime: false,
       minify: true,
-      sourcedMap: false
-    },
-    vueOutputTarget({
-      componentCorePackage: '@senlinz/import-export',
-      proxiesFile: '../vue/lib/proxies.ts',
-      includeImportCustomElements: true
-    }),
+      dir: 'tests/dist/'
+    }
   ] as OutputTarget[],
-  testing: {
-    browserHeadless: false,
-    testRegex: ['src/.*\\.spec\\.(ts|tsx)$']
-  },
   rollupPlugins: {
     before: [imexportWasm(), terser()]
   }

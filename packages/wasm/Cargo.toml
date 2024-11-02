@@ -23,6 +23,7 @@ console_error_panic_hook = {version = "0.1.7", optional = true }
 rust_xlsxwriter = {version="0.77", features = ["wasm", "default"] }
 
 [dev-dependencies]
+insta = "1.16.0"
 wasm-bindgen-test = "0.3"
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]

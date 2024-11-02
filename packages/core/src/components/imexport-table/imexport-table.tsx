@@ -3,13 +3,11 @@ import {
   Prop,
   h,
   Fragment,
-  Event,
-  Method
+  Event
 } from '@stencil/core';
 import { EventEmitter } from 'stream';
-import { type ExcelDefinition } from '../../types';
-import { fromExcel, toExcel, createExcel, initializeWasm } from '../../utils/utils';
-import { ExcelInfo, ExcelColumnInfo, ExcelDataType } from '@senlinz/import-export-wasm';
+import { type ExcelDefinition } from '../../declarations/ExcelDefintion';
+import { fromExcel, toExcel, initializeWasm, downloadExcelTemplate } from '../../utils/utils';
 
 @Component({
   tag: 'imexport-table',
@@ -18,40 +16,28 @@ import { ExcelInfo, ExcelColumnInfo, ExcelDataType } from '@senlinz/import-expor
 })
 export class ImexportTableComponent {
   @Prop()
-  info?: ExcelDefinition = {
-    name: 'senlin',
-    sheetName: 'senlin_sheet',
-    columns: [
-      { key: 'name', name: 'Name', dataType: ExcelDataType.Text },
-      { key: 'age', name: 'Age', dataType: ExcelDataType.Number },
-    ]
-  }
+  info: ExcelDefinition;
 
   @Event() imported: EventEmitter<any>;
 
-  @Method()
   async importExcel(options?: {
     buffer?: Uint8Array
   }) {
-    const info = this.getInfo();
     if (!!options?.buffer) {
-      const items = await fromExcel(info, options.buffer);
+      const items = await fromExcel(this.info, options.buffer);
       this.imported.emit(items);
     } else {
       this.fileInput.click();
     }
   }
 
-  @Method()
-  async exportExcelTemplate() {
-    this.exportTemplateHandler();
+  async downloadExcelTemplate() {
+    downloadExcelTemplate(this.info);
   }
 
-  @Method()
   async exportExcel(data: any[]) {
-    const info = this.getInfo();
-    this.setDownloadLink(info.name);
-    const buffer = await toExcel(info, data);
+    this.setDownloadLink(this.info.name);
+    const buffer = await toExcel(this.info, data);
     this.download(buffer);
   }
 
@@ -75,37 +61,12 @@ export class ImexportTableComponent {
     this.linkInput.click();
   }
 
-  private async exportTemplateHandler() {
-    const info = this.getInfo();
-    this.setDownloadLink(info.name);
-    const excelTemplate = await createExcel(info);
-    this.download(excelTemplate);
-  }
-
-  private getInfo(): ExcelInfo {
-    var info = new ExcelInfo(
-      this.info.name,
-      this.info.sheetName,
-      this.info.columns.map(c => {
-        const column = new ExcelColumnInfo(c.key, c.name);
-        column.data_type = c.dataType;
-        column.width = c.width;
-        column.note = c.note;
-        column.allowed_values = c.allowedValues;
-        return column;
-      })
-    );
-    info.author = this.info.author;
-    return info;
-  }
-
   private onFileChange(event: Event) {
-    var info = this.getInfo();
     const file = (event.target as HTMLInputElement).files[0];
     const reader = new FileReader();
     reader.onload = async () => {
       const buffer = new Uint8Array(reader.result as ArrayBuffer);
-      const items = await fromExcel(info, buffer);
+      const items = await fromExcel(this.info, buffer);
       this.imported.emit(items);
     };
     reader.readAsArrayBuffer(file);
@@ -117,17 +78,15 @@ export class ImexportTableComponent {
 
   render() {
     return (<>
+      <table-definition definition={this.info} ></table-definition>
       <button
-        onClick={_ => this.exportTemplateHandler()}>Download Template</button><br />
+        onClick={this.downloadExcelTemplate}>Download Template</button><br />
       <button
-        onClick={_ => this.exportDataToExcel()}>Export Excel</button><br />
+        onClick={this.exportDataToExcel}>Export Excel</button><br />
       <input type="file"
         accept='.xlsx,.xls,.xlsm,.xlsb,.xla,.xlam,.ods'
-        onChange={event => this.onFileChange(event)}
+        onChange={this.onFileChange}
         ref={(el) => this.fileInput = el as HTMLInputElement} />
-      <a ref={(el) => this.linkInput = el as HTMLAnchorElement}></a>
-
     </>);
   }
 }
-

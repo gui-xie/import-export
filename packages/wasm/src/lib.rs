@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::*;
 
 mod excel_data;
 mod excel_info;
+mod tests;
 
 pub use excel_data::ExcelColumnData;
 pub use excel_data::ExcelData;
@@ -37,10 +38,20 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
             worksheet.set_column_width(i as u16, width)?;
         }
         if let Some(note) = column.note.as_ref() {
-            let note = Note::new(note.clone()).add_author_prefix(false);
+            let note = Note::new(note.clone()).set_author(info.author.clone());
             worksheet.insert_note(0, i as u16, &note)?;
         }
     }
+
+    let create_time =
+        ExcelDateTime::parse_from_str(&info.create_time).map_err(|e| XlsxError::from(e))?;
+
+    let properties = DocProperties::new()
+        .set_title(info.name.clone())
+        .set_author(info.author.clone().as_str())
+        .set_creation_datetime(&create_time);
+
+    workbook.set_properties(&properties);
     Ok(workbook)
 }
 
@@ -147,36 +158,4 @@ fn create_template_buffer(info: &ExcelInfo) -> Result<Vec<u8>, XlsxError> {
     let mut workbook = create_template_workbook(&info)?;
     let buffer = workbook.save_to_buffer()?;
     Ok(buffer)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use wasm_bindgen_test::*;
-
-    wasm_bindgen_test_configure!(run_in_browser);
-
-    #[wasm_bindgen_test]
-    #[test]
-    fn test_get_data() {
-        let columns = vec![
-            excel_info::ExcelColumnInfo::new("name".to_string(), "Name".to_string(), None),
-            excel_info::ExcelColumnInfo::new("age".to_string(), "Age".to_string(), None),
-        ];
-        let info =
-            excel_info::ExcelInfo::new("TestWorkbook".to_string(), "sheet1".to_string(), columns);
-
-        let excel_bytes: &[u8] = include_bytes!("./user-test.xlsx");
-
-        let result = import_data(info, excel_bytes);
-
-        assert!(result.is_ok());
-        let result = result.unwrap();
-        assert_eq!(result.rows.len(), 2);
-        assert_eq!(result.rows[0].columns.len(), 2);
-        assert_eq!(result.rows[0].columns[0].key, "name");
-        assert_eq!(result.rows[0].columns[0].value, "senlin");
-        assert_eq!(result.rows[0].columns[1].key, "age");
-        assert_eq!(result.rows[0].columns[1].value, "3");
-    }
 }

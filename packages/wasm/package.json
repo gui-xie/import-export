@@ -6,9 +6,10 @@
   "types": "pkg/imexport_wasm.d.ts",
   "scripts": {
     "build": "wasm-pack build --release --target web",
-    "test": "wasm-pack test --headless --firefox",
     "publish-dry-run": "pnpm publish --dry-run --no-git-checks",
-    "cargo-test": "cargo test"
+    "cargo-test": "cargo test --lib",
+    "e2e-serve": "wasm-pack build --release --target web -d tests/dist && serve -l 8080 ./tests",
+    "e2e-test": "playwright test"
   },
   "files": [
     "pkg/imexport_wasm_bg.wasm",

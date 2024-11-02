@@ -18,7 +18,8 @@
     "jsxFragmentFactory": "Fragment"
   },
   "include": [
-    "src"
+    "src",
+    "tests/**/*.ts"
   ],
   "exclude": [
     "node_modules"

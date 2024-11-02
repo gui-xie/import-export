@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Senlinz Import Export Wasm Test</title>
+</head>
+
+<body>
+    <button id="btnImport">Import</button>
+    <button id="btnExport">Export</button>
+    <button id="btnDownloadTemplate">Download Template</button>
+    <div id="importOutput"></div>
+    <script type="module">
+        import init, { importData, createTemplate, exportData, ExcelInfo, ExcelColumnInfo, ExcelData, ExcelRowData, ExcelColumnData, ExcelDataType } from './dist/imexport_wasm.js';
+        await init();
+
+        const btnImport = document.getElementById('btnImport');
+        const btnExport = document.getElementById('btnExport');
+        const btnDownloadTemplate = document.getElementById('btnDownloadTemplate');
+
+        btnImport.addEventListener('click', importClick);
+        btnExport.addEventListener('click', exportClick);
+        btnDownloadTemplate.addEventListener('click', downloadTemplateClick);
+
+        function downloadTemplateClick() {
+            const info = getExcelInfo();
+            const name = info.name;
+            const templateData = createTemplate(info);
+            download(templateData, name);
+        }
+
+        function exportClick() {
+            const info = getExcelInfo();
+            const name = info.name;
+            const data = getExcelData();
+            const excelData = exportData(info, data);
+            download(excelData, name);
+        }
+
+        function importClick() {
+            document.getElementById('fileInput')?.remove();
+            const input = document.createElement('input');
+            input.id = 'fileInput';
+            input.type = 'file';
+            input.accept = '.xlsx';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                const buffer = await file.arrayBuffer();
+                const data = new Uint8Array(buffer);
+                const result = importData(getExcelInfo(), data);
+                document.getElementById('importOutput').innerText = JSON.stringify(toJson(result), null);
+            };
+            input.click();
+        }
+
+        function toJson(data) {
+            const result = [];
+            const rows = data.rows;
+            const rowsLen = rows.length;
+            for (let i = 0; i < rowsLen; i++) {
+                const row = rows[i];
+                const rowData = {};
+                const columns = row.columns;
+                const columnsLen = columns.length;
+                for (let j = 0; j < columnsLen; j++) {
+                    const column = columns[j];
+                    rowData[column.key] = column.value;
+                }
+                result.push(rowData);
+            }
+            return result;
+        }
+
+        function getExcelData() {
+            return new ExcelData([
+                new ExcelRowData(
+                    [
+                        new ExcelColumnData('name', 'Tom'),
+                        new ExcelColumnData('age', '12'),
+                        new ExcelColumnData('category', 'Cat')
+                    ]
+                ),
+                new ExcelRowData(
+                    [
+                        new ExcelColumnData('name', 'Jerry'),
+                        new ExcelColumnData('age', '13'),
+                        new ExcelColumnData('category', 'Mouse')
+                    ]
+                )
+            ]);
+        }
+
+        function getExcelInfo() {
+            const nameColumn = new ExcelColumnInfo('name', 'Name', 20);
+            nameColumn.setNote('Required');
+            const ageColumn = new ExcelColumnInfo('age', 'Age', 10);
+            ageColumn.setDataType(ExcelDataType.Number);
+            const categoryColumn = new ExcelColumnInfo('category', 'Category', 20);
+            categoryColumn.setAllowedValues(['Cat', 'Mouse']);
+            const info = new ExcelInfo(
+                'TomAndJerry',
+                'sheet1',
+                [nameColumn, ageColumn, categoryColumn],
+                'senlinz',
+                '2024-11-01T08:00:00Z'
+            );
+            return info;
+        }
+
+        function download(data, name) {
+            const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            document.getElementById('downloadTemplate')?.remove();
+            const a = document.createElement('a');
+            a.id = 'downloadTemplate';
+            a.href = url;
+            a.download = name + '.xlsx';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>

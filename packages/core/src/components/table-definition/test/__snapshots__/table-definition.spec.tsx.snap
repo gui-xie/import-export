@@ -1,0 +1,82 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`table-definition renders 1`] = `
+<table-definition>
+  <template shadowrootmode="open">
+    <div class="table-definition">
+      <h2 class="definition-name">
+        TomAndJerry
+      </h2>
+      <h3>
+        Sheet: Sheet1
+      </h3>
+      <table>
+        <thead>
+          <tr>
+            <th>
+              Key
+            </th>
+            <th>
+              Name
+            </th>
+            <th>
+              Width
+            </th>
+            <th>
+              Note
+            </th>
+            <th>
+              Data Type
+            </th>
+            <th>
+              Allowed Values
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              name
+            </td>
+            <td>
+              Name
+            </td>
+            <td>
+              N/A
+            </td>
+            <td>
+              N/A
+            </td>
+            <td>
+              N/A
+            </td>
+            <td>
+              N/A
+            </td>
+          </tr>
+          <tr>
+            <td>
+              birth
+            </td>
+            <td>
+              Birth
+            </td>
+            <td>
+              N/A
+            </td>
+            <td>
+              N/A
+            </td>
+            <td>
+              N/A
+            </td>
+            <td>
+              N/A
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </template>
+</table-definition>
+`;

@@ -5,14 +5,14 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { ExcelDefinition } from "./types";
-export { ExcelDefinition } from "./types";
+import { ExcelDefinition } from "./declarations/ExcelDefintion";
+export { ExcelDefinition } from "./declarations/ExcelDefintion";
 export namespace Components {
     interface ImexportTable {
-        "exportExcel": (data: any[]) => Promise<void>;
-        "exportExcelTemplate": () => Promise<void>;
-        "importExcel": (options?: { buffer?: Uint8Array; }) => Promise<void>;
-        "info"?: ExcelDefinition;
+        "info": ExcelDefinition;
+    }
+    interface TableDefinition {
+        "definition"?: ExcelDefinition;
     }
 }
 export interface ImexportTableCustomEvent<T> extends CustomEvent<T> {
@@ -37,8 +37,15 @@ declare global {
         prototype: HTMLImexportTableElement;
         new (): HTMLImexportTableElement;
     };
+    interface HTMLTableDefinitionElement extends Components.TableDefinition, HTMLStencilElement {
+    }
+    var HTMLTableDefinitionElement: {
+        prototype: HTMLTableDefinitionElement;
+        new (): HTMLTableDefinitionElement;
+    };
     interface HTMLElementTagNameMap {
         "imexport-table": HTMLImexportTableElement;
+        "table-definition": HTMLTableDefinitionElement;
     }
 }
 declare namespace LocalJSX {
@@ -46,8 +53,12 @@ declare namespace LocalJSX {
         "info"?: ExcelDefinition;
         "onImported"?: (event: ImexportTableCustomEvent<any>) => void;
     }
+    interface TableDefinition {
+        "definition"?: ExcelDefinition;
+    }
     interface IntrinsicElements {
         "imexport-table": ImexportTable;
+        "table-definition": TableDefinition;
     }
 }
 export { LocalJSX as JSX };
@@ -55,6 +66,7 @@ declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
             "imexport-table": LocalJSX.ImexportTable & JSXBase.HTMLAttributes<HTMLImexportTableElement>;
+            "table-definition": LocalJSX.TableDefinition & JSXBase.HTMLAttributes<HTMLTableDefinitionElement>;
         }
     }
 }

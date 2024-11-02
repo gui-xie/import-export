@@ -5,18 +5,26 @@ pub struct ExcelInfo {
     pub name: String,
     pub sheet_name: String,
     pub columns: Vec<ExcelColumnInfo>,
-    pub author: Option<String>,
+    pub author: String,
+    pub create_time: String,
 }
 
 #[wasm_bindgen]
 impl ExcelInfo {
     #[wasm_bindgen(constructor)]
-    pub fn new(name: String, sheet_name: String, columns: Vec<ExcelColumnInfo>) -> ExcelInfo {
+    pub fn new(
+        name: String,
+        sheet_name: String,
+        columns: Vec<ExcelColumnInfo>,
+        author: String,
+        create_time: String,
+    ) -> ExcelInfo {
         ExcelInfo {
             name,
             sheet_name,
             columns,
-            author: None,
+            author,
+            create_time,
         }
     }
 }
@@ -49,7 +57,22 @@ impl ExcelColumnInfo {
             width,
             note: None,
             data_type: ExcelDataType::Text,
-            allowed_values: None
+            allowed_values: None,
         }
+    }
+
+    #[wasm_bindgen(js_name = setNote)]
+    pub fn set_note(&mut self, note: String) {
+        self.note = Some(note);
+    }
+
+    #[wasm_bindgen(js_name = setDataType)]
+    pub fn set_data_type(&mut self, data_type: ExcelDataType) {
+        self.data_type = data_type;
+    }
+
+    #[wasm_bindgen(js_name = setAllowedValues)]
+    pub fn set_allowed_values(&mut self, allowed_values: Vec<String>) {
+        self.allowed_values = Some(allowed_values);
     }
 }
