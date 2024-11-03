@@ -12,7 +12,7 @@ export namespace Components {
         "info": ExcelDefinition;
     }
     interface TableDefinition {
-        "definition"?: ExcelDefinition;
+        "definition": ExcelDefinition;
     }
 }
 export interface ImexportTableCustomEvent<T> extends CustomEvent<T> {

@@ -1,9 +1,6 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
-import { getXlsxFileHash } from './utils/xlsxUtils';
-import { cleanupFiles, cleanupDirectories } from './utils/cleanupUtils';
 
 test.describe('import-export', () => {
   test.beforeEach(async ({ page }) => {
@@ -12,9 +9,7 @@ test.describe('import-export', () => {
 
   test('download template should work correctly', async ({ page }) => {
     // Arrange
-    const downloadPath = fs.mkdtempSync(path.join(os.tmpdir(), 'senlinz-import-export-download'));
-    const fileName = 'TomAndJerry.xlsx';
-    const downloadFilePath = path.join(downloadPath, fileName);
+    const downloadFolder = fs.mkdtempSync(path.join(__dirname, 'downloaded'));
 
     try {
       // Act
@@ -22,15 +17,50 @@ test.describe('import-export', () => {
         page.waitForEvent('download'),
         page.click('#btnDownloadTemplate'),
       ]);
+      const fileName = `template-${download.suggestedFilename()}`;
+      const downloadFilePath = path.join(downloadFolder, fileName);
       await download.saveAs(downloadFilePath);
+      const stream = fs.readFileSync(downloadFilePath);
 
       // Assert
-      expect(fs.existsSync(downloadFilePath)).toBeTruthy();
-      expect(getXlsxFileHash(downloadFilePath)).toMatchSnapshot();
+      expect(stream).toMatchSnapshot(fileName);
+
     } finally {
-      // Clean up
-      cleanupFiles([downloadFilePath]);
-      cleanupDirectories([downloadPath]);
+      fs.rmSync(downloadFolder, { recursive: true });
+    }
+  });
+
+  test('export and import should work correctly', async ({ page }) => {
+    // Arrange
+    const downloadFolder = fs.mkdtempSync(path.join(__dirname, 'downloaded'));
+    const filePath = path.join(downloadFolder, 'TomAndJerry.xlsx');
+
+    try {
+      // Act - Export
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.click('#btnExport')
+      ]);
+
+      await download.saveAs(filePath);
+
+      // Assert - Export
+      expect(fs.existsSync(filePath)).toBeTruthy();
+
+      // Act - Import
+      const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        page.click('#btnImport')
+      ]);
+
+      await fileChooser.setFiles(filePath);
+      await page.waitForSelector('#importOutput');
+
+      // Assert - Import
+      const importOutput = await page.textContent('#importOutput');
+      expect(importOutput).toBe('[{"name":"Tom","age":12,"category":"Cat"},{"name":"Jerry","age":13,"category":"Mouse"}]');
+    } finally {
+      fs.rmSync(downloadFolder, { recursive: true });
     }
   });
 });

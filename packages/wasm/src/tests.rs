@@ -84,7 +84,7 @@ mod tests {
         let name = "TomAndJerry";
         let sheet_name = "sheet1";
         let author = "senlinz";
-        let create_time = "2024-11-01T08:00:00Z";
+        let create_time = "2024-11-01T08:00:00";
         let mut age_column =
             excel_info::ExcelColumnInfo::new("age".to_string(), "Age".to_string(), None);
         age_column.set_data_type(excel_info::ExcelDataType::Number);

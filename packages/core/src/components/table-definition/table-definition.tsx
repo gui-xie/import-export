@@ -7,7 +7,7 @@ import { ExcelDefinition } from '../../declarations/ExcelDefintion';
   shadow: true,
 })
 export class TableDefinition {
-  @Prop() definition?: ExcelDefinition;
+  @Prop() definition: ExcelDefinition;
 
   render() {
     return this.definition ? (

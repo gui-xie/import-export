@@ -9,6 +9,7 @@
 <button id="btnImport">Import</button>
 <button id="btnExport">Export</button>
 <button id="btnDownloadTemplate">Download Template</button>
+<div id="importOutput"></div>
 
 <body>
   <script type="module">
@@ -24,10 +25,11 @@
       sheetName: 'sheet1',
       columns: [
         { key: 'name', name: 'Name', dataType: 0, width: 20, note: 'required' },
-        { key: 'age', name: 'Age', dataType: 1, width: 4 },
+        { key: 'age', name: 'Age', dataType: 1, width: 10 },
         { key: 'category', name: 'Category', dataType: 0, allowedValues: ['Cat', 'Mouse'] }
       ],
-      author: 'senlinz'
+      author: 'senlinz',
+      createTime: '2023-11-01T09:00:00'
     };
 
     btnImport.addEventListener('click', importClick);
@@ -43,7 +45,7 @@
 
     function importClick() {
       importExcel(excelInfo).then(data => {
-        console.log('imported data:', data);
+        importOutput.innerText = JSON.stringify(data, null);
       });
     }
 

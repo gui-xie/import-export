@@ -7,11 +7,12 @@ import {
   ExcelData,
   ExcelRowData,
   ExcelColumnData,
-  ExcelColumnInfo
+  ExcelColumnInfo,
+  ExcelDataType
 } from '@senlinz/import-export-wasm';
 import imexportWasm from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm';
 import { gunzipSync } from 'fflate';
-import { ExcelDefinition } from '../declarations/ExcelDefintion';
+import { ExcelColumnDefinition, ExcelDefinition } from '../declarations/ExcelDefintion';
 
 let wasmInitialized = false;
 
@@ -23,11 +24,20 @@ function initializeWasm() {
   }
 }
 
-async function getItems(data: ExcelData) {
+async function getItems(data: ExcelData, columns: ExcelColumnDefinition[]) {
   const result = [] as any;
+  const columnTypes = {} as any;
+  for (const column of columns) {
+    columnTypes[column.key] = column.dataType;
+  }
   for (const row of data.rows) {
     const item = {} as any;
     for (const column of row.columns) {
+      const columnType = columnTypes[column.key];
+      if (columnType == ExcelDataType.Number) {
+        item[column.key] = parseFloat(column.value);
+        continue;
+      }
       item[column.key] = column.value;
     }
     result.push(item);
@@ -41,7 +51,7 @@ async function fromExcel<T>(
 ): Promise<T[]> {
   const info = getInfo(definition);
   const data = importData(info, buffer);
-  const items = getItems(data);
+  const items = getItems(data, definition.columns);
   return items;
 }
 
@@ -88,20 +98,37 @@ function download(excelTemplate: Uint8Array, name: string) {
 }
 
 function getInfo(definition: ExcelDefinition): ExcelInfo {
+  var columns = definition.columns.map(c => {
+    const column = new ExcelColumnInfo(c.key, c.name);
+    column.data_type = c.dataType;
+    column.width = c.width;
+    column.note = c.note;
+    column.allowed_values = c.allowedValues;
+    return column;
+  });
+
   var info = new ExcelInfo(
     definition.name,
     definition.sheetName,
-    definition.columns.map(c => {
-      const column = new ExcelColumnInfo(c.key, c.name);
-      column.data_type = c.dataType;
-      column.width = c.width;
-      column.note = c.note;
-      column.allowed_values = c.allowedValues;
-      return column;
-    })
+    columns,
+    definition.author,
+    toDatetimeString(definition.createTime)
   );
-  info.author = definition.author;
   return info;
+}
+
+function toDatetimeString(date: Date | string) {
+  if (typeof date === 'string') {
+    return date;
+  }
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const seconds = date.getSeconds();
+  const pad = (num: number) => num < 10 ? `0${num}` : num.toString();
+  return `${year}-${pad(month)}-${pad(day)} ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
 function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
@@ -128,7 +155,6 @@ function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
     document.body.appendChild(button);
     button.click();
     document.body.removeChild(button);
-
 
     function fileHandler(event: Event) {
       const file = (event.target as HTMLInputElement).files[0];

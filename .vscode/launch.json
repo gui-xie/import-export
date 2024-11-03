@@ -3,18 +3,6 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Playwright Test",
-      "cwd": "${workspaceFolder}/packages/core/",
-      "program": "${workspaceFolder}/node_modules/@playwright/test/node_modules/.bin/playwright",
-      "args": [
-        "test"
-      ],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    },
-    {
-      "type": "node",
-      "request": "launch",
       "name": "Stencil Spec Test Current File",
       "cwd": "${workspaceFolder}/packages/core/",
       "program": "${workspaceFolder}/packages/core/node_modules/@stencil/core/bin/stencil",
