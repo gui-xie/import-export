@@ -8,65 +8,72 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { ExcelDefinition } from "./declarations/ExcelDefintion";
 export { ExcelDefinition } from "./declarations/ExcelDefintion";
 export namespace Components {
-    interface ImexportTable {
-        "info": ExcelDefinition;
+    interface ImportExportDefinition {
+        "culture": 'zh' | 'en';
+        "definition": ExcelDefinition;
     }
-    interface TableDefinition {
+    interface ImportExportStudio {
+        "culture": 'zh' | 'en';
+        "data": any[];
+        "definition": ExcelDefinition;
+    }
+    interface ImportExportTable {
+        "data": any[];
         "definition": ExcelDefinition;
     }
 }
-export interface ImexportTableCustomEvent<T> extends CustomEvent<T> {
-    detail: T;
-    target: HTMLImexportTableElement;
-}
 declare global {
-    interface HTMLImexportTableElementEventMap {
-        "imported": any;
+    interface HTMLImportExportDefinitionElement extends Components.ImportExportDefinition, HTMLStencilElement {
     }
-    interface HTMLImexportTableElement extends Components.ImexportTable, HTMLStencilElement {
-        addEventListener<K extends keyof HTMLImexportTableElementEventMap>(type: K, listener: (this: HTMLImexportTableElement, ev: ImexportTableCustomEvent<HTMLImexportTableElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-        removeEventListener<K extends keyof HTMLImexportTableElementEventMap>(type: K, listener: (this: HTMLImexportTableElement, ev: ImexportTableCustomEvent<HTMLImexportTableElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
-    }
-    var HTMLImexportTableElement: {
-        prototype: HTMLImexportTableElement;
-        new (): HTMLImexportTableElement;
+    var HTMLImportExportDefinitionElement: {
+        prototype: HTMLImportExportDefinitionElement;
+        new (): HTMLImportExportDefinitionElement;
     };
-    interface HTMLTableDefinitionElement extends Components.TableDefinition, HTMLStencilElement {
+    interface HTMLImportExportStudioElement extends Components.ImportExportStudio, HTMLStencilElement {
     }
-    var HTMLTableDefinitionElement: {
-        prototype: HTMLTableDefinitionElement;
-        new (): HTMLTableDefinitionElement;
+    var HTMLImportExportStudioElement: {
+        prototype: HTMLImportExportStudioElement;
+        new (): HTMLImportExportStudioElement;
+    };
+    interface HTMLImportExportTableElement extends Components.ImportExportTable, HTMLStencilElement {
+    }
+    var HTMLImportExportTableElement: {
+        prototype: HTMLImportExportTableElement;
+        new (): HTMLImportExportTableElement;
     };
     interface HTMLElementTagNameMap {
-        "imexport-table": HTMLImexportTableElement;
-        "table-definition": HTMLTableDefinitionElement;
+        "import-export-definition": HTMLImportExportDefinitionElement;
+        "import-export-studio": HTMLImportExportStudioElement;
+        "import-export-table": HTMLImportExportTableElement;
     }
 }
 declare namespace LocalJSX {
-    interface ImexportTable {
-        "info"?: ExcelDefinition;
-        "onImported"?: (event: ImexportTableCustomEvent<any>) => void;
+    interface ImportExportDefinition {
+        "culture"?: 'zh' | 'en';
+        "definition"?: ExcelDefinition;
     }
-    interface TableDefinition {
+    interface ImportExportStudio {
+        "culture"?: 'zh' | 'en';
+        "data"?: any[];
+        "definition"?: ExcelDefinition;
+    }
+    interface ImportExportTable {
+        "data"?: any[];
         "definition"?: ExcelDefinition;
     }
     interface IntrinsicElements {
-        "imexport-table": ImexportTable;
-        "table-definition": TableDefinition;
+        "import-export-definition": ImportExportDefinition;
+        "import-export-studio": ImportExportStudio;
+        "import-export-table": ImportExportTable;
     }
 }
 export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
-            "imexport-table": LocalJSX.ImexportTable & JSXBase.HTMLAttributes<HTMLImexportTableElement>;
-            "table-definition": LocalJSX.TableDefinition & JSXBase.HTMLAttributes<HTMLTableDefinitionElement>;
+            "import-export-definition": LocalJSX.ImportExportDefinition & JSXBase.HTMLAttributes<HTMLImportExportDefinitionElement>;
+            "import-export-studio": LocalJSX.ImportExportStudio & JSXBase.HTMLAttributes<HTMLImportExportStudioElement>;
+            "import-export-table": LocalJSX.ImportExportTable & JSXBase.HTMLAttributes<HTMLImportExportTableElement>;
         }
     }
 }

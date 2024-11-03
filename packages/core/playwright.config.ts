@@ -2,7 +2,7 @@ import { PlaywrightTestConfig } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
     use: {
-        headless: true,
+        headless: false,
         baseURL: 'http://localhost:8080',
     },
     testDir: 'tests',

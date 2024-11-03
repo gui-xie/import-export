@@ -12,7 +12,7 @@ import {
 } from '@senlinz/import-export-wasm';
 import imexportWasm from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm';
 import { gunzipSync } from 'fflate';
-import { ExcelColumnDefinition, ExcelDefinition } from '../declarations/ExcelDefintion';
+import { ExcelColumnDefinition, ExcelDefinition } from './declarations/ExcelDefintion';
 
 let wasmInitialized = false;
 
