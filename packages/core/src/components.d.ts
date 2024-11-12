@@ -5,11 +5,17 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { ExcelDefinition } from "./declarations/ExcelDefintion";
-export { ExcelDefinition } from "./declarations/ExcelDefintion";
+import { ExcelDefinition } from "./declarations/ExcelDefinition";
+export { ExcelDefinition } from "./declarations/ExcelDefinition";
 export namespace Components {
+    interface EditableCell {
+        "culture": 'zh' | 'en';
+        "type": 'text' | 'datetime-local';
+        "value": string | Date;
+    }
     interface ImportExportDefinition {
         "culture": 'zh' | 'en';
+        "cultureResources"?: Record<string, Record<string, string>>;
         "definition": ExcelDefinition;
     }
     interface ImportExportStudio {
@@ -22,7 +28,28 @@ export namespace Components {
         "definition": ExcelDefinition;
     }
 }
+export interface EditableCellCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLEditableCellElement;
+}
 declare global {
+    interface HTMLEditableCellElementEventMap {
+        "valueChange": string;
+    }
+    interface HTMLEditableCellElement extends Components.EditableCell, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLEditableCellElementEventMap>(type: K, listener: (this: HTMLEditableCellElement, ev: EditableCellCustomEvent<HTMLEditableCellElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLEditableCellElementEventMap>(type: K, listener: (this: HTMLEditableCellElement, ev: EditableCellCustomEvent<HTMLEditableCellElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLEditableCellElement: {
+        prototype: HTMLEditableCellElement;
+        new (): HTMLEditableCellElement;
+    };
     interface HTMLImportExportDefinitionElement extends Components.ImportExportDefinition, HTMLStencilElement {
     }
     var HTMLImportExportDefinitionElement: {
@@ -42,14 +69,22 @@ declare global {
         new (): HTMLImportExportTableElement;
     };
     interface HTMLElementTagNameMap {
+        "editable-cell": HTMLEditableCellElement;
         "import-export-definition": HTMLImportExportDefinitionElement;
         "import-export-studio": HTMLImportExportStudioElement;
         "import-export-table": HTMLImportExportTableElement;
     }
 }
 declare namespace LocalJSX {
+    interface EditableCell {
+        "culture"?: 'zh' | 'en';
+        "onValueChange"?: (event: EditableCellCustomEvent<string>) => void;
+        "type"?: 'text' | 'datetime-local';
+        "value"?: string | Date;
+    }
     interface ImportExportDefinition {
         "culture"?: 'zh' | 'en';
+        "cultureResources"?: Record<string, Record<string, string>>;
         "definition"?: ExcelDefinition;
     }
     interface ImportExportStudio {
@@ -62,6 +97,7 @@ declare namespace LocalJSX {
         "definition"?: ExcelDefinition;
     }
     interface IntrinsicElements {
+        "editable-cell": EditableCell;
         "import-export-definition": ImportExportDefinition;
         "import-export-studio": ImportExportStudio;
         "import-export-table": ImportExportTable;
@@ -71,6 +107,7 @@ export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
+            "editable-cell": LocalJSX.EditableCell & JSXBase.HTMLAttributes<HTMLEditableCellElement>;
             "import-export-definition": LocalJSX.ImportExportDefinition & JSXBase.HTMLAttributes<HTMLImportExportDefinitionElement>;
             "import-export-studio": LocalJSX.ImportExportStudio & JSXBase.HTMLAttributes<HTMLImportExportStudioElement>;
             "import-export-table": LocalJSX.ImportExportTable & JSXBase.HTMLAttributes<HTMLImportExportTableElement>;

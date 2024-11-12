@@ -1,5 +1,5 @@
 import { Component, Prop, h } from '@stencil/core';
-import { type ExcelDefinition } from '../../declarations/ExcelDefintion';
+import { type ExcelDefinition } from '../../declarations/ExcelDefinition';
 
 @Component({
   tag: 'import-export-table',

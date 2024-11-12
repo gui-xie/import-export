@@ -12,7 +12,7 @@ import {
 } from '@senlinz/import-export-wasm';
 import imexportWasm from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm';
 import { gunzipSync } from 'fflate';
-import { ExcelColumnDefinition, ExcelDefinition } from './declarations/ExcelDefintion';
+import { ExcelColumnDefinition, ExcelDefinition } from './declarations/ExcelDefinition';
 
 let wasmInitialized = false;
 
@@ -80,30 +80,31 @@ async function generateExcelTemplate(definition: ExcelDefinition) {
 }
 
 async function downloadExcelTemplate(definition: ExcelDefinition) {
+  const excelName = `${definition.name}.xlsx`;
   const excelData = await generateExcelTemplate(definition);
-  download(excelData, definition.name);
+  download(excelData, excelName);
 }
 
-function download(excelTemplate: Uint8Array, name: string) {
-  document.querySelector('#senlinzImportExportA')?.remove();
+function download(
+  data: Uint8Array | string,
+  name: string,
+  type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+  const id = 'senlinzImportExportDownload';
+  document.querySelector(`#${id}`)?.remove();
   const linkInput = document.createElement('a');
-  linkInput.id = 'senlinzImportExportA';
-  linkInput.download = `${name}.xlsx`;
-  const blob = new Blob([excelTemplate],
-    {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
+  linkInput.id = id;
+  linkInput.download = name;
+  const blob = new Blob([data], { type });
   linkInput.href = URL.createObjectURL(blob);
   linkInput.click();
 }
 
 function getInfo(definition: ExcelDefinition): ExcelInfo {
   var columns = definition.columns.map(c => {
-    const column = new ExcelColumnInfo(c.key, c.name);
-    column.data_type = c.dataType;
-    column.width = c.width;
-    column.note = c.note;
-    column.allowed_values = c.allowedValues;
+    const column = new ExcelColumnInfo(c.key, c.name, c.width);
+    if (c.dataType) column.setDataType(c.dataType);
+    if (c.note) column.setNote(c.note);
+    if (c.allowedValues) column.setAllowedValues(c.allowedValues);
     return column;
   });
 
@@ -171,7 +172,7 @@ function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
 
 async function exportExcel<T>(definition: ExcelDefinition, data: T[]) {
   const excelData = await toExcel(definition, data);
-  download(excelData, definition.name);
+  download(excelData, `${definition.name}.xlsx`);
 }
 
 export {
@@ -181,5 +182,6 @@ export {
   fromExcel,
   toExcel,
   generateExcelTemplate,
-  initializeWasm
+  initializeWasm,
+  download
 };

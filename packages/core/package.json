@@ -10,12 +10,13 @@
     "README.md"
   ],
   "exports": {
-    "./components": {
-      "types": "./dist/types/index.d.ts"
+    ".": {
+      "import": "./dist/components/index.js",
+      "types": "./dist/components/index.d.ts"
     },
-    "./components/imexport-table.js": {
-      "import": "./dist/components/imexport-table.js",
-      "types": "./dist/components/imexport-table.d.ts"
+    "./components/import-export-studio.js": {
+      "import": "./dist/components/import-export-studio.js",
+      "types": "./dist/components/import-export-studio.d.ts"
     }
   },
   "scripts": {

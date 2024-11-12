@@ -1,17 +1,19 @@
 import { Component, Prop, State, h } from '@stencil/core';
-import { type ExcelDefinition } from '../../declarations/ExcelDefintion';
-import { downloadExcelTemplate } from '../../utils';
+import { type ExcelDefinition } from '../../declarations/ExcelDefinition';
+import { downloadExcelTemplate, download, initializeWasm } from '../../utils';
 
 const LANG_RESOURCE = {
   zh: {
     hideDefinition: '隐藏定义',
     showDefinition: '显示定义',
     downloadTemplate: '下载模板',
+    downloadDefinition: '下载定义',
   },
   en: {
     hideDefinition: 'Hide Definition',
     showDefinition: 'Show Definition',
     downloadTemplate: 'Download Template',
+    downloadDefinition: 'Download Definition',
   }
 };
 
@@ -24,7 +26,11 @@ export class ImportExportStudioComponent {
   @Prop() definition: ExcelDefinition;
   @Prop() culture: 'zh' | 'en' = 'en';
   @Prop() data: any[] = [];
-  @State() showDefinition: boolean = false;
+  @State() showDefinition: boolean = true;
+
+  componentWillLoad() {
+    initializeWasm();
+  }
 
   toggleDefinitionVisibility = () => {
     this.showDefinition = !this.showDefinition;
@@ -35,12 +41,17 @@ export class ImportExportStudioComponent {
     return (
       <div class="import-export-studio">
         <div class="operation">
-          <button class="toggle-definition-button" onClick={this.toggleDefinitionVisibility}>
+          <button type="text" class="studio-button" onClick={this.toggleDefinitionVisibility}>
             {this.showDefinition ? l.hideDefinition : l.showDefinition}
           </button>
-          <button class="download-template-button" onClick={() => downloadExcelTemplate(this.definition)} >
+          <button type="text" class="studio-button" onClick={() => downloadExcelTemplate(this.definition)} >
             {l.downloadTemplate}
           </button>
+          {this.showDefinition && (
+            <button type="text" class="studio-button" onClick={() => downloadDefinition(this.definition)} >
+              {l.downloadDefinition}
+            </button>
+          )}
         </div>
         <div class="definition">
           {this.showDefinition && (
@@ -53,5 +64,12 @@ export class ImportExportStudioComponent {
         <import-export-table definition={this.definition} data={this.data}></import-export-table>
       </div>
     );
+
+    function downloadDefinition(definition: ExcelDefinition) {
+      download(
+        JSON.stringify(definition, null, 2),
+        `${definition.name}-definition.json`,
+        'application/json');
+    }
   }
 }

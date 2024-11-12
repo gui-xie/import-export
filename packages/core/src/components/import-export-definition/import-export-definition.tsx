@@ -1,5 +1,5 @@
 import { Component, Prop, h } from '@stencil/core';
-import { ExcelDefinition } from '../../declarations/ExcelDefintion';
+import { ExcelDefinition } from '../../declarations/ExcelDefinition';
 
 const LANG_RESOURCE = {
   zh: {
@@ -38,27 +38,48 @@ const LANG_RESOURCE = {
 export class ImportExportDefinitionComponent {
   @Prop() definition: ExcelDefinition;
   @Prop() culture: 'zh' | 'en' = 'en';
+  @Prop() cultureResources?: Record<string, Record<string, string>>;
 
   render() {
-    const l = LANG_RESOURCE[this.culture];
+    const l = this.cultureResources?.[this.culture] ?? LANG_RESOURCE[this.culture];
     return this.definition ? (
       <div class="table-definition">
         <div class="definition-details">
           <div class="detail-item">
             <span class="label">{l.excelName}</span>
-            <span class="value">{this.definition.name}</span>
+            <span class="value">
+              <editable-cell value={this.definition.name}
+                onValueChange={e => this.definition.name = e.detail}
+              ></editable-cell>
+            </span>
           </div>
           <div class="detail-item">
             <span class="label">{l.sheetName}</span>
-            <span class="value">{this.definition.sheetName}</span>
+            <span class="value">
+              <editable-cell
+                value={this.definition.sheetName}
+                onValueChange={e => this.definition.sheetName = e.detail}
+              ></editable-cell>
+            </span>
           </div>
           <div class="detail-item">
             <span class="label">{l.author}</span>
-            <span class="value">{this.definition.author}</span>
+            <span class="value">
+              <editable-cell
+                value={this.definition.author}
+                onValueChange={e => this.definition.author = e.detail}
+              ></editable-cell>
+            </span>
           </div>
           <div class="detail-item">
             <span class="label">{l.createTime}</span>
-            <span class="value">{this.definition.createTime}</span>
+            <span class="value">
+              <editable-cell
+                value={this.definition.createTime}
+                type="datetime-local"
+                onValueChange={e => this.definition.createTime = e.detail}
+              ></editable-cell>
+            </span>
           </div>
         </div>
         <table class="definition-table">

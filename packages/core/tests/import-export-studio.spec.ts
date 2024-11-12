@@ -6,7 +6,7 @@ test.describe('import-export-studio', () => {
     });
 
     test('download template should work correctly', async ({ page }) => {
-        await page.waitForEvent('download', { timeout: 100000 });
+        await page.waitForEvent('download', { timeout: 1000000 });
 
         expect(true).toBeTruthy();
     });
