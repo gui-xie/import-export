@@ -86,6 +86,7 @@ export class EditableCellComponent {
           value={this.inputValue}
           onKeyUp={this.keyUpHandler}
           onChange={this.changeHandler}
+          onBlur={this.completeInput}
           ref={(el) => this.inputElement = el as HTMLInputElement}
         />
       </div>

@@ -1,19 +1,25 @@
 import { Component, Prop, State, h } from '@stencil/core';
 import { type ExcelDefinition } from '../../declarations/ExcelDefinition';
-import { downloadExcelTemplate, download, initializeWasm } from '../../utils';
+import { downloadExcelTemplate, download, exportExcel, importExcel, initializeWasm } from '../../utils';
 
 const LANG_RESOURCE = {
   zh: {
     hideDefinition: '隐藏定义',
     showDefinition: '显示定义',
     downloadTemplate: '下载模板',
+    exportExcel: '导出Excel',
+    importExcel: '导入Excel',
     downloadDefinition: '下载定义',
+    preview: '预览',
   },
   en: {
     hideDefinition: 'Hide Definition',
     showDefinition: 'Show Definition',
     downloadTemplate: 'Download Template',
+    exportExcel: 'Export Excel',
+    importExcel: 'Import Excel',
     downloadDefinition: 'Download Definition',
+    preview: 'Preview',
   }
 };
 
@@ -36,6 +42,11 @@ export class ImportExportStudioComponent {
     this.showDefinition = !this.showDefinition;
   };
 
+  importExcelHandler = async (definition: ExcelDefinition) => {
+    const data = await importExcel(definition);
+    this.data = data;
+  }
+
   render() {
     const l = LANG_RESOURCE[this.culture];
     return (
@@ -44,14 +55,20 @@ export class ImportExportStudioComponent {
           <button type="text" class="studio-button" onClick={this.toggleDefinitionVisibility}>
             {this.showDefinition ? l.hideDefinition : l.showDefinition}
           </button>
-          <button type="text" class="studio-button" onClick={() => downloadExcelTemplate(this.definition)} >
-            {l.downloadTemplate}
-          </button>
           {this.showDefinition && (
             <button type="text" class="studio-button" onClick={() => downloadDefinition(this.definition)} >
               {l.downloadDefinition}
             </button>
           )}
+          <button type="text" class="studio-button" onClick={() => downloadExcelTemplate(this.definition)} >
+            {l.downloadTemplate}
+          </button>
+          <button type="text" class="studio-button" onClick={() => exportExcel(this.definition, this.data)} >
+            {l.exportExcel}
+          </button>
+          <button type="text" class="studio-button" onClick={() => this.importExcelHandler(this.definition)} >
+            {l.importExcel}
+          </button>
         </div>
         <div class="definition">
           {this.showDefinition && (
@@ -61,7 +78,11 @@ export class ImportExportStudioComponent {
             ></import-export-definition>
           )}
         </div>
-        <import-export-table definition={this.definition} data={this.data}></import-export-table>
+
+        <div class="preview-table">
+          <h3>{l.preview}</h3>
+          <import-export-table definition={this.definition} data={this.data}></import-export-table>
+        </div>
       </div>
     );
 
