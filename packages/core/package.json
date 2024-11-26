@@ -1,6 +1,6 @@
 {
   "name": "@senlinz/import-export",
-  "version": "0.1.0-beta.6",
+  "version": "0.1.0-beta.7",
   "description": "Stencil Component for import/export excel files.",
   "module": "dist/components/index.js",
   "types": "dist/types/index.d.ts",
