@@ -2,9 +2,8 @@
   "mode": "pre",
   "tag": "beta",
   "initialVersions": {
-    "vue-app": "0.0.0",
-    "@senlinz/import-export": "0.0.1-beta.1",
-    "@senlinz/import-export-wasm": "0.0.1-beta.1"
+    "@senlinz/import-export": "0.1.0-beta.6",
+    "@senlinz/import-export-wasm": "0.1.0-beta.6"
   },
   "changesets": [
     "breezy-crews-pretend",
