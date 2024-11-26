@@ -1,5 +1,16 @@
 # @senlinz/import-export
 
+## 0.1.0-beta.6
+
+### Minor Changes
+
+- upgrade beta 6
+
+### Patch Changes
+
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.0-beta.6
+
 ## 0.0.1-beta.5
 
 ### Patch Changes
