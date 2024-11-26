@@ -11,6 +11,9 @@ const LANG_RESOURCE = {
     importExcel: '导入Excel',
     downloadDefinition: '下载定义',
     preview: '预览',
+    dataSource: '数据源',
+    hideDataSource: '隐藏数据源',
+    showDataSource: '显示数据源',
   },
   en: {
     hideDefinition: 'Hide Definition',
@@ -20,6 +23,9 @@ const LANG_RESOURCE = {
     importExcel: 'Import Excel',
     downloadDefinition: 'Download Definition',
     preview: 'Preview',
+    dataSource: 'Data Source',
+    hideDataSource: 'Hide Data Source',
+    showDataSource: 'Show Data Source',
   }
 };
 
@@ -33,6 +39,7 @@ export class ImportExportStudioComponent {
   @Prop() culture: 'zh' | 'en' = 'en';
   @Prop() data: any[] = [];
   @State() showDefinition: boolean = true;
+  @State() showDataSource: boolean = false;
 
   componentWillLoad() {
     initializeWasm();
@@ -42,9 +49,23 @@ export class ImportExportStudioComponent {
     this.showDefinition = !this.showDefinition;
   };
 
+  toggleDataSourceVisibility = () => {
+    this.showDataSource = !this.showDataSource;
+  }
+
   importExcelHandler = async (definition: ExcelDefinition) => {
     const data = await importExcel(definition);
     this.data = data;
+  }
+
+  handleDataSourceChange = (e: Event) => {
+    const target = e.target as HTMLTextAreaElement;
+    try {
+      this.data = JSON.parse(target.value);
+    }
+    catch (e) {
+      console.log(e);
+    }
   }
 
   render() {
@@ -55,11 +76,9 @@ export class ImportExportStudioComponent {
           <button type="text" class="studio-button" onClick={this.toggleDefinitionVisibility}>
             {this.showDefinition ? l.hideDefinition : l.showDefinition}
           </button>
-          {this.showDefinition && (
-            <button type="text" class="studio-button" onClick={() => downloadDefinition(this.definition)} >
-              {l.downloadDefinition}
-            </button>
-          )}
+          <button type="text" class="studio-button" onClick={() => downloadDefinition(this.definition)} >
+            {l.downloadDefinition}
+          </button>
           <button type="text" class="studio-button" onClick={() => downloadExcelTemplate(this.definition)} >
             {l.downloadTemplate}
           </button>
@@ -68,6 +87,9 @@ export class ImportExportStudioComponent {
           </button>
           <button type="text" class="studio-button" onClick={() => this.importExcelHandler(this.definition)} >
             {l.importExcel}
+          </button>
+          <button type="text" class="studio-button" onClick={() => this.toggleDataSourceVisibility()} >
+            {this.showDataSource ? l.hideDataSource : l.showDataSource}
           </button>
         </div>
         <div class="definition">
@@ -79,10 +101,18 @@ export class ImportExportStudioComponent {
           )}
         </div>
 
+
         <div class="preview-table">
           <h3>{l.preview}</h3>
           <import-export-table definition={this.definition} data={this.data}></import-export-table>
         </div>
+
+        {this.showDataSource && (
+          <div class="data-source">
+            <h3>{l.dataSource}</h3>
+            <p>{JSON.stringify(this.data, null, 2)}</p>
+          </div>
+        )}
       </div>
     );
 

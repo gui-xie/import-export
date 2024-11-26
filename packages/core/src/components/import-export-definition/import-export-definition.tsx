@@ -96,12 +96,37 @@ export class ImportExportDefinitionComponent {
           <tbody>
             {this.definition.columns.map(column => (
               <tr>
-                <td>{column.key}</td>
-                <td>{column.name}</td>
-                <td>{column.width ?? ''}</td>
-                <td>{column.note ?? ''}</td>
+                <td>
+                  <editable-cell
+                    value={column.key}
+                    onValueChange={e => column.key = e.detail}
+                  ></editable-cell>
+                </td>
+                <td>
+                  <editable-cell
+                    value={column.name}
+                    onValueChange={e => column.name = e.detail}
+                  ></editable-cell>
+                </td>
+                <td>
+                  <editable-cell
+                    value={column.width?.toString()}
+                    onValueChange={e => column.width = parseInt(e.detail)}
+                  ></editable-cell>
+                </td>
+                <td>
+                  <editable-cell
+                    value={column.note}
+                    onValueChange={e => column.note = e.detail}
+                  ></editable-cell>
+                </td>
                 <td>{column.dataType}</td>
-                <td>{column.allowedValues?.join(', ') ?? ''}</td>
+                <td>
+                  <editable-cell
+                    value={column.allowedValues?.join(', ') ?? ''}
+                    onValueChange={e => column.allowedValues = e.detail.split(',')}
+                  ></editable-cell>
+                </td>
               </tr>
             ))}
           </tbody>

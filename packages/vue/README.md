@@ -1,2 +1,0 @@
-# @senlinz/import-export-vue
-

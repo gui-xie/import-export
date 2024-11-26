@@ -33,11 +33,8 @@
     padding-right: 10px;
     flex: 0 0 150px;
     text-align: right;
-    /* background: linear-gradient(to right, #4caf50, #81c784); */
-    /* Gradient background in green shades */
     color: #333;
     border-radius: 4px;
-    /* Rounded corners */
     padding: 5px;
 }
 
@@ -59,7 +56,6 @@
     overflow: hidden;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border: none;
-    /* Remove table outline border */
 }
 
 .definition-table th,
@@ -71,20 +67,16 @@
 
 .definition-table th {
     background-color: #4caf50;
-    /* Header background color in green */
     color: white;
-    /* Header text color */
     font-weight: bold;
 }
 
 .definition-table tr:nth-child(even) {
     background-color: #e8f5e9;
-    /* Alternate row background color in light green */
 }
 
 .definition-table tr:hover {
     background-color: #c8e6c9;
-    /* Row hover background color in light green */
 }
 
 .no-definition {
