@@ -113,7 +113,7 @@ function getInfo(definition: ExcelDefinition): ExcelInfo {
     definition.sheetName,
     columns,
     definition.author,
-    toDatetimeString(definition.createTime)
+    toDatetimeString(definition.createTime ?? new Date())
   );
   return info;
 }

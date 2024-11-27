@@ -17,12 +17,10 @@ example for import and export excel file
 
 <body>
   <script type="module">
-    import { getUtils } from 'https://cdn.jsdelivr.net/npm/@senlinz/import-export@0.1.0-beta.7/+esm';
-    const {
+    import {   
       importExcel,
       exportExcel,
-      downloadExcelTemplate
-    } = getUtils();
+      downloadExcelTemplate } from 'https://cdn.jsdelivr.net/npm/@senlinz/import-export/+esm';
 
     const excelInfo = {
       name: 'TomAndJerry',

@@ -1,5 +1,13 @@
 # @senlinz/import-export
 
+## 0.1.0-beta.8
+
+### Patch Changes
+
+- add wrapper function in index.js, fix definition datetime undefined
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.0-beta.8
+
 ## 0.1.0-beta.7
 
 ### Minor Changes
