@@ -4,8 +4,8 @@ interface ExcelDefinition {
     name: string,
     sheetName: string,
     columns: ExcelColumnDefinition[],
-    author: string,
-    createTime: Date | string
+    author?: string,
+    createTime?: Date | string
 }
 
 interface ExcelColumnDefinition {

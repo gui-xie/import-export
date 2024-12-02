@@ -112,7 +112,7 @@ function getInfo(definition: ExcelDefinition): ExcelInfo {
     definition.name,
     definition.sheetName,
     columns,
-    definition.author,
+    definition.author ?? '',
     toDatetimeString(definition.createTime ?? new Date())
   );
   return info;
@@ -155,6 +155,9 @@ function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
 
     document.body.appendChild(button);
     button.click();
+    button.removeEventListener('click', () => {
+      fileInput.click();
+    });
     document.body.removeChild(button);
 
     function fileHandler(event: Event) {
@@ -163,6 +166,8 @@ function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
       reader.onload = async () => {
         const buffer = new Uint8Array(reader.result as ArrayBuffer);
         const items = await fromExcel(defintion, buffer);
+        fileInput.removeEventListener('change', fileHandler);
+        fileInput.remove();
         resolve(items as T[]);
       };
       reader.readAsArrayBuffer(file);
