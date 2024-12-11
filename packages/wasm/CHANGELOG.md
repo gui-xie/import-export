@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 0.1.0-beta.10
+
+### Patch Changes
+
+- update types
+
 ## 0.1.0-beta.9
 
 ### Patch Changes

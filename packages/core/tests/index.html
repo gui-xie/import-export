@@ -45,7 +45,6 @@
 
     function importClick() {
       importExcel(excelInfo).then(data => {
-        console.log('ddddddtttttttdd', data);
         importOutput.innerText = JSON.stringify(data, null);
       }).catch(err => {
         console.log(err);
