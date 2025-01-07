@@ -1,4 +1,5 @@
 use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
+use excel_info::ExcelDataType;
 use rust_xlsxwriter::*;
 use std::io::Cursor;
 use wasm_bindgen::prelude::*;
@@ -52,7 +53,10 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
     let header_index = info.get_header_row_index() as u32;
     let columns_len = info.columns.len() as u16;
     if let Some(title) = info.title.as_ref() {
-        let f = Format::new().set_bold().set_align(FormatAlign::Center).set_align(FormatAlign::VerticalCenter);
+        let f = Format::new()
+            .set_bold()
+            .set_align(FormatAlign::Center)
+            .set_align(FormatAlign::VerticalCenter);
         worksheet.merge_range(0, 0, 0, columns_len - 1, title.as_str(), &f)?;
         if let Some(title_height) = info.title_height {
             worksheet.set_row_height(0, title_height)?;
@@ -101,19 +105,19 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
 fn get_columns_index<'a>(
     columns: &'a [ExcelColumnInfo],
     range: &'a calamine::Range<calamine::Data>,
-) -> Vec<(usize, String)> {
+) -> Vec<(usize, String, ExcelDataType)> {
     let mut result = Vec::new();
     for (i, value) in range[0].iter().enumerate() {
         let column = columns.iter().find(|c| c.name == value.to_string());
         if let Some(column) = column {
-            result.push((i, column.key.clone()));
+            result.push((i, column.key.clone(), column.data_type.clone()));
         }
     }
     result
 }
 
 fn get_rows_data<'a>(
-    columns: &'a Vec<(usize, String)>,
+    columns: &'a Vec<(usize, String, ExcelDataType)>,
     range: &'a calamine::Range<calamine::Data>,
 ) -> Vec<ExcelRowData> {
     range
@@ -122,32 +126,38 @@ fn get_rows_data<'a>(
         .map(|r| ExcelRowData {
             columns: columns
                 .iter()
-                .map(|(i, key)| ExcelColumnData {
-                    key: key.clone(),
-                    value: format_value(r.get(*i).unwrap_or(&calamine::Data::Empty)),
+                .map(|(i, key, data_type)| {
+                    let cell = r.get(*i).unwrap_or(&Data::Empty);
+                    ExcelColumnData {
+                        key: key.clone(),
+                        value: format_value(cell, data_type),
+                    }
                 })
                 .collect(),
         })
         .collect()
 }
 
-fn excel_to_timestamp(excel_date: f64) -> i64 {
+fn excel_to_date_string(excel_date: f64) -> String {
     let days_since_epoch = excel_date - EXCEL_BASE_DATE as f64;
     let seconds_since_epoch = days_since_epoch * SECONDS_IN_A_DAY;
-    seconds_since_epoch as i64
+    seconds_since_epoch.to_string()
 }
 
-fn format_value(data: &Data) -> String {
+fn format_value(data: &Data, data_type: &ExcelDataType) -> String {
     match data {
         Data::Empty => "".to_string(),
         Data::String(s) => s.clone(),
-        Data::Float(f) => f.to_string(),
+        Data::Float(f) => {
+            if *data_type == ExcelDataType::Date {
+                excel_to_date_string(*f)
+            } else {
+                f.to_string()
+            }
+        }
         Data::Int(i) => i.to_string(),
         Data::Bool(b) => b.to_string(),
-        Data::DateTime(dt) => {
-            let timestamp = excel_to_timestamp(dt.as_f64());
-            timestamp.to_string()
-        }
+        Data::DateTime(dt) => excel_to_date_string(dt.as_f64()),
         _ => data.to_string(),
     }
 }
@@ -160,7 +170,7 @@ fn import_data_buffer(
     let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor)?;
     let mut excel_data = ExcelData { rows: Vec::new() };
     let range = workbook.worksheet_range(info.sheet_name.as_str())?;
-    let columns: Vec<(usize, String)> = get_columns_index(&info.columns, &range);
+    let columns = get_columns_index(&info.columns, &range);
 
     excel_data.rows = get_rows_data(&columns, &range);
 

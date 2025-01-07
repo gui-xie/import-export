@@ -85,15 +85,15 @@ mod tests {
         let sheet_name = "sheet1";
         let author = "senlinz";
         let create_time = "2024-11-01T08:00:00";
-        let age_column =
+        let columns = vec![
+            excel_info::ExcelColumnInfo::new("name".to_string(), "Name".to_string(), None),
             excel_info::ExcelColumnInfo::new("age".to_string(), "Age".to_string(), None)
                 .with_data_type(excel_info::ExcelDataType::Number)
                 .with_color("#FF0000".to_string())
-                .with_text_color("#000000".to_string());
-        let columns = vec![
-            excel_info::ExcelColumnInfo::new("name".to_string(), "Name".to_string(), None),
-            age_column,
+                .with_text_color("#000000".to_string()),
             excel_info::ExcelColumnInfo::new("category".to_string(), "Category".to_string(), None),
+            excel_info::ExcelColumnInfo::new("birth".to_string(), "Birth".to_string(), None)
+                .with_data_type(excel_info::ExcelDataType::Date),
         ];
         excel_info::ExcelInfo::new(
             name.to_string(),

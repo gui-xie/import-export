@@ -1,8 +1,7 @@
 ---
 source: src/tests.rs
-assertion_line: 25
+assertion_line: 24
 expression: snapshot
-snapshot_kind: text
 ---
 ExcelData:
   - ExcelRowData:
@@ -15,6 +14,9 @@ ExcelData:
     - ExcelColumnData:
       key: category
       value: Cat
+    - ExcelColumnData:
+      key: birth
+      value: 1640995200
   - ExcelRowData:
     - ExcelColumnData:
       key: name
@@ -25,3 +27,6 @@ ExcelData:
     - ExcelColumnData:
       key: category
       value: Mouse
+    - ExcelColumnData:
+      key: birth
+      value: 1706832000

@@ -104,6 +104,7 @@ pub struct ExcelColumnInfo {
 pub enum ExcelDataType {
     Text,
     Number,
+    Date,
 }
 
 #[wasm_bindgen]
@@ -169,6 +170,7 @@ impl ExcelColumnInfo {
         match self.data_type {
             ExcelDataType::Text => "text".to_string(),
             ExcelDataType::Number => "number".to_string(),
+            ExcelDataType::Date => "date".to_string(),
         }
     }
 }
