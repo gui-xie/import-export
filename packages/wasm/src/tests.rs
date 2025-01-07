@@ -85,9 +85,11 @@ mod tests {
         let sheet_name = "sheet1";
         let author = "senlinz";
         let create_time = "2024-11-01T08:00:00";
-        let mut age_column =
-            excel_info::ExcelColumnInfo::new("age".to_string(), "Age".to_string(), None);
-        age_column.set_data_type(excel_info::ExcelDataType::Number);
+        let age_column =
+            excel_info::ExcelColumnInfo::new("age".to_string(), "Age".to_string(), None)
+                .with_data_type(excel_info::ExcelDataType::Number)
+                .with_color("#FF0000".to_string())
+                .with_text_color("#000000".to_string());
         let columns = vec![
             excel_info::ExcelColumnInfo::new("name".to_string(), "Name".to_string(), None),
             age_column,
@@ -100,5 +102,8 @@ mod tests {
             author.to_string(),
             create_time.to_string(),
         )
+        .with_default_row_height(30.0)
+        .with_title("Tom and Jerry".to_string())
+        .with_title_height(50.0)
     }
 }

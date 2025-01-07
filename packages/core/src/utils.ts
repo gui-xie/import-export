@@ -110,7 +110,7 @@ function getInfo(definition: ExcelDefinition): ExcelInfo {
 
   var info = new ExcelInfo(
     definition.name,
-    definition.sheetName,
+    definition.sheetName ?? 'sheet1',
     columns,
     definition.author ?? '',
     toDatetimeString(definition.createTime ?? new Date())

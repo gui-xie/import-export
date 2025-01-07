@@ -2,7 +2,7 @@ import { ExcelDataType } from "@senlinz/import-export-wasm"
 
 interface ExcelDefinition {
     name: string,
-    sheetName: string,
+    sheetName?: string,
     columns: ExcelColumnDefinition[],
     author?: string,
     createTime?: Date | string

@@ -1,4 +1,4 @@
-use calamine::{open_workbook_from_rs, Reader, Xlsx};
+use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
 use rust_xlsxwriter::*;
 use std::io::Cursor;
 use wasm_bindgen::prelude::*;
@@ -12,6 +12,9 @@ pub use excel_data::ExcelData;
 pub use excel_data::ExcelRowData;
 pub use excel_info::ExcelColumnInfo;
 pub use excel_info::ExcelInfo;
+
+const SECONDS_IN_A_DAY: f64 = 86400.0;
+const EXCEL_BASE_DATE: i64 = 25569; // Number of days from 1899-12-30 to 1970-01-01
 
 #[wasm_bindgen(js_name= createTemplate)]
 pub fn create_template(info: ExcelInfo) -> Result<Vec<u8>, JsValue> {
@@ -28,18 +31,58 @@ pub fn export_data(info: ExcelInfo, data: ExcelData) -> Result<Vec<u8>, JsValue>
     export_data_buffer(&info, &data).map_err(|e| JsValue::from_str(&format!("{}", e)))
 }
 
+fn parse_color(color_str: &str) -> Option<Color> {
+    let color_str = color_str.trim_start_matches('#');
+    if color_str.len() == 6 {
+        if let Ok(rgb) = u32::from_str_radix(color_str, 16) {
+            return Some(Color::RGB(rgb));
+        } else {
+            return None;
+        }
+    }
+    None
+}
+
 fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
+    if let Some(default_row_height) = info.default_row_height {
+        worksheet.set_default_row_height(default_row_height);
+    }
+    let header_index = info.get_header_row_index() as u32;
+    let columns_len = info.columns.len() as u16;
+    if let Some(title) = info.title.as_ref() {
+        let f = Format::new().set_bold().set_align(FormatAlign::Center).set_align(FormatAlign::VerticalCenter);
+        worksheet.merge_range(0, 0, 0, columns_len - 1, title.as_str(), &f)?;
+        if let Some(title_height) = info.title_height {
+            worksheet.set_row_height(0, title_height)?;
+        }
+    }
     worksheet.set_name(info.sheet_name.as_str())?;
     for (i, column) in info.columns.iter().enumerate() {
-        worksheet.write_string(0, i as u16, column.name.as_str())?;
+        worksheet.write_string(header_index, i as u16, column.name.as_str())?;
         if let Some(width) = column.width {
             worksheet.set_column_width(i as u16, width)?;
         }
+        let mut f = Format::new();
+        if let Some(color) = column.color.as_ref() {
+            if let Some(c) = parse_color(color.as_str()) {
+                f = f.set_background_color(c);
+            }
+        }
+        if let Some(text_color) = column.text_color.as_ref() {
+            if let Some(c) = parse_color(text_color.as_str()) {
+                f = f.set_font_color(c);
+            }
+        }
+        if column.text_bold {
+            f = f.set_bold();
+        }
+        worksheet.set_cell_format(header_index, i as u16, &f)?;
+
         if let Some(note) = column.note.as_ref() {
             let note = Note::new(note.clone()).set_author(info.author.clone());
-            worksheet.insert_note(0, i as u16, &note)?;
+            worksheet.insert_note(header_index, i as u16, &note)?;
         }
     }
 
@@ -81,11 +124,32 @@ fn get_rows_data<'a>(
                 .iter()
                 .map(|(i, key)| ExcelColumnData {
                     key: key.clone(),
-                    value: r.get(*i).unwrap_or(&calamine::Data::Empty).to_string(),
+                    value: format_value(r.get(*i).unwrap_or(&calamine::Data::Empty)),
                 })
                 .collect(),
         })
         .collect()
+}
+
+fn excel_to_timestamp(excel_date: f64) -> i64 {
+    let days_since_epoch = excel_date - EXCEL_BASE_DATE as f64;
+    let seconds_since_epoch = days_since_epoch * SECONDS_IN_A_DAY;
+    seconds_since_epoch as i64
+}
+
+fn format_value(data: &Data) -> String {
+    match data {
+        Data::Empty => "".to_string(),
+        Data::String(s) => s.clone(),
+        Data::Float(f) => f.to_string(),
+        Data::Int(i) => i.to_string(),
+        Data::Bool(b) => b.to_string(),
+        Data::DateTime(dt) => {
+            let timestamp = excel_to_timestamp(dt.as_f64());
+            timestamp.to_string()
+        }
+        _ => data.to_string(),
+    }
 }
 
 fn import_data_buffer(
@@ -113,6 +177,7 @@ fn export_data_buffer(
         .iter()
         .map(|c| c.data_type == excel_info::ExcelDataType::Number)
         .collect::<Vec<bool>>();
+    let data_row_index = info.get_header_row_index() + 1;
     let mut worksheet = workbook.worksheet_from_name(&info.sheet_name)?;
     let mut data_len = 0;
     for (row_idx, row) in data.rows.iter().enumerate() {
@@ -121,7 +186,7 @@ fn export_data_buffer(
             if column.value.is_empty() {
                 continue;
             }
-            let cell_row = (row_idx + 1) as u32;
+            let cell_row = (row_idx + data_row_index) as u32;
             let cell_col = col_idx as u16;
             if is_number_column[col_idx] {
                 worksheet.write_number(cell_row, cell_col, column.value.parse::<f64>()?)?;
