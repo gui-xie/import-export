@@ -51,6 +51,7 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
         worksheet.set_default_row_height(default_row_height);
     }
     let header_index = info.get_header_row_index() as u32;
+
     let columns_len = info.columns.len() as u16;
     if let Some(title) = info.title.as_ref() {
         let f = Format::new()
@@ -63,10 +64,12 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
         }
     }
     worksheet.set_name(info.sheet_name.as_str())?;
+    let header_len = info.get_header_row_len() as u32;
     for (i, column) in info.columns.iter().enumerate() {
-        worksheet.write_string(header_index, i as u16, column.name.as_str())?;
+        let column_index = i as u16;
+        let groups = column.get_column_groups();
         if let Some(width) = column.width {
-            worksheet.set_column_width(i as u16, width)?;
+            worksheet.set_column_width(column_index, width)?;
         }
         let mut f = Format::new();
         if let Some(color) = column.color.as_ref() {
@@ -82,11 +85,45 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
         if column.text_bold {
             f = f.set_bold();
         }
-        worksheet.set_cell_format(header_index, i as u16, &f)?;
-
+        f = f
+            .set_align(FormatAlign::Center)
+            .set_align(FormatAlign::VerticalCenter);
+        let group_len = groups.len() as u32;
+        let last_header_row = header_index + header_len - 2;
+        if group_len == 0 {
+            worksheet.merge_range(
+                header_index,
+                column_index,
+                last_header_row,
+                column_index,
+                &column.name,
+                &f,
+            )?;
+        } else {
+            let mut header_row = header_index;
+            for (_, group) in groups.iter().enumerate() {
+                worksheet.write_string(header_row, column_index, group)?;
+                worksheet.set_cell_format(header_row, column_index, &f)?;
+                header_row += 1;
+            }
+            let left_row_len = last_header_row - header_row;
+            if left_row_len > 1 {
+                worksheet.merge_range(
+                    header_row,
+                    column_index,
+                    header_index + group_len,
+                    column_index,
+                    &column.name,
+                    &f,
+                )?;
+            } else {
+                worksheet.write_string(header_row, column_index, &column.name)?;
+                worksheet.set_cell_format(header_row, column_index, &f)?;
+            }
+        }
         if let Some(note) = column.note.as_ref() {
             let note = Note::new(note.clone()).set_author(info.author.clone());
-            worksheet.insert_note(header_index, i as u16, &note)?;
+            worksheet.insert_note(header_index, column_index, &note)?;
         }
     }
 
@@ -141,7 +178,11 @@ fn get_rows_data<'a>(
 fn excel_to_date_string(excel_date: f64) -> String {
     let days_since_epoch = excel_date - EXCEL_BASE_DATE as f64;
     let seconds_since_epoch = days_since_epoch * SECONDS_IN_A_DAY;
-    seconds_since_epoch.to_string()
+    let date_time = chrono::DateTime::from_timestamp(seconds_since_epoch as i64, 0);
+    match date_time {
+        Some(dt) => dt.format("%Y-%m-%d %H:%M:%S").to_string(),
+        None => "".to_string(),
+    }
 }
 
 fn format_value(data: &Data, data_type: &ExcelDataType) -> String {
@@ -187,7 +228,7 @@ fn export_data_buffer(
         .iter()
         .map(|c| c.data_type == excel_info::ExcelDataType::Number)
         .collect::<Vec<bool>>();
-    let data_row_index = info.get_header_row_index() + 1;
+    let data_row_index = info.get_header_row_index() + info.get_header_row_len() - 1;
     let mut worksheet = workbook.worksheet_from_name(&info.sheet_name)?;
     let mut data_len = 0;
     for (row_idx, row) in data.rows.iter().enumerate() {

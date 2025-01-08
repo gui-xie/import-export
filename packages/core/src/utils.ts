@@ -101,10 +101,10 @@ function download(
 
 function getInfo(definition: ExcelDefinition): ExcelInfo {
   var columns = definition.columns.map(c => {
-    const column = new ExcelColumnInfo(c.key, c.name, c.width);
-    if (c.dataType) column.setDataType(c.dataType);
-    if (c.note) column.setNote(c.note);
-    if (c.allowedValues) column.setAllowedValues(c.allowedValues);
+    let column = new ExcelColumnInfo(c.key, c.name, c.width);
+    if (c.dataType) column = column.withDataType(c.dataType);
+    if (c.note) column = column.withNote(c.note);
+    if (c.allowedValues) column = column.withAllowedValues(c.allowedValues);
     return column;
   });
 

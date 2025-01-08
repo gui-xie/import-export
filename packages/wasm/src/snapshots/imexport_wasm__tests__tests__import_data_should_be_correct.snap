@@ -16,7 +16,7 @@ ExcelData:
       value: Cat
     - ExcelColumnData:
       key: birth
-      value: 1640995200
+      value: 2022-01-01 00:00:00
   - ExcelRowData:
     - ExcelColumnData:
       key: name
@@ -29,4 +29,4 @@ ExcelData:
       value: Mouse
     - ExcelColumnData:
       key: birth
-      value: 1706832000
+      value: 2024-02-02 00:00:00

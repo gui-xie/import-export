@@ -83,6 +83,17 @@ impl ExcelInfo {
             0
         }
     }
+
+    pub fn get_header_row_len(&self) -> usize {
+        let mut row_len = 1;
+        for column in self.columns.iter() {
+            let column_row_len = row_len + column.get_column_groups().len();
+            if column_row_len > row_len {
+                row_len = column_row_len;
+            }
+        }
+        row_len
+    }
 }
 
 #[wasm_bindgen(getter_with_clone)]
@@ -97,6 +108,8 @@ pub struct ExcelColumnInfo {
     pub color: Option<String>,
     pub text_color: Option<String>,
     pub text_bold: bool,
+    pub groups: Option<String>,
+    pub group_separator: String,
 }
 
 #[wasm_bindgen]
@@ -121,6 +134,8 @@ impl ExcelColumnInfo {
             color: None,
             text_color: None,
             text_bold: true,
+            groups: None,
+            group_separator: ",".to_string(),
         }
     }
 
@@ -166,11 +181,33 @@ impl ExcelColumnInfo {
         self
     }
 
+    #[wasm_bindgen(js_name = withGroups)]
+    pub fn with_groups(mut self, groups: String) -> Self {
+        self.groups = Some(groups);
+        self
+    }
+
+    #[wasm_bindgen(js_name = withGroupSeparator)]
+    pub fn with_group_separator(mut self, group_separator: String) -> Self {
+        self.group_separator = group_separator;
+        self
+    }
+
     pub fn get_data_type(&self) -> String {
         match self.data_type {
             ExcelDataType::Text => "text".to_string(),
             ExcelDataType::Number => "number".to_string(),
             ExcelDataType::Date => "date".to_string(),
+        }
+    }
+
+    pub fn get_column_groups(&self) -> Vec<String> {
+        let groups = self.groups.as_ref();
+        let sep = self.group_separator.as_str();
+        if let Some(groups) = groups {
+            groups.split(sep).map(|s| s.to_string()).collect()
+        } else {
+            vec![]
         }
     }
 }
