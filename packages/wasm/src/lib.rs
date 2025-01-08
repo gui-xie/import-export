@@ -1,6 +1,7 @@
 use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
 use excel_info::ExcelDataType;
 use rust_xlsxwriter::*;
+use std::collections::HashMap;
 use std::io::Cursor;
 use wasm_bindgen::prelude::*;
 
@@ -44,6 +45,27 @@ fn parse_color(color_str: &str) -> Option<Color> {
     None
 }
 
+fn get_column_header_format(column: &ExcelColumnInfo) -> Format {
+    let mut f: Format = Format::new();
+    if let Some(color) = column.color.as_ref() {
+        if let Some(c) = parse_color(color.as_str()) {
+            f = f.set_background_color(c);
+        }
+    }
+    if let Some(text_color) = column.text_color.as_ref() {
+        if let Some(c) = parse_color(text_color.as_str()) {
+            f = f.set_font_color(c);
+        }
+    }
+    if column.text_bold {
+        f = f.set_bold();
+    }
+    f = f
+        .set_align(FormatAlign::Center)
+        .set_align(FormatAlign::VerticalCenter);
+    f
+}
+
 fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
@@ -51,7 +73,6 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
         worksheet.set_default_row_height(default_row_height);
     }
     let header_index = info.get_header_row_index() as u32;
-
     let columns_len = info.columns.len() as u16;
     if let Some(title) = info.title.as_ref() {
         let f = Format::new()
@@ -65,29 +86,14 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
     }
     worksheet.set_name(info.sheet_name.as_str())?;
     let header_len = info.get_header_row_len() as u32;
+    let mut t_groups: HashMap<usize, (String, u16)> = HashMap::new();
     for (i, column) in info.columns.iter().enumerate() {
         let column_index = i as u16;
         let groups = column.get_column_groups();
         if let Some(width) = column.width {
             worksheet.set_column_width(column_index, width)?;
         }
-        let mut f = Format::new();
-        if let Some(color) = column.color.as_ref() {
-            if let Some(c) = parse_color(color.as_str()) {
-                f = f.set_background_color(c);
-            }
-        }
-        if let Some(text_color) = column.text_color.as_ref() {
-            if let Some(c) = parse_color(text_color.as_str()) {
-                f = f.set_font_color(c);
-            }
-        }
-        if column.text_bold {
-            f = f.set_bold();
-        }
-        f = f
-            .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter);
+        let f = get_column_header_format(column);
         let group_len = groups.len() as u32;
         let last_header_row = header_index + header_len - 2;
         if group_len == 0 {
@@ -101,7 +107,25 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
             )?;
         } else {
             let mut header_row = header_index;
-            for (_, group) in groups.iter().enumerate() {
+            for (j, group) in groups.iter().enumerate() {
+                if !t_groups.contains_key(&j) {
+                    t_groups.entry(j).or_insert((group.clone(), column_index));
+                } else {
+                    let (group_name, group_column_index) = t_groups.get(&j).unwrap();
+                    if group_name != group {
+                        worksheet.merge_range(
+                            header_row,
+                            *group_column_index,
+                            header_index + j as u32,
+                            *group_column_index,
+                            group_name,
+                            &f,
+                        )?;
+                        t_groups.clear();
+                        t_groups.insert(j, (group.clone(), column_index));
+                    }
+                }
+
                 worksheet.write_string(header_row, column_index, group)?;
                 worksheet.set_cell_format(header_row, column_index, &f)?;
                 header_row += 1;
