@@ -10,23 +10,29 @@ ExcelData:
       value: Tom
     - ExcelColumnData:
       key: age
-      value: 3
+      value: 4
+    - ExcelColumnData:
+      key: birth
+      value: 2021-01-01
+    - ExcelColumnData:
+      key: heart
+      value: Love
     - ExcelColumnData:
       key: category
       value: Cat
-    - ExcelColumnData:
-      key: birth
-      value: 2022-01-01 00:00:00
   - ExcelRowData:
     - ExcelColumnData:
       key: name
       value: Jerry
     - ExcelColumnData:
       key: age
-      value: 1
+      value: 3
+    - ExcelColumnData:
+      key: birth
+      value: 2022-01-01
+    - ExcelColumnData:
+      key: heart
+      value: Hate
     - ExcelColumnData:
       key: category
       value: Mouse
-    - ExcelColumnData:
-      key: birth
-      value: 2024-02-02 00:00:00

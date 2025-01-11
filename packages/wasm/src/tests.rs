@@ -59,15 +59,19 @@ mod tests {
                 excel_data::ExcelRowData {
                     columns: vec![
                         excel_data::ExcelColumnData::new("name".into(), "Tom".into()),
-                        excel_data::ExcelColumnData::new("age".into(), "10".into()),
-                        excel_data::ExcelColumnData::new("category".into(), "Cartoon".into()),
+                        excel_data::ExcelColumnData::new("age".into(), "4".into()),
+                        excel_data::ExcelColumnData::new("birth".into(), "2021-01-01".into()),
+                        excel_data::ExcelColumnData::new("heart".into(), "Love".into()),
+                        excel_data::ExcelColumnData::new("category".into(), "Cat".into()),
                     ],
                 },
                 excel_data::ExcelRowData {
                     columns: vec![
                         excel_data::ExcelColumnData::new("name".into(), "Jerry".into()),
-                        excel_data::ExcelColumnData::new("age".into(), "9".into()),
-                        excel_data::ExcelColumnData::new("category".into(), "Cartoon".into()),
+                        excel_data::ExcelColumnData::new("age".into(), "3".into()),
+                        excel_data::ExcelColumnData::new("birth".into(), "2022-01-01".into()),
+                        excel_data::ExcelColumnData::new("heart".into(), "Hate".into()),
+                        excel_data::ExcelColumnData::new("category".into(), "Mouse".into()),
                     ],
                 },
             ],

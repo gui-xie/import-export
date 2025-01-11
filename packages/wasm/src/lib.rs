@@ -61,6 +61,7 @@ fn get_column_header_format(column: &ExcelColumnInfo) -> Format {
     if column.text_bold {
         f = f.set_bold();
     }
+
     f = f
         .set_align(FormatAlign::Center)
         .set_align(FormatAlign::VerticalCenter);
@@ -134,32 +135,24 @@ fn create_template_workbook(
     Ok((workbook, column_positions))
 }
 
-fn get_columns_index<'a>(
-    columns: &'a [ExcelColumnInfo],
-    range: &'a calamine::Range<calamine::Data>,
-) -> Vec<(usize, String, ExcelDataType)> {
-    let mut result = Vec::new();
-    for (i, value) in range[0].iter().enumerate() {
-        let column = columns.iter().find(|c| c.name == value.to_string());
-        if let Some(column) = column {
-            result.push((i, column.key.clone(), column.data_type.clone()));
-        }
-    }
-    result
-}
-
 fn get_rows_data<'a>(
-    columns: &'a Vec<(usize, String, ExcelDataType)>,
+    columns: &'a Vec<ExcelColumnPosition>,
     range: &'a calamine::Range<calamine::Data>,
 ) -> Vec<ExcelRowData> {
+    let header_max_y = columns.iter().map(|c| c.y2).max().unwrap_or(0) as usize + 1;
+    let leaf_columns = columns
+        .iter()
+        .filter(|c| c.is_leaf)
+        .map(|c| (c.key.clone(), c.x1 as usize, c.data_type.clone()))
+        .collect::<Vec<(String, usize, ExcelDataType)>>();
     range
         .rows()
-        .skip(1)
+        .skip(header_max_y)
         .map(|r| ExcelRowData {
-            columns: columns
+            columns: leaf_columns
                 .iter()
-                .map(|(i, key, data_type)| {
-                    let cell = r.get(*i).unwrap_or(&Data::Empty);
+                .map(|(key, x1, data_type)| {
+                    let cell = r.get(*x1).unwrap_or(&Data::Empty);
                     ExcelColumnData {
                         key: key.clone(),
                         value: format_value(cell, data_type),
@@ -206,9 +199,8 @@ fn import_data_buffer(
     let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor)?;
     let mut excel_data = ExcelData { rows: Vec::new() };
     let range = workbook.worksheet_range(info.sheet_name.as_str())?;
-    let columns = get_columns_index(&info.columns, &range);
-
-    excel_data.rows = get_rows_data(&columns, &range);
+    let column_positions = get_column_positions(&info);
+    excel_data.rows = get_rows_data(&column_positions, &range);
 
     Ok(excel_data)
 }
@@ -218,7 +210,7 @@ fn export_data_buffer(
     data: &ExcelData,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let (mut workbook, column_positions) = create_template_workbook(&info)?;
-    let column_hash_map: HashMap<String, &ExcelColumnPosition> =
+    let column_positions_map: HashMap<String, &ExcelColumnPosition> =
         HashMap::from_iter(column_positions.iter().map(|c| (c.key.clone(), c)));
     let mut y = column_positions.iter().map(|p| p.y2).max().unwrap_or(0);
     let mut worksheet = workbook.worksheet_from_name(&info.sheet_name)?;
@@ -229,7 +221,7 @@ fn export_data_buffer(
             if column_data.value.is_empty() {
                 continue;
             }
-            let column = column_hash_map.get(&column_data.key).unwrap();
+            let column = column_positions_map.get(&column_data.key).unwrap();
             if column.data_type == ExcelDataType::Number {
                 worksheet.write_number(y, column.x1, column_data.value.parse::<f64>()?)?;
             } else {
@@ -239,8 +231,9 @@ fn export_data_buffer(
         data_len += 1;
     }
 
-    info.columns.iter().enumerate().for_each(|(i, column)| {
-        add_data_validation(&mut worksheet, column, i as u16, data_len).unwrap();
+    info.columns.iter().enumerate().for_each(|(_, column)| {
+        let pos = column_positions_map.get(&column.key).unwrap();
+        add_data_validation(&mut worksheet, column, pos.x1, data_len).unwrap();
     });
 
     Ok(workbook.save_to_buffer()?)
@@ -252,12 +245,7 @@ fn add_data_validation(
     column_index: u16,
     last_row: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let allowed_values = column.allowed_values.as_ref();
-    if allowed_values.is_none() {
-        return Ok(());
-    }
-    let allowed_values = allowed_values.unwrap();
-    let data_validation = DataValidation::new().allow_list_strings(allowed_values)?;
+    let data_validation = DataValidation::new().allow_list_strings(&column.allowed_values)?;
     worksheet.add_data_validation(1, column_index, last_row, column_index, &data_validation)?;
     Ok(())
 }

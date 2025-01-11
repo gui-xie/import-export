@@ -53,6 +53,7 @@ impl ExcelInfo {
                 while let Some(p) = processed_columns.pop() {
                     if p == column.parent {
                         flag = true;
+                        processed_columns.push(p);
                         break;
                     }
                 }
@@ -119,7 +120,7 @@ pub struct ExcelColumnInfo {
     pub width: f64,
     pub note: Option<String>,
     pub data_type: ExcelDataType,
-    pub allowed_values: Option<Vec<String>>,
+    pub allowed_values: Vec<String>,
     pub color: Option<String>,
     pub text_color: Option<String>,
     pub text_bold: bool,
@@ -144,7 +145,7 @@ impl ExcelColumnInfo {
             width: 20.0,
             note: None,
             data_type: ExcelDataType::Text,
-            allowed_values: None,
+            allowed_values: Vec::new(),
             color: None,
             text_color: None,
             text_bold: true,
@@ -166,7 +167,7 @@ impl ExcelColumnInfo {
 
     #[wasm_bindgen(js_name = withAllowedValues)]
     pub fn with_allowed_values(mut self, allowed_values: Vec<String>) -> Self {
-        self.allowed_values = Some(allowed_values);
+        self.allowed_values = allowed_values;
         self
     }
 
