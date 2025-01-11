@@ -94,6 +94,8 @@ mod tests {
                 .with_width(40.0)
                 .with_data_type(excel_info::ExcelDataType::Date)
                 .with_parent("generation".into()),
+            excel_info::ExcelColumnInfo::new("heart".into(), "Heart".into())
+                .with_parent("life".into()),
             excel_info::ExcelColumnInfo::new("category".into(), "Category".into()),
         ];
         excel_info::ExcelInfo::new(

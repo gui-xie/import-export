@@ -27,6 +27,7 @@ impl ExcelInfo {
         author: String,
         create_time: String,
     ) -> ExcelInfo {
+        ExcelInfo::check_columns(&columns);
         ExcelInfo {
             name,
             sheet_name,
@@ -41,6 +42,28 @@ impl ExcelInfo {
             title_text_bold: None,
             dx: 0,
             dy: 0,
+        }
+    }
+
+    fn check_columns(columns: &Vec<ExcelColumnInfo>) {
+        let mut processed_columns = Vec::new();
+        for column in columns.iter() {
+            if column.has_parent() {
+                let mut flag = false;
+                while let Some(p) = processed_columns.pop() {
+                    if p == column.parent {
+                        flag = true;
+                        break;
+                    }
+                }
+                if !flag {
+                    panic!(
+                        "Check Error: Parent column {} not found for column {}",
+                        column.parent, column.key
+                    );
+                }
+            }
+            processed_columns.push(column.key.clone());
         }
     }
 
