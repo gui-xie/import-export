@@ -2,6 +2,7 @@ use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
 use excel_info::ExcelDataType;
 use rust_xlsxwriter::*;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::io::Cursor;
 use wasm_bindgen::prelude::*;
 
@@ -72,85 +73,48 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
     if let Some(default_row_height) = info.default_row_height {
         worksheet.set_default_row_height(default_row_height);
     }
-    let header_index = info.get_header_row_index() as u32;
-    let columns_len = info.columns.len() as u16;
-    if let Some(title) = info.title.as_ref() {
-        let f = Format::new()
-            .set_bold()
-            .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter);
-        worksheet.merge_range(0, 0, 0, columns_len - 1, title.as_str(), &f)?;
-        if let Some(title_height) = info.title_height {
-            worksheet.set_row_height(0, title_height)?;
-        }
-    }
+    let column_positions = get_column_positions(&info);
+    // let leaf_columns_len = column_positions.iter().filter(|c| c.is_leaf).count() as u16;
+    // if let Some(title) = info.title.as_ref() {
+    //     let f = Format::new()
+    //         .set_bold()
+    //         .set_align(FormatAlign::Center)
+    //         .set_align(FormatAlign::VerticalCenter);
+    //     worksheet.merge_range(0, 0, 0, leaf_columns_len - 1, title.as_str(), &f)?;
+    //     if let Some(title_height) = info.title_height {
+    //         worksheet.set_row_height(0, title_height)?;
+    //     }
+    // }
+    column_positions
+        .iter()
+        .enumerate()
+        .for_each(|(_, position)| {
+            let column = info.columns.iter().find(|c| c.key == position.key).unwrap();
+            if position.is_single_cell() {
+                worksheet
+                    .write_string(position.y1 as u32, position.x1 as u16, column.name.as_str())
+                    .unwrap();
+                worksheet
+                    .set_cell_format(
+                        position.y1 as u32,
+                        position.x1 as u16,
+                        &get_column_header_format(column),
+                    )
+                    .unwrap();
+                return;
+            }
+            worksheet
+                .merge_range(
+                    position.y1 as u32,
+                    position.x1 as u16,
+                    position.y2 as u32,
+                    position.x2 as u16,
+                    column.name.as_str(),
+                    &get_column_header_format(column),
+                )
+                .unwrap();
+        });
     worksheet.set_name(info.sheet_name.as_str())?;
-    let header_len = info.get_header_row_len() as u32;
-    let mut t_groups: HashMap<usize, (String, u16)> = HashMap::new();
-    for (i, column) in info.columns.iter().enumerate() {
-        let column_index = i as u16;
-        let groups = column.get_column_groups();
-        if let Some(width) = column.width {
-            worksheet.set_column_width(column_index, width)?;
-        }
-        let f = get_column_header_format(column);
-        let group_len = groups.len() as u32;
-        let last_header_row = header_index + header_len - 2;
-        if group_len == 0 {
-            worksheet.merge_range(
-                header_index,
-                column_index,
-                last_header_row,
-                column_index,
-                &column.name,
-                &f,
-            )?;
-        } else {
-            let mut header_row = header_index;
-            for (j, group) in groups.iter().enumerate() {
-                if !t_groups.contains_key(&j) {
-                    t_groups.entry(j).or_insert((group.clone(), column_index));
-                } else {
-                    let (group_name, group_column_index) = t_groups.get(&j).unwrap();
-                    if group_name != group {
-                        worksheet.merge_range(
-                            header_row,
-                            *group_column_index,
-                            header_index + j as u32,
-                            *group_column_index,
-                            group_name,
-                            &f,
-                        )?;
-                        t_groups.clear();
-                        t_groups.insert(j, (group.clone(), column_index));
-                    }
-                }
-
-                worksheet.write_string(header_row, column_index, group)?;
-                worksheet.set_cell_format(header_row, column_index, &f)?;
-                header_row += 1;
-            }
-            let left_row_len = last_header_row - header_row;
-            if left_row_len > 1 {
-                worksheet.merge_range(
-                    header_row,
-                    column_index,
-                    header_index + group_len,
-                    column_index,
-                    &column.name,
-                    &f,
-                )?;
-            } else {
-                worksheet.write_string(header_row, column_index, &column.name)?;
-                worksheet.set_cell_format(header_row, column_index, &f)?;
-            }
-        }
-        if let Some(note) = column.note.as_ref() {
-            let note = Note::new(note.clone()).set_author(info.author.clone());
-            worksheet.insert_note(header_index, column_index, &note)?;
-        }
-    }
-
     let create_time =
         ExcelDateTime::parse_from_str(&info.create_time).map_err(|e| XlsxError::from(e))?;
 
@@ -252,7 +216,10 @@ fn export_data_buffer(
         .iter()
         .map(|c| c.data_type == excel_info::ExcelDataType::Number)
         .collect::<Vec<bool>>();
-    let data_row_index = info.get_header_row_index() + info.get_header_row_len() - 1;
+    // let data_row_index = info.get_header_row_index() + info.get_header_row_len() - 1;
+    let data_row_index = 6;
+    // todo
+
     let mut worksheet = workbook.worksheet_from_name(&info.sheet_name)?;
     let mut data_len = 0;
     for (row_idx, row) in data.rows.iter().enumerate() {
@@ -298,4 +265,140 @@ fn create_template_buffer(info: &ExcelInfo) -> Result<Vec<u8>, XlsxError> {
     let mut workbook = create_template_workbook(&info)?;
     let buffer = workbook.save_to_buffer()?;
     Ok(buffer)
+}
+
+#[derive(Debug, Clone)]
+pub struct ExcelColumnPosition {
+    pub x1: u16,
+    pub y1: u32,
+    pub x2: u16,
+    pub y2: u32,
+    pub key: String,
+}
+
+impl ExcelColumnPosition {
+    pub fn is_single_cell(&self) -> bool {
+        self.x1 == self.x2 && self.y1 == self.y2
+    }
+}
+
+fn get_parent_times(
+    leaf_columns: &Vec<&ExcelColumnInfo>,
+    parent_map: &HashMap<String, String>,
+) -> HashMap<String, u16> {
+    let mut parent_times: HashMap<String, u16> = HashMap::new();
+    for column in leaf_columns.iter() {
+        let mut p: &String = &column.parent;
+        while parent_map.contains_key(p) {
+            if parent_times.contains_key(p) {
+                let count = parent_times.get_mut(p).unwrap();
+                *count += 1;
+            } else {
+                parent_times.insert(p.clone(), 1);
+            }
+            p = parent_map.get(p).unwrap();
+        }
+    }
+    parent_times
+}
+
+fn get_parent_map(info: &ExcelInfo) -> HashMap<String, String> {
+    let mut parent_keys = HashSet::new();
+    for column in info.columns.iter() {
+        if column.has_parent() {
+            parent_keys.insert(column.parent.clone());
+        }
+    }
+    let mut parent_map = HashMap::new();
+    for column in info.columns.iter() {
+        if parent_keys.contains(&column.key) {
+            parent_map.insert(column.key.clone(), column.parent.clone());
+        }
+    }
+    parent_map
+}
+
+fn get_column_positions(info: &ExcelInfo) -> Vec<ExcelColumnPosition> {
+    let parent_map = get_parent_map(&info);
+    let leaf_columns = info
+        .columns
+        .iter()
+        .filter(|c| !parent_map.contains_key(&c.key))
+        .collect::<Vec<&ExcelColumnInfo>>();
+    let levels = get_levels(&leaf_columns, &parent_map);
+    let parent_counts = get_parent_times(&leaf_columns, &parent_map);
+
+    let dx = info.dx;
+    let dy = info.dy + info.get_header_row_index();
+
+    println!("dy: {}", dy);
+
+    let mut positions: Vec<ExcelColumnPosition> = Vec::new();
+    let mut x = dx;
+    let y = dy;
+    let max_level = levels.values().max().unwrap_or(&0);
+    let y_max = y + max_level;
+    for column in info.columns.iter() {
+        let level = levels.get(&column.key).unwrap_or(&0);
+        let count = parent_counts.get(&column.key).unwrap_or(&1);
+        let is_leaf = !parent_map.contains_key(&column.key);
+        let position = ExcelColumnPosition {
+            x1: x,
+            y1: y + level,
+            x2: x + count - 1,
+            y2: if is_leaf { y_max } else { y + level },
+            key: column.key.clone(),
+        };
+        println!("position: {:?}", position);
+        positions.push(position);
+        if is_leaf {
+            x += 1;
+        }
+    }
+
+    for position in positions.iter_mut() {
+        position.y1 += dy;
+        position.y2 += dy;
+        position.x1 += dx;
+        position.x2 += dx;
+    }
+    positions
+}
+
+fn get_leaf_and_parent_columns<'a>(
+    info: &'a ExcelInfo,
+    parent_map: &'a HashMap<String, String>,
+) -> (Vec<&'a ExcelColumnInfo>, Vec<&'a ExcelColumnInfo>) {
+    let mut parent_columns = Vec::new();
+    let mut leaf_columns = Vec::new();
+    info.columns.iter().for_each(|c| {
+        if parent_map.contains_key(&c.key) {
+            parent_columns.push(c);
+        } else {
+            leaf_columns.push(c);
+        }
+    });
+    (leaf_columns, parent_columns)
+}
+
+fn get_levels<'a>(
+    leaf_columns: &'a Vec<&ExcelColumnInfo>,
+    parent_map: &'a HashMap<String, String>,
+) -> HashMap<&'a String, u32> {
+    let mut result = HashMap::new();
+    for column in leaf_columns.iter() {
+        let mut parents = Vec::new();
+        let mut parent = &column.parent;
+        parents.push((&column.key, 0));
+
+        while parent_map.contains_key(parent) {
+            for (_, count) in parents.iter_mut() {
+                *count += 1;
+            }
+            parents.push((parent, 0));
+            parent = &parent_map[parent];
+        }
+        result.extend(parents);
+    }
+    result
 }

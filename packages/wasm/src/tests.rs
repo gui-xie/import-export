@@ -58,22 +58,16 @@ mod tests {
             rows: vec![
                 excel_data::ExcelRowData {
                     columns: vec![
-                        excel_data::ExcelColumnData::new("name".to_string(), "Tom".to_string()),
-                        excel_data::ExcelColumnData::new("age".to_string(), "10".to_string()),
-                        excel_data::ExcelColumnData::new(
-                            "category".to_string(),
-                            "Cartoon".to_string(),
-                        ),
+                        excel_data::ExcelColumnData::new("name".into(), "Tom".into()),
+                        excel_data::ExcelColumnData::new("age".into(), "10".into()),
+                        excel_data::ExcelColumnData::new("category".into(), "Cartoon".into()),
                     ],
                 },
                 excel_data::ExcelRowData {
                     columns: vec![
-                        excel_data::ExcelColumnData::new("name".to_string(), "Jerry".to_string()),
-                        excel_data::ExcelColumnData::new("age".to_string(), "9".to_string()),
-                        excel_data::ExcelColumnData::new(
-                            "category".to_string(),
-                            "Cartoon".to_string(),
-                        ),
+                        excel_data::ExcelColumnData::new("name".into(), "Jerry".into()),
+                        excel_data::ExcelColumnData::new("age".into(), "9".into()),
+                        excel_data::ExcelColumnData::new("category".into(), "Cartoon".into()),
                     ],
                 },
             ],
@@ -86,31 +80,31 @@ mod tests {
         let author = "senlinz";
         let create_time = "2024-11-01T08:00:00";
         let columns = vec![
-            excel_info::ExcelColumnInfo::new("name".to_string(), "Name".to_string(), Some(20.0)),
-            excel_info::ExcelColumnInfo::new("age".to_string(), "Age".to_string(), Some(20.0))
+            excel_info::ExcelColumnInfo::new("name".into(), "Name".into()),
+            excel_info::ExcelColumnInfo::new("life".into(), "Life".into()),
+            excel_info::ExcelColumnInfo::new("generation".into(), "Generation".into())
+                .with_parent("life".into()),
+            excel_info::ExcelColumnInfo::new("age".into(), "Age".into())
                 .with_data_type(excel_info::ExcelDataType::Number)
-                .with_color("#FF0000".to_string())
-                .with_text_color("#FFFFFF".to_string())
+                .with_color("#FF0000".into())
+                .with_text_color("#FFFFFF".into())
                 .with_text_bold(false)
-                .with_groups("Generations".to_string()),
-            excel_info::ExcelColumnInfo::new("birth".to_string(), "Birth".to_string(), Some(20.0))
+                .with_parent("generation".into()),
+            excel_info::ExcelColumnInfo::new("birth".into(), "Birth".into())
+                .with_width(40.0)
                 .with_data_type(excel_info::ExcelDataType::Date)
-                .with_groups("Generations".to_string()),
-            excel_info::ExcelColumnInfo::new(
-                "category".to_string(),
-                "Category".to_string(),
-                Some(20.0),
-            ),
+                .with_parent("generation".into()),
+            excel_info::ExcelColumnInfo::new("category".into(), "Category".into()),
         ];
         excel_info::ExcelInfo::new(
-            name.to_string(),
-            sheet_name.to_string(),
+            name.into(),
+            sheet_name.into(),
             columns,
-            author.to_string(),
-            create_time.to_string(),
+            author.into(),
+            create_time.into(),
         )
         .with_default_row_height(30.0)
-        .with_title("Tom and Jerry".to_string())
+        .with_title("Tom and Jerry".into())
         .with_title_height(50.0)
     }
 }

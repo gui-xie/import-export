@@ -13,6 +13,8 @@ pub struct ExcelInfo {
     pub title_color: Option<String>,
     pub title_text_color: Option<String>,
     pub title_text_bold: Option<bool>,
+    pub dx: u16,
+    pub dy: u32,
 }
 
 #[wasm_bindgen]
@@ -37,6 +39,8 @@ impl ExcelInfo {
             title_color: None,
             title_text_color: None,
             title_text_bold: None,
+            dx: 0,
+            dy: 0,
         }
     }
 
@@ -76,23 +80,19 @@ impl ExcelInfo {
         self
     }
 
-    pub fn get_header_row_index(&self) -> usize {
+    #[wasm_bindgen(js_name = withOffset)]
+    pub fn with_offset(mut self, dx: u16, dy: u32) -> Self {
+        self.dx = dx;
+        self.dy = dy;
+        self
+    }
+
+    pub fn get_header_row_index(&self) -> u32 {
         if self.title.is_some() {
             1
         } else {
             0
         }
-    }
-
-    pub fn get_header_row_len(&self) -> usize {
-        let mut row_len = 1;
-        for column in self.columns.iter() {
-            let column_row_len = row_len + column.get_column_groups().len();
-            if column_row_len > row_len {
-                row_len = column_row_len;
-            }
-        }
-        row_len
     }
 }
 
@@ -101,15 +101,14 @@ impl ExcelInfo {
 pub struct ExcelColumnInfo {
     pub key: String,
     pub name: String,
-    pub width: Option<f64>,
+    pub width: f64,
     pub note: Option<String>,
     pub data_type: ExcelDataType,
     pub allowed_values: Option<Vec<String>>,
     pub color: Option<String>,
     pub text_color: Option<String>,
     pub text_bold: bool,
-    pub groups: Option<String>,
-    pub group_separator: String,
+    pub parent: String,
 }
 
 #[wasm_bindgen]
@@ -123,19 +122,18 @@ pub enum ExcelDataType {
 #[wasm_bindgen]
 impl ExcelColumnInfo {
     #[wasm_bindgen(constructor)]
-    pub fn new(key: String, name: String, width: Option<f64>) -> ExcelColumnInfo {
+    pub fn new(key: String, name: String) -> ExcelColumnInfo {
         ExcelColumnInfo {
             key,
             name,
-            width,
+            width: 20.0,
             note: None,
             data_type: ExcelDataType::Text,
             allowed_values: None,
             color: None,
             text_color: None,
             text_bold: true,
-            groups: None,
-            group_separator: ",".to_string(),
+            parent: "".to_string(),
         }
     }
 
@@ -159,7 +157,7 @@ impl ExcelColumnInfo {
 
     #[wasm_bindgen(js_name = withWidth)]
     pub fn with_width(mut self, width: f64) -> Self {
-        self.width = Some(width);
+        self.width = width;
         self
     }
 
@@ -181,16 +179,14 @@ impl ExcelColumnInfo {
         self
     }
 
-    #[wasm_bindgen(js_name = withGroups)]
-    pub fn with_groups(mut self, groups: String) -> Self {
-        self.groups = Some(groups);
+    #[wasm_bindgen(js_name = withParent)]
+    pub fn with_parent(mut self, parent: String) -> Self {
+        self.parent = parent;
         self
     }
 
-    #[wasm_bindgen(js_name = withGroupSeparator)]
-    pub fn with_group_separator(mut self, group_separator: String) -> Self {
-        self.group_separator = group_separator;
-        self
+    pub fn has_parent(&self) -> bool {
+        !self.parent.is_empty()
     }
 
     pub fn get_data_type(&self) -> String {
@@ -198,16 +194,6 @@ impl ExcelColumnInfo {
             ExcelDataType::Text => "text".to_string(),
             ExcelDataType::Number => "number".to_string(),
             ExcelDataType::Date => "date".to_string(),
-        }
-    }
-
-    pub fn get_column_groups(&self) -> Vec<String> {
-        let groups = self.groups.as_ref();
-        let sep = self.group_separator.as_str();
-        if let Some(groups) = groups {
-            groups.split(sep).map(|s| s.to_string()).collect()
-        } else {
-            vec![]
         }
     }
 }
