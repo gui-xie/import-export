@@ -60,7 +60,7 @@ mod tests {
                     columns: vec![
                         excel_data::ExcelColumnData::new("name".into(), "Tom".into()),
                         excel_data::ExcelColumnData::new("age".into(), "4".into()),
-                        excel_data::ExcelColumnData::new("birth".into(), "2021-01-01".into()),
+                        excel_data::ExcelColumnData::new("birth".into(), "2021-01-01 08:32".into()),
                         excel_data::ExcelColumnData::new("heart".into(), "Love".into()),
                         excel_data::ExcelColumnData::new("category".into(), "Cat".into()),
                     ],
@@ -89,15 +89,16 @@ mod tests {
             excel_info::ExcelColumnInfo::new("generation".into(), "Generation".into())
                 .with_parent("life".into()),
             excel_info::ExcelColumnInfo::new("age".into(), "Age".into())
-                .with_data_type(excel_info::ExcelDataType::Number)
+                .with_data_type("number".into())
                 .with_color("#FF0000".into())
                 .with_text_color("#FFFFFF".into())
                 .with_text_bold(false)
                 .with_parent("generation".into()),
             excel_info::ExcelColumnInfo::new("birth".into(), "Birth".into())
                 .with_width(40.0)
-                .with_data_type(excel_info::ExcelDataType::Date)
-                .with_parent("generation".into()),
+                .with_data_type("date".into())
+                .with_parent("generation".into())
+                .with_date_format("yyyy-MM-dd HH:mm".into()),
             excel_info::ExcelColumnInfo::new("heart".into(), "Heart".into())
                 .with_parent("life".into()),
             excel_info::ExcelColumnInfo::new("category".into(), "Category".into()),

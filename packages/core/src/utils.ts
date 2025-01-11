@@ -101,7 +101,8 @@ function download(
 
 function getInfo(definition: ExcelDefinition): ExcelInfo {
   var columns = definition.columns.map(c => {
-    let column = new ExcelColumnInfo(c.key, c.name, c.width);
+    let column = new ExcelColumnInfo(c.key, c.name);
+    if (c.width) column = column.withWidth(c.width);
     if (c.dataType) column = column.withDataType(c.dataType);
     if (c.note) column = column.withNote(c.note);
     if (c.allowedValues) column = column.withAllowedValues(c.allowedValues);

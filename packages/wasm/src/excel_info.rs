@@ -119,20 +119,13 @@ pub struct ExcelColumnInfo {
     pub name: String,
     pub width: f64,
     pub note: Option<String>,
-    pub data_type: ExcelDataType,
+    pub data_type: String,
     pub allowed_values: Vec<String>,
     pub color: Option<String>,
     pub text_color: Option<String>,
     pub text_bold: bool,
     pub parent: String,
-}
-
-#[wasm_bindgen]
-#[derive(Clone, PartialEq)]
-pub enum ExcelDataType {
-    Text,
-    Number,
-    Date,
+    pub date_format: String,
 }
 
 #[wasm_bindgen]
@@ -144,12 +137,13 @@ impl ExcelColumnInfo {
             name,
             width: 20.0,
             note: None,
-            data_type: ExcelDataType::Text,
+            data_type: "text".into(),
             allowed_values: Vec::new(),
             color: None,
             text_color: None,
             text_bold: true,
-            parent: "".to_string(),
+            parent: "".into(),
+            date_format: "yyyy-mm-dd".into(),
         }
     }
 
@@ -160,7 +154,7 @@ impl ExcelColumnInfo {
     }
 
     #[wasm_bindgen(js_name = withDataType)]
-    pub fn with_data_type(mut self, data_type: ExcelDataType) -> Self {
+    pub fn with_data_type(mut self, data_type: String) -> Self {
         self.data_type = data_type;
         self
     }
@@ -201,15 +195,13 @@ impl ExcelColumnInfo {
         self
     }
 
-    pub fn has_parent(&self) -> bool {
-        !self.parent.is_empty()
+    #[wasm_bindgen(js_name = withDateFormat)]
+    pub fn with_date_format(mut self, date_format: String) -> Self {
+        self.date_format = date_format;
+        self
     }
 
-    pub fn get_data_type(&self) -> String {
-        match self.data_type {
-            ExcelDataType::Text => "text".to_string(),
-            ExcelDataType::Number => "number".to_string(),
-            ExcelDataType::Date => "date".to_string(),
-        }
+    pub fn has_parent(&self) -> bool {
+        !self.parent.is_empty()
     }
 }

@@ -1,5 +1,4 @@
 use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
-use excel_info::ExcelDataType;
 use rust_xlsxwriter::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -144,7 +143,7 @@ fn get_rows_data<'a>(
         .iter()
         .filter(|c| c.is_leaf)
         .map(|c| (c.key.clone(), c.x1 as usize, c.data_type.clone()))
-        .collect::<Vec<(String, usize, ExcelDataType)>>();
+        .collect::<Vec<(String, usize, String)>>();
     range
         .rows()
         .skip(header_max_y)
@@ -173,12 +172,12 @@ fn excel_to_date_string(excel_date: f64) -> String {
     }
 }
 
-fn format_value(data: &Data, data_type: &ExcelDataType) -> String {
+fn format_value(data: &Data, data_type: &String) -> String {
     match data {
         Data::Empty => "".to_string(),
         Data::String(s) => s.clone(),
         Data::Float(f) => {
-            if *data_type == ExcelDataType::Date {
+            if data_type.eq_ignore_ascii_case("date") {
                 excel_to_date_string(*f)
             } else {
                 f.to_string()
@@ -210,8 +209,13 @@ fn export_data_buffer(
     data: &ExcelData,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let (mut workbook, column_positions) = create_template_workbook(&info)?;
-    let column_positions_map: HashMap<String, &ExcelColumnPosition> =
-        HashMap::from_iter(column_positions.iter().map(|c| (c.key.clone(), c)));
+    let column_positions_map: HashMap<String, (&ExcelColumnPosition, &ExcelColumnInfo)> =
+        HashMap::from_iter(column_positions.iter().map(|c| {
+            (
+                c.key.clone(),
+                (c, info.columns.iter().find(|ci| ci.key == c.key).unwrap()),
+            )
+        }));
     let mut y = column_positions.iter().map(|p| p.y2).max().unwrap_or(0);
     let mut worksheet = workbook.worksheet_from_name(&info.sheet_name)?;
     let mut data_len = 0;
@@ -221,20 +225,33 @@ fn export_data_buffer(
             if column_data.value.is_empty() {
                 continue;
             }
-            let column = column_positions_map.get(&column_data.key).unwrap();
-            if column.data_type == ExcelDataType::Number {
-                worksheet.write_number(y, column.x1, column_data.value.parse::<f64>()?)?;
+            let (pos, info) = column_positions_map.get(&column_data.key).unwrap();
+            if pos.data_type.eq_ignore_ascii_case("number") {
+                worksheet.write_number(y, pos.x1, column_data.value.parse::<f64>()?)?;
+            } else if pos.data_type.eq_ignore_ascii_case("date") {
+                let date_time = ExcelDateTime::parse_from_str(&column_data.value)?;
+                worksheet.write_datetime(y, pos.x1, date_time)?;
+                worksheet.set_cell_format(
+                    y,
+                    pos.x1,
+                    &Format::new().set_num_format(&info.date_format),
+                )?;
             } else {
-                worksheet.write_string(y, column.x1, column_data.value.as_str())?;
+                worksheet.write_string(y, pos.x1, column_data.value.as_str())?;
             }
         }
         data_len += 1;
     }
 
-    info.columns.iter().enumerate().for_each(|(_, column)| {
-        let pos = column_positions_map.get(&column.key).unwrap();
-        add_data_validation(&mut worksheet, column, pos.x1, data_len).unwrap();
-    });
+    column_positions_map
+        .iter()
+        .enumerate()
+        .for_each(|(_, (_, (pos, info)))| {
+            if info.allowed_values.len() == 0 || !pos.is_leaf {
+                return;
+            }
+            add_data_validation(&mut worksheet, info, pos.x1, data_len).unwrap();
+        });
 
     Ok(workbook.save_to_buffer()?)
 }
@@ -262,7 +279,7 @@ pub struct ExcelColumnPosition {
     pub x2: u16,
     pub y2: u32,
     pub key: String,
-    pub data_type: ExcelDataType,
+    pub data_type: String,
     pub is_leaf: bool,
 }
 
