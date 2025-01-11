@@ -86,14 +86,6 @@ impl ExcelInfo {
         self.dy = dy;
         self
     }
-
-    pub fn get_header_row_index(&self) -> u32 {
-        if self.title.is_some() {
-            1
-        } else {
-            0
-        }
-    }
 }
 
 #[wasm_bindgen(getter_with_clone)]

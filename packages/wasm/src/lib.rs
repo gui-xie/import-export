@@ -67,24 +67,26 @@ fn get_column_header_format(column: &ExcelColumnInfo) -> Format {
     f
 }
 
-fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
+fn create_template_workbook(
+    info: &ExcelInfo,
+) -> Result<(Workbook, Vec<ExcelColumnPosition>), XlsxError> {
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
     if let Some(default_row_height) = info.default_row_height {
         worksheet.set_default_row_height(default_row_height);
     }
     let column_positions = get_column_positions(&info);
-    // let leaf_columns_len = column_positions.iter().filter(|c| c.is_leaf).count() as u16;
-    // if let Some(title) = info.title.as_ref() {
-    //     let f = Format::new()
-    //         .set_bold()
-    //         .set_align(FormatAlign::Center)
-    //         .set_align(FormatAlign::VerticalCenter);
-    //     worksheet.merge_range(0, 0, 0, leaf_columns_len - 1, title.as_str(), &f)?;
-    //     if let Some(title_height) = info.title_height {
-    //         worksheet.set_row_height(0, title_height)?;
-    //     }
-    // }
+    let max_column_x = column_positions.iter().map(|p| p.x2).max().unwrap_or(0);
+    if let Some(title) = info.title.as_ref() {
+        let f = Format::new()
+            .set_bold()
+            .set_align(FormatAlign::Center)
+            .set_align(FormatAlign::VerticalCenter);
+        worksheet.merge_range(info.dy, info.dx, info.dy, max_column_x, title.as_str(), &f)?;
+        if let Some(title_height) = info.title_height {
+            worksheet.set_row_height(0, title_height)?;
+        }
+    }
     column_positions
         .iter()
         .enumerate()
@@ -101,18 +103,23 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
                         &get_column_header_format(column),
                     )
                     .unwrap();
-                return;
+            } else {
+                worksheet
+                    .merge_range(
+                        position.y1 as u32,
+                        position.x1 as u16,
+                        position.y2 as u32,
+                        position.x2 as u16,
+                        column.name.as_str(),
+                        &get_column_header_format(column),
+                    )
+                    .unwrap();
             }
-            worksheet
-                .merge_range(
-                    position.y1 as u32,
-                    position.x1 as u16,
-                    position.y2 as u32,
-                    position.x2 as u16,
-                    column.name.as_str(),
-                    &get_column_header_format(column),
-                )
-                .unwrap();
+            if position.is_leaf {
+                worksheet
+                    .set_column_width(position.x1, column.width)
+                    .unwrap();
+            }
         });
     worksheet.set_name(info.sheet_name.as_str())?;
     let create_time =
@@ -124,7 +131,7 @@ fn create_template_workbook(info: &ExcelInfo) -> Result<Workbook, XlsxError> {
         .set_creation_datetime(&create_time);
 
     workbook.set_properties(&properties);
-    Ok(workbook)
+    Ok((workbook, column_positions))
 }
 
 fn get_columns_index<'a>(
@@ -210,32 +217,26 @@ fn export_data_buffer(
     info: &ExcelInfo,
     data: &ExcelData,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    let mut workbook = create_template_workbook(&info)?;
-    let is_number_column = info
-        .columns
-        .iter()
-        .map(|c| c.data_type == excel_info::ExcelDataType::Number)
-        .collect::<Vec<bool>>();
-    // let data_row_index = info.get_header_row_index() + info.get_header_row_len() - 1;
-    let data_row_index = 6;
-    // todo
-
+    let (mut workbook, column_positions) = create_template_workbook(&info)?;
+    let column_hash_map: HashMap<String, &ExcelColumnPosition> =
+        HashMap::from_iter(column_positions.iter().map(|c| (c.key.clone(), c)));
+    let mut y = column_positions.iter().map(|p| p.y2).max().unwrap_or(0);
     let mut worksheet = workbook.worksheet_from_name(&info.sheet_name)?;
     let mut data_len = 0;
-    for (row_idx, row) in data.rows.iter().enumerate() {
-        data_len += 1;
-        for (col_idx, column) in row.columns.iter().enumerate() {
-            if column.value.is_empty() {
+    for (_, row) in data.rows.iter().enumerate() {
+        y += 1;
+        for (_, column_data) in row.columns.iter().enumerate() {
+            if column_data.value.is_empty() {
                 continue;
             }
-            let cell_row = (row_idx + data_row_index) as u32;
-            let cell_col = col_idx as u16;
-            if is_number_column[col_idx] {
-                worksheet.write_number(cell_row, cell_col, column.value.parse::<f64>()?)?;
+            let column = column_hash_map.get(&column_data.key).unwrap();
+            if column.data_type == ExcelDataType::Number {
+                worksheet.write_number(y, column.x1, column_data.value.parse::<f64>()?)?;
             } else {
-                worksheet.write_string(cell_row, cell_col, column.value.as_str())?;
+                worksheet.write_string(y, column.x1, column_data.value.as_str())?;
             }
         }
+        data_len += 1;
     }
 
     info.columns.iter().enumerate().for_each(|(i, column)| {
@@ -262,18 +263,19 @@ fn add_data_validation(
 }
 
 fn create_template_buffer(info: &ExcelInfo) -> Result<Vec<u8>, XlsxError> {
-    let mut workbook = create_template_workbook(&info)?;
+    let (mut workbook, _) = create_template_workbook(&info)?;
     let buffer = workbook.save_to_buffer()?;
     Ok(buffer)
 }
 
-#[derive(Debug, Clone)]
 pub struct ExcelColumnPosition {
     pub x1: u16,
     pub y1: u32,
     pub x2: u16,
     pub y2: u32,
     pub key: String,
+    pub data_type: ExcelDataType,
+    pub is_leaf: bool,
 }
 
 impl ExcelColumnPosition {
@@ -328,34 +330,29 @@ fn get_column_positions(info: &ExcelInfo) -> Vec<ExcelColumnPosition> {
     let levels = get_levels(&leaf_columns, &parent_map);
     let parent_counts = get_parent_times(&leaf_columns, &parent_map);
 
-    let dx = info.dx;
-    let dy = info.dy + info.get_header_row_index();
-
-    println!("dy: {}", dy);
-
     let mut positions: Vec<ExcelColumnPosition> = Vec::new();
-    let mut x = dx;
-    let y = dy;
+    let dx = info.dx;
+    let dy = info.dy + if info.title.is_some() { 1 } else { 0 };
     let max_level = levels.values().max().unwrap_or(&0);
-    let y_max = y + max_level;
+    let mut x = 0;
     for column in info.columns.iter() {
         let level = levels.get(&column.key).unwrap_or(&0);
         let count = parent_counts.get(&column.key).unwrap_or(&1);
         let is_leaf = !parent_map.contains_key(&column.key);
         let position = ExcelColumnPosition {
             x1: x,
-            y1: y + level,
+            y1: *level,
             x2: x + count - 1,
-            y2: if is_leaf { y_max } else { y + level },
+            y2: if is_leaf { *max_level } else { *level },
             key: column.key.clone(),
+            is_leaf,
+            data_type: column.data_type.clone(),
         };
-        println!("position: {:?}", position);
         positions.push(position);
         if is_leaf {
             x += 1;
         }
     }
-
     for position in positions.iter_mut() {
         position.y1 += dy;
         position.y2 += dy;
@@ -363,22 +360,6 @@ fn get_column_positions(info: &ExcelInfo) -> Vec<ExcelColumnPosition> {
         position.x2 += dx;
     }
     positions
-}
-
-fn get_leaf_and_parent_columns<'a>(
-    info: &'a ExcelInfo,
-    parent_map: &'a HashMap<String, String>,
-) -> (Vec<&'a ExcelColumnInfo>, Vec<&'a ExcelColumnInfo>) {
-    let mut parent_columns = Vec::new();
-    let mut leaf_columns = Vec::new();
-    info.columns.iter().for_each(|c| {
-        if parent_map.contains_key(&c.key) {
-            parent_columns.push(c);
-        } else {
-            leaf_columns.push(c);
-        }
-    });
-    (leaf_columns, parent_columns)
 }
 
 fn get_levels<'a>(
