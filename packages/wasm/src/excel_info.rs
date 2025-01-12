@@ -11,8 +11,9 @@ pub struct ExcelInfo {
     pub default_row_height: Option<f64>,
     pub title_height: Option<f64>,
     pub title_color: Option<String>,
-    pub title_text_color: Option<String>,
-    pub title_text_bold: Option<bool>,
+    pub title_font_size: Option<f64>,
+    pub title_background_color: Option<String>,
+    pub title_bold: bool,
     pub dx: u16,
     pub dy: u32,
 }
@@ -38,8 +39,9 @@ impl ExcelInfo {
             default_row_height: None,
             title_height: None,
             title_color: None,
-            title_text_color: None,
-            title_text_bold: None,
+            title_font_size: None,
+            title_background_color: None,
+            title_bold: true,
             dx: 0,
             dy: 0,
         }
@@ -92,15 +94,21 @@ impl ExcelInfo {
         self
     }
 
-    #[wasm_bindgen(js_name = withTitleTextColor)]
-    pub fn with_title_text_color(mut self, title_text_color: String) -> Self {
-        self.title_text_color = Some(title_text_color);
+    #[wasm_bindgen(js_name = withTitleBackgroundColor)]
+    pub fn with_title_background_color(mut self, title_background_color: String) -> Self {
+        self.title_background_color = Some(title_background_color);
         self
     }
 
-    #[wasm_bindgen(js_name = withTitleTextBold)]
-    pub fn with_title_text_bold(mut self, title_text_bold: bool) -> Self {
-        self.title_text_bold = Some(title_text_bold);
+    #[wasm_bindgen(js_name = withTitleBold)]
+    pub fn with_title_bold(mut self, title_bold: bool) -> Self {
+        self.title_bold = title_bold;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withTitleFontSize)]
+    pub fn with_title_font_size(mut self, title_font_size: f64) -> Self {
+        self.title_font_size = Some(title_font_size);
         self
     }
 
@@ -114,6 +122,19 @@ impl ExcelInfo {
 
 #[wasm_bindgen(getter_with_clone)]
 #[derive(Clone)]
+pub struct DataFormat {
+    pub value: String,
+    pub rule: String,
+    pub color: String,
+    pub bold: bool,
+    pub italic: bool,
+    pub underline: bool,
+    pub strikethrough: bool,
+    pub font_size: f64,
+}
+
+#[wasm_bindgen(getter_with_clone)]
+#[derive(Clone)]
 pub struct ExcelColumnInfo {
     pub key: String,
     pub name: String,
@@ -121,11 +142,14 @@ pub struct ExcelColumnInfo {
     pub note: Option<String>,
     pub data_type: String,
     pub allowed_values: Vec<String>,
+    pub background_color: Option<String>,
     pub color: Option<String>,
-    pub text_color: Option<String>,
-    pub text_bold: bool,
+    pub bold: bool,
     pub parent: String,
     pub date_format: String,
+    pub font_size: f64,
+    pub data_format: Vec<DataFormat>,
+    pub group: String,
 }
 
 #[wasm_bindgen]
@@ -135,15 +159,18 @@ impl ExcelColumnInfo {
         ExcelColumnInfo {
             key,
             name,
-            width: 20.0,
+            width: 10.0,
             note: None,
             data_type: "text".into(),
             allowed_values: Vec::new(),
+            background_color: None,
             color: None,
-            text_color: None,
-            text_bold: true,
+            bold: true,
             parent: "".into(),
             date_format: "yyyy-mm-dd".into(),
+            data_format: Vec::new(),
+            font_size: 11.0,
+            group: "".into(),
         }
     }
 
@@ -171,21 +198,21 @@ impl ExcelColumnInfo {
         self
     }
 
+    #[wasm_bindgen(js_name = withBackgroundColor)]
+    pub fn with_background_color(mut self, background_color: String) -> Self {
+        self.color = Some(background_color);
+        self
+    }
+
     #[wasm_bindgen(js_name = withColor)]
     pub fn with_color(mut self, color: String) -> Self {
         self.color = Some(color);
         self
     }
 
-    #[wasm_bindgen(js_name = withTextColor)]
-    pub fn with_text_color(mut self, text_color: String) -> Self {
-        self.text_color = Some(text_color);
-        self
-    }
-
-    #[wasm_bindgen(js_name = withTextBold)]
-    pub fn with_text_bold(mut self, text_bold: bool) -> Self {
-        self.text_bold = text_bold;
+    #[wasm_bindgen(js_name = withBold)]
+    pub fn with_text_bold(mut self, bold: bool) -> Self {
+        self.bold = bold;
         self
     }
 
@@ -198,6 +225,24 @@ impl ExcelColumnInfo {
     #[wasm_bindgen(js_name = withDateFormat)]
     pub fn with_date_format(mut self, date_format: String) -> Self {
         self.date_format = date_format;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withFontSize)]
+    pub fn with_font_size(mut self, font_size: f64) -> Self {
+        self.font_size = font_size;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withDataFormat)]
+    pub fn with_data_format(mut self, data_format: Vec<DataFormat>) -> Self {
+        self.data_format = data_format;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withGroup)]
+    pub fn with_group(mut self, group: String) -> Self {
+        self.group = group;
         self
     }
 

@@ -47,17 +47,17 @@ fn parse_color(color_str: &str) -> Option<Color> {
 
 fn get_column_header_format(column: &ExcelColumnInfo) -> Format {
     let mut f: Format = Format::new();
-    if let Some(color) = column.color.as_ref() {
-        if let Some(c) = parse_color(color.as_str()) {
+    if let Some(background_color) = column.background_color.as_ref() {
+        if let Some(c) = parse_color(background_color.as_str()) {
             f = f.set_background_color(c);
         }
     }
-    if let Some(text_color) = column.text_color.as_ref() {
-        if let Some(c) = parse_color(text_color.as_str()) {
+    if let Some(color) = column.color.as_ref() {
+        if let Some(c) = parse_color(color.as_str()) {
             f = f.set_font_color(c);
         }
     }
-    if column.text_bold {
+    if column.bold {
         f = f.set_bold();
     }
 
@@ -78,10 +78,25 @@ fn create_template_workbook(
     let column_positions = get_column_positions(&info);
     let max_column_x = column_positions.iter().map(|p| p.x2).max().unwrap_or(0);
     if let Some(title) = info.title.as_ref() {
-        let f = Format::new()
-            .set_bold()
-            .set_align(FormatAlign::Center)
-            .set_align(FormatAlign::VerticalCenter);
+        let mut f = Format::new()
+            .set_align(FormatAlign::VerticalCenter)
+            .set_align(FormatAlign::Center);
+        if info.title_bold {
+            f = f.set_bold()
+        };
+        if let Some(font_size) = info.title_font_size {
+            f = f.set_font_size(font_size);
+        }
+        if let Some(text_color) = info.title_color.as_ref() {
+            if let Some(c) = parse_color(text_color.as_str()) {
+                f = f.set_font_color(c);
+            }
+        }
+        if let Some(color) = info.title_background_color.as_ref() {
+            if let Some(c) = parse_color(color.as_str()) {
+                f = f.set_background_color(c);
+            }
+        }
         worksheet.merge_range(info.dy, info.dx, info.dy, max_column_x, title.as_str(), &f)?;
         if let Some(title_height) = info.title_height {
             worksheet.set_row_height(0, title_height)?;
