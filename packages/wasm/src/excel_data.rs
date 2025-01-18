@@ -1,19 +1,51 @@
 use std::fmt;
 use wasm_bindgen::prelude::*;
 
+const ROOT_DATA_KEY: &str = "root";
+
 #[wasm_bindgen(getter_with_clone)]
 #[derive(Clone)]
 pub struct ExcelColumnData {
     pub key: String,
     pub value: String,
+    pub children: Vec<ExcelRowData>,
 }
 
 impl ExcelColumnData {
+    pub fn root() -> ExcelColumnData {
+        ExcelColumnData {
+            key: ROOT_DATA_KEY.into(),
+            value: "".into(),
+            children: Vec::new(),
+        }
+    }
+
+    pub fn is_root(&self) -> bool {
+        self.key == ROOT_DATA_KEY
+    }
+
     fn fmt_with_indent(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
         let indent_str = "  ".repeat(indent);
         writeln!(f, "{}- ExcelColumnData:", indent_str,)?;
         writeln!(f, "{}  key: {}", indent_str, self.key)?;
         writeln!(f, "{}  value: {}", indent_str, self.value)
+    }
+
+    pub fn with_children(mut self, children: Vec<ExcelRowData>) -> Self {
+        self.children = children;
+        self
+    }
+
+    pub fn get_children_len(&self) -> usize {
+        let mut result = 0;
+        for row in self.children.iter() {
+            let mut row_len = 1;
+            for column in row.columns.iter() {
+                row_len += column.get_children_len();
+            }
+            result += row_len;
+        }
+        result
     }
 }
 
@@ -27,7 +59,11 @@ impl fmt::Debug for ExcelColumnData {
 impl ExcelColumnData {
     #[wasm_bindgen(constructor)]
     pub fn new(key: String, value: String) -> ExcelColumnData {
-        ExcelColumnData { key, value }
+        ExcelColumnData {
+            key,
+            value,
+            children: Vec::new(),
+        }
     }
 }
 
@@ -45,6 +81,17 @@ impl ExcelRowData {
             column.fmt_with_indent(f, indent + 1)?;
         }
         Ok(())
+    }
+
+    pub fn get_row_len(&self) -> u32 {
+        let mut row_len = 1;
+        for (_, column_data) in self.columns.iter().enumerate() {
+            let len = column_data.get_children_len();
+            if len > row_len {
+                row_len += len;
+            }
+        }
+        row_len as u32
     }
 }
 

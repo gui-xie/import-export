@@ -149,7 +149,6 @@ pub struct ExcelColumnInfo {
     pub date_format: String,
     pub font_size: f64,
     pub data_format: Vec<DataFormat>,
-    pub group: String,
 }
 
 #[wasm_bindgen]
@@ -170,7 +169,6 @@ impl ExcelColumnInfo {
             date_format: "yyyy-mm-dd".into(),
             data_format: Vec::new(),
             font_size: 11.0,
-            group: "".into(),
         }
     }
 
@@ -237,12 +235,6 @@ impl ExcelColumnInfo {
     #[wasm_bindgen(js_name = withDataFormat)]
     pub fn with_data_format(mut self, data_format: Vec<DataFormat>) -> Self {
         self.data_format = data_format;
-        self
-    }
-
-    #[wasm_bindgen(js_name = withGroup)]
-    pub fn with_group(mut self, group: String) -> Self {
-        self.group = group;
         self
     }
 
