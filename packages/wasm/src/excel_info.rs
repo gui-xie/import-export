@@ -122,7 +122,7 @@ impl ExcelInfo {
 
 #[wasm_bindgen(getter_with_clone)]
 #[derive(Clone)]
-pub struct DataFormat {
+pub struct ValueFormat {
     pub value: String,
     pub rule: String,
     pub color: String,
@@ -131,6 +131,89 @@ pub struct DataFormat {
     pub underline: bool,
     pub strikethrough: bool,
     pub font_size: f64,
+    pub background_color: String,
+    pub align: String,
+    pub align_vertical: String,
+}
+
+#[wasm_bindgen]
+impl ValueFormat {
+    #[wasm_bindgen(constructor)]
+    pub fn new(rule: String) -> ValueFormat {
+        ValueFormat {
+            value: "".into(),
+            rule,
+            color: "black".into(),
+            bold: false,
+            italic: false,
+            underline: false,
+            strikethrough: false,
+            font_size: 11.0,
+            background_color: "white".into(),
+            align: "left".into(),
+            align_vertical: "center".into(),
+        }
+    }
+
+    #[wasm_bindgen(js_name = withValue)]
+    pub fn with_value(mut self, value: String) -> Self {
+        self.value = value;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withColor)]
+    pub fn with_color(mut self, color: String) -> Self {
+        self.color = color;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withBold)]
+    pub fn with_bold(mut self, bold: bool) -> Self {
+        self.bold = bold;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withItalic)]
+    pub fn with_italic(mut self, italic: bool) -> Self {
+        self.italic = italic;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withUnderline)]
+    pub fn with_underline(mut self, underline: bool) -> Self {
+        self.underline = underline;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withStrikethrough)]
+    pub fn with_strikethrough(mut self, strikethrough: bool) -> Self {
+        self.strikethrough = strikethrough;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withFontSize)]
+    pub fn with_font_size(mut self, font_size: f64) -> Self {
+        self.font_size = font_size;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withBackgroundColor)]
+    pub fn with_background_color(mut self, background_color: String) -> Self {
+        self.background_color = background_color;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withAlign)]
+    pub fn with_align(mut self, align: String) -> Self {
+        self.align = align;
+        self
+    }
+
+    #[wasm_bindgen(js_name = withAlignVertical)]
+    pub fn with_align_vertical(mut self, align_vertical: String) -> Self {
+        self.align_vertical = align_vertical;
+        self
+    }
 }
 
 #[wasm_bindgen(getter_with_clone)]
@@ -148,7 +231,7 @@ pub struct ExcelColumnInfo {
     pub parent: String,
     pub date_format: String,
     pub font_size: f64,
-    pub data_format: Vec<DataFormat>,
+    pub value_format: Vec<ValueFormat>,
 }
 
 #[wasm_bindgen]
@@ -167,7 +250,7 @@ impl ExcelColumnInfo {
             bold: true,
             parent: "".into(),
             date_format: "yyyy-mm-dd".into(),
-            data_format: Vec::new(),
+            value_format: Vec::new(),
             font_size: 11.0,
         }
     }
@@ -198,7 +281,7 @@ impl ExcelColumnInfo {
 
     #[wasm_bindgen(js_name = withBackgroundColor)]
     pub fn with_background_color(mut self, background_color: String) -> Self {
-        self.color = Some(background_color);
+        self.background_color = Some(background_color);
         self
     }
 
@@ -232,13 +315,31 @@ impl ExcelColumnInfo {
         self
     }
 
-    #[wasm_bindgen(js_name = withDataFormat)]
-    pub fn with_data_format(mut self, data_format: Vec<DataFormat>) -> Self {
-        self.data_format = data_format;
+    #[wasm_bindgen(js_name = withValueFormat)]
+    pub fn with_value_format(mut self, value_format: Vec<ValueFormat>) -> Self {
+        self.value_format = value_format;
         self
     }
+}
 
+impl ExcelColumnInfo {
     pub fn has_parent(&self) -> bool {
         !self.parent.is_empty()
+    }
+
+    pub fn get_value_format<'a>(&'a self, value: &'a String) -> Option<&'a ValueFormat> {
+        let mut result = None;
+        for vf in self.value_format.iter() {
+            if vf.rule == "eq" {
+                if vf.value == *value {
+                    result = Some(vf);
+                    break;
+                }
+            }
+            if vf.rule == "default" {
+                result = Some(vf);
+            }
+        }
+        result
     }
 }

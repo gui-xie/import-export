@@ -1,8 +1,10 @@
 use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
+use excel_info::ValueFormat;
 use rust_xlsxwriter::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::Cursor;
+use std::sync::LazyLock;
 use wasm_bindgen::prelude::*;
 
 mod excel_data;
@@ -17,6 +19,7 @@ pub use excel_info::ExcelInfo;
 
 const SECONDS_IN_A_DAY: f64 = 86400.0;
 const EXCEL_BASE_DATE: i64 = 25569; // Number of days from 1899-12-30 to 1970-01-01
+static EMPTY_FORMAT: LazyLock<Format> = LazyLock::new(|| Format::new());
 
 #[wasm_bindgen(js_name= createTemplate)]
 // #[cfg(target_arch = "wasm32")]
@@ -263,18 +266,17 @@ fn export_data_buffer(
         for (_, column_data) in data_without_children.iter().enumerate() {
             if let Some((pos, column)) = column_positions_map.get(&column_data.key) {
                 if has_children {
-                    worksheet.merge_range(
-                        y,
+                    write_range_cell(
+                        worksheet,
                         pos.x1,
-                        y2,
                         pos.x2,
-                        &column_data.value.as_str(),
-                        &Format::new()
-                            .set_align(FormatAlign::Center)
-                            .set_align(FormatAlign::VerticalCenter),
+                        y,
+                        y2,
+                        &column_data.value,
+                        &column,
                     )?;
                 } else {
-                    write_single_cell(worksheet, pos.x1, y2, &column.data_type, column_data)?;
+                    write_single_cell(worksheet, pos.x1, y2, &column_data.value, &column)?;
                 }
             }
         }
@@ -338,16 +340,20 @@ fn write_single_cell(
     worksheet: &mut Worksheet,
     x: u16,
     y: u32,
-    data_type: &String,
-    column_data: &ExcelColumnData,
+    value: &String,
+    column: &ExcelColumnInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let data_type = &column.data_type;
     if data_type.eq_ignore_ascii_case("number") {
-        worksheet.write_number(y, x, column_data.value.parse::<f64>()?)?;
+        worksheet.write_number(y, x, value.parse::<f64>()?)?;
     } else if data_type.eq_ignore_ascii_case("date") {
-        let date_time = ExcelDateTime::parse_from_str(&column_data.value)?;
+        let date_time = ExcelDateTime::parse_from_str(value)?;
         worksheet.write_datetime(y, x, date_time)?;
     } else {
-        worksheet.write_string(y, x, column_data.value.as_str())?;
+        worksheet.write_string(y, x, value)?;
+    }
+    if let Some(f) = get_cell_format(value, &column) {
+        worksheet.set_cell_format(y, x, &f)?;
     }
     Ok(())
 }
@@ -377,17 +383,16 @@ fn write_children_row(
             if !column_data.is_root() {
                 if let Some((pos, column)) = column_positions_map.get(&column_data.key) {
                     if y == last_row {
-                        write_single_cell(worksheet, pos.x1, y, &column.data_type, &column_data)?;
+                        write_single_cell(worksheet, pos.x1, y, &column_data.value, &column)?;
                     } else {
-                        worksheet.merge_range(
-                            y,
+                        write_range_cell(
+                            worksheet,
                             pos.x1,
-                            last_row,
                             pos.x2,
-                            column_data.value.as_str(),
-                            &Format::new()
-                                .set_align(FormatAlign::Center)
-                                .set_align(FormatAlign::VerticalCenter),
+                            y,
+                            last_row,
+                            &column_data.value,
+                            &column,
                         )?;
                     }
                 }
@@ -396,10 +401,74 @@ fn write_children_row(
             continue;
         }
         if let Some((pos, column)) = column_positions_map.get(&column_data.key) {
-            write_single_cell(worksheet, pos.x1, y, &column.data_type, &column_data)?;
+            write_single_cell(worksheet, pos.x1, y, &column_data.value, &column)?;
         }
     }
     Ok(current_y + 1)
+}
+
+fn write_range_cell(
+    worksheet: &mut Worksheet,
+    x1: u16,
+    x2: u16,
+    y1: u32,
+    y2: u32,
+    value: &String,
+    column: &ExcelColumnInfo,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(f) = get_cell_format(&value, column) {
+        worksheet.merge_range(y1, x1, y2, x2, &value.as_str(), &f)?;
+    } else {
+        worksheet.merge_range(y1, x1, y2, x2, &value.as_str(), &EMPTY_FORMAT)?;
+    }
+    Ok(())
+}
+
+fn get_value_cell_format(value_format: &ValueFormat) -> Format {
+    let mut result = Format::new();
+    result = result.set_font_size(value_format.font_size);
+    if let Some(c) = parse_color(&value_format.background_color) {
+        result = result.set_background_color(c);
+    }
+    if let Some(c) = parse_color(&value_format.color) {
+        result = result.set_font_color(c);
+    }
+    if value_format.bold {
+        result = result.set_bold();
+    }
+    if value_format.italic {
+        result = result.set_italic();
+    }
+    if value_format.strikethrough {
+        result = result.set_font_strikethrough();
+    }
+    if value_format.underline {
+        result = result.set_underline(FormatUnderline::Single);
+    }
+    if value_format.align.eq_ignore_ascii_case("center") {
+        result = result.set_align(FormatAlign::Center);
+    } else if value_format.align.eq_ignore_ascii_case("right") {
+        result = result.set_align(FormatAlign::Right);
+    } else if value_format.align.eq_ignore_ascii_case("left") {
+        result = result.set_align(FormatAlign::Left);
+    }
+    if value_format.align_vertical.eq_ignore_ascii_case("center") {
+        result = result.set_align(FormatAlign::VerticalCenter);
+    } else if value_format.align_vertical.eq_ignore_ascii_case("top") {
+        result = result.set_align(FormatAlign::Top);
+    } else if value_format.align_vertical.eq_ignore_ascii_case("bottom") {
+        result = result.set_align(FormatAlign::Bottom);
+    }
+    result
+}
+
+fn get_cell_format(value: &String, column: &ExcelColumnInfo) -> Option<Format> {
+    let f = column.get_value_format(value);
+    if f.is_none() {
+        return None;
+    }
+    let f = f.unwrap();
+    Some(get_value_cell_format(&f))
 }
 
 fn get_parent_times(
