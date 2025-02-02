@@ -1,6 +1,15 @@
 export type * from './components.d.ts';
 import { ExcelDefinition } from './declarations/ExcelDefinition.js';
-import { importExcel, exportExcel, downloadExcelTemplate, fromExcel, toExcel, generateExcelTemplate, initializeWasm } from './utils.js';
+import {
+    importExcel,
+    exportExcel,
+    downloadExcelTemplate,
+    fromExcel,
+    toExcel,
+    generateExcelTemplate,
+    initializeWasm,
+    mapRowData
+} from './utils.js';
 
 function getUtils() {
     initializeWasm();
@@ -10,7 +19,8 @@ function getUtils() {
         downloadExcelTemplate,
         fromExcel,
         toExcel,
-        generateExcelTemplate
+        generateExcelTemplate,
+        mapRowData
     }
 }
 

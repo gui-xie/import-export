@@ -1,10 +1,9 @@
-use std::fmt;
 use wasm_bindgen::prelude::*;
 
 const ROOT_DATA_KEY: &str = "root";
 
 #[wasm_bindgen(getter_with_clone)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ExcelColumnData {
     pub key: String,
     pub value: String,
@@ -12,28 +11,24 @@ pub struct ExcelColumnData {
 }
 
 impl ExcelColumnData {
-    pub fn root() -> ExcelColumnData {
+    pub fn new<T: Into<String>>(key: T, value: T) -> Self {
         ExcelColumnData {
-            key: ROOT_DATA_KEY.into(),
-            value: "".into(),
+            key: key.into(),
+            value: value.into(),
             children: Vec::new(),
         }
     }
 
-    pub fn is_root(&self) -> bool {
-        self.key == ROOT_DATA_KEY
+    pub fn new_group(group_name: String, value: String, children: Vec<ExcelRowData>) -> Self {
+        ExcelColumnData {
+            key: group_name.into(),
+            value: value.into(),
+            children,
+        }
     }
 
-    fn fmt_with_indent(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
-        let indent_str = "  ".repeat(indent);
-        writeln!(f, "{}- ExcelColumnData:", indent_str,)?;
-        writeln!(f, "{}  key: {}", indent_str, self.key)?;
-        writeln!(f, "{}  value: {}", indent_str, self.value)
-    }
-
-    pub fn with_children(mut self, children: Vec<ExcelRowData>) -> Self {
-        self.children = children;
-        self
+    pub fn new_root_group(group_name: String, children: Vec<ExcelRowData>) -> Self {
+        ExcelColumnData::new_group(group_name, "".into(), children)
     }
 
     pub fn get_children_len(&self) -> usize {
@@ -49,40 +44,36 @@ impl ExcelColumnData {
     }
 }
 
-impl fmt::Debug for ExcelColumnData {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_with_indent(f, 0)
-    }
-}
-
 #[wasm_bindgen]
 impl ExcelColumnData {
     #[wasm_bindgen(constructor)]
-    pub fn new(key: String, value: String) -> ExcelColumnData {
+    pub fn bind_new(key: String, value: String) -> ExcelColumnData {
+        ExcelColumnData::new(key, value)
+    }
+
+    #[wasm_bindgen(js_name = newRoot)]
+    pub fn new_root(children: Vec<ExcelRowData>) -> ExcelColumnData {
         ExcelColumnData {
-            key,
-            value,
-            children: Vec::new(),
+            key: ROOT_DATA_KEY.into(),
+            value: "".into(),
+            children,
         }
+    }
+
+    #[wasm_bindgen(js_name=withChildren)]
+    pub fn with_children(mut self, children: Vec<ExcelRowData>) -> Self {
+        self.children = children;
+        self
     }
 }
 
 #[wasm_bindgen(getter_with_clone)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ExcelRowData {
     pub columns: Vec<ExcelColumnData>,
 }
 
 impl ExcelRowData {
-    fn fmt_with_indent(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
-        let indent_str = "  ".repeat(indent);
-        writeln!(f, "{}- ExcelRowData:", indent_str)?;
-        for column in &self.columns {
-            column.fmt_with_indent(f, indent + 1)?;
-        }
-        Ok(())
-    }
-
     pub fn get_row_len(&self) -> u32 {
         let mut row_len = 1;
         for (_, column_data) in self.columns.iter().enumerate() {
@@ -95,12 +86,6 @@ impl ExcelRowData {
     }
 }
 
-impl fmt::Debug for ExcelRowData {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_with_indent(f, 0)
-    }
-}
-
 #[wasm_bindgen]
 impl ExcelRowData {
     #[wasm_bindgen(constructor)]
@@ -110,26 +95,9 @@ impl ExcelRowData {
 }
 
 #[wasm_bindgen(getter_with_clone)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ExcelData {
     pub rows: Vec<ExcelRowData>,
-}
-
-impl ExcelData {
-    fn fmt_with_indent(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
-        let indent_str = "  ".repeat(indent);
-        writeln!(f, "{}ExcelData:", indent_str)?;
-        for row in &self.rows {
-            row.fmt_with_indent(f, indent + 1)?;
-        }
-        Ok(())
-    }
-}
-
-impl fmt::Debug for ExcelData {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.fmt_with_indent(f, 0)
-    }
 }
 
 #[wasm_bindgen]

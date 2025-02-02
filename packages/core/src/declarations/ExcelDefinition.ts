@@ -1,11 +1,16 @@
-import { ExcelDataType } from "@senlinz/import-export-wasm"
-
 interface ExcelDefinition {
     name: string,
     sheetName?: string,
     columns: ExcelColumnDefinition[],
     author?: string,
-    createTime?: Date | string
+    createTime?: Date | string,
+    title?: string,
+    titleHeight?: number,
+    titleFormat?: ExcelCellFormatDefinition,
+    defaultRowHeight?: number,
+    dx?: number,
+    dy?: number,
+    isHeaderFreeze?: boolean
 }
 
 interface ExcelColumnDefinition {
@@ -13,8 +18,30 @@ interface ExcelColumnDefinition {
     name: string,
     width?: number,
     note?: string,
-    dataType?: ExcelDataType,
+    dataType?: "string" | "number" | "date",
     allowedValues?: string[],
+    parent?: string,
+    backgroundColor?: string,
+    color?: string,
+    bold?: boolean,
+    format?: ExcelCellFormatDefinition,
+    valueFormat?: ExcelCellFormatDefinition[] | ExcelCellFormatDefinition
 }
 
-export { ExcelDefinition, ExcelColumnDefinition, ExcelDataType };
+interface ExcelCellFormatDefinition {
+    rule?: 'default' | 'eq',
+    value?: string,
+    color?: string,
+    bold?: boolean,
+    italic?: boolean,
+    underline?: boolean,
+    strikethrough?: boolean,
+    fontSize?: number,
+    backgroundColor?: string,
+    align?: 'left' | 'center' | 'right',
+    alignVertical?: 'top' | 'center' | 'bottom',
+    dateFormat?: string,
+    borderColor?: string
+}
+
+export { ExcelDefinition, ExcelColumnDefinition, ExcelCellFormatDefinition };

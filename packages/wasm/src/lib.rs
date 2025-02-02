@@ -1,8 +1,7 @@
 use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
-use excel_info::ValueFormat;
+use excel_info::ExcelCellFormat;
 use rust_xlsxwriter::*;
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::io::Cursor;
 use std::sync::LazyLock;
 use wasm_bindgen::prelude::*;
@@ -19,63 +18,45 @@ pub use excel_info::ExcelInfo;
 
 const SECONDS_IN_A_DAY: f64 = 86400.0;
 const EXCEL_BASE_DATE: i64 = 25569; // Number of days from 1899-12-30 to 1970-01-01
-static EMPTY_FORMAT: LazyLock<Format> = LazyLock::new(|| Format::new());
+static DEFAULT_FORMAT: LazyLock<Format> = LazyLock::new(|| {
+    Format::new()
+        .set_align(FormatAlign::VerticalCenter)
+        .set_text_wrap()
+});
+
+static DEFAULT_DATE_FORMAT: LazyLock<Format> = LazyLock::new(|| {
+    Format::new()
+        .set_align(FormatAlign::VerticalCenter)
+        .set_num_format("yyyy-mm-dd")
+        .set_text_wrap()
+});
+
+static DEFAULT_HEADER_FORMAT: LazyLock<Format> = LazyLock::new(|| {
+    Format::new()
+        .set_align(FormatAlign::VerticalCenter)
+        .set_align(FormatAlign::Center)
+        .set_bold()
+        .set_text_wrap()
+});
 
 #[wasm_bindgen(js_name= createTemplate)]
-// #[cfg(target_arch = "wasm32")]
 pub fn create_template(info: ExcelInfo) -> Result<Vec<u8>, JsError> {
     create_template_buffer(&info).map_err(|e| JsError::new(&e.to_string()))
 }
 
 #[wasm_bindgen(js_name = importData)]
-// #[cfg(target_arch = "wasm32")]
 pub fn import_data(info: ExcelInfo, excel_bytes: &[u8]) -> Result<ExcelData, JsError> {
     import_data_buffer(info, excel_bytes).map_err(|e| JsError::new(&e.to_string()))
 }
 
 #[wasm_bindgen(js_name = exportData)]
-// #[cfg(target_arch = "wasm32")]
 pub fn export_data(info: ExcelInfo, data: ExcelData) -> Result<Vec<u8>, JsError> {
     export_data_buffer(&info, &data).map_err(|e| JsError::new(&e.to_string()))
 }
 
-fn parse_color(color_str: &str) -> Option<Color> {
-    let color_str = color_str.trim_start_matches('#');
-    if color_str.len() == 6 {
-        if let Ok(rgb) = u32::from_str_radix(color_str, 16) {
-            return Some(Color::RGB(rgb));
-        } else {
-            return None;
-        }
-    }
-    None
-}
-
-fn get_column_header_format(column: &ExcelColumnInfo) -> Format {
-    let mut f: Format = Format::new();
-    if let Some(background_color) = column.background_color.as_ref() {
-        if let Some(c) = parse_color(background_color.as_str()) {
-            f = f.set_background_color(c);
-        }
-    }
-    if let Some(color) = column.color.as_ref() {
-        if let Some(c) = parse_color(color.as_str()) {
-            f = f.set_font_color(c);
-        }
-    }
-    if column.bold {
-        f = f.set_bold();
-    }
-
-    f = f
-        .set_align(FormatAlign::Center)
-        .set_align(FormatAlign::VerticalCenter);
-    f
-}
-
 fn create_template_workbook(
     info: &ExcelInfo,
-) -> Result<(Workbook, Vec<ExcelColumnPosition>), XlsxError> {
+) -> Result<(Workbook, Vec<ExcelColumnPosition>), Box<dyn std::error::Error>> {
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
     if let Some(default_row_height) = info.default_row_height {
@@ -84,28 +65,21 @@ fn create_template_workbook(
     let column_positions = get_column_positions(&info);
     let max_column_x = column_positions.iter().map(|p| p.x2).max().unwrap_or(0);
     if let Some(title) = info.title.as_ref() {
-        let mut f = Format::new()
-            .set_align(FormatAlign::VerticalCenter)
-            .set_align(FormatAlign::Center);
-        if info.title_bold {
-            f = f.set_bold()
-        };
-        if let Some(font_size) = info.title_font_size {
-            f = f.set_font_size(font_size);
+        if let Some(title_format) = &info.title_format {
+            let f = get_cell_format(title_format);
+            worksheet.merge_range(info.dy, info.dx, info.dy, max_column_x, title.as_str(), &f)?;
+        } else {
+            worksheet.merge_range(
+                info.dy,
+                info.dx,
+                info.dy,
+                max_column_x,
+                title.as_str(),
+                &DEFAULT_HEADER_FORMAT,
+            )?;
         }
-        if let Some(text_color) = info.title_color.as_ref() {
-            if let Some(c) = parse_color(text_color.as_str()) {
-                f = f.set_font_color(c);
-            }
-        }
-        if let Some(color) = info.title_background_color.as_ref() {
-            if let Some(c) = parse_color(color.as_str()) {
-                f = f.set_background_color(c);
-            }
-        }
-        worksheet.merge_range(info.dy, info.dx, info.dy, max_column_x, title.as_str(), &f)?;
         if let Some(title_height) = info.title_height {
-            worksheet.set_row_height(0, title_height)?;
+            worksheet.set_row_height(info.dy, title_height)?;
         }
     }
     column_positions
@@ -113,26 +87,27 @@ fn create_template_workbook(
         .enumerate()
         .for_each(|(_, position)| {
             let column = info.columns.iter().find(|c| c.key == position.key).unwrap();
+            let f = column.format.as_ref().map(|f| get_cell_format(f));
             if position.is_single_cell() {
                 worksheet
-                    .write_string(position.y1 as u32, position.x1 as u16, column.name.as_str())
+                    .write_string(position.y1, position.x1, &column.name)
                     .unwrap();
                 worksheet
                     .set_cell_format(
-                        position.y1 as u32,
-                        position.x1 as u16,
-                        &get_column_header_format(column),
+                        position.y1,
+                        position.x1,
+                        f.as_ref().unwrap_or(&DEFAULT_HEADER_FORMAT),
                     )
                     .unwrap();
             } else {
                 worksheet
                     .merge_range(
-                        position.y1 as u32,
-                        position.x1 as u16,
-                        position.y2 as u32,
-                        position.x2 as u16,
-                        column.name.as_str(),
-                        &get_column_header_format(column),
+                        position.y1,
+                        position.x1,
+                        position.y2,
+                        position.x2,
+                        &column.name,
+                        f.as_ref().unwrap_or(&DEFAULT_HEADER_FORMAT),
                     )
                     .unwrap();
             }
@@ -142,10 +117,12 @@ fn create_template_workbook(
                     .unwrap();
             }
         });
-    worksheet.set_freeze_panes(
-        column_positions.iter().max_by_key(|p| p.y2).unwrap().y2 + 1,
-        0,
-    )?;
+    if info.is_header_freeze {
+        worksheet.set_freeze_panes(
+            column_positions.iter().max_by_key(|p| p.y2).unwrap().y2 + 1,
+            0,
+        )?;
+    }
 
     worksheet.set_name(info.sheet_name.as_str())?;
     let create_time =
@@ -247,12 +224,17 @@ fn export_data_buffer(
     let y_min = column_positions.iter().map(|p| p.y2).max().unwrap_or(0) + 1;
     let mut y = y_min;
     let mut worksheet = workbook.worksheet_from_name(&info.sheet_name)?;
+    let root_group_keys = column_positions_map
+        .iter()
+        .filter(|(_, (_, info))| info.is_root_group())
+        .map(|(key, _)| key)
+        .collect::<Vec<&String>>();
 
     for (_, row) in data.rows.iter().enumerate() {
         let mut data_with_children = Vec::new();
         let mut data_without_children = Vec::new();
         for column_data in row.columns.iter() {
-            if column_data.is_root() {
+            if root_group_keys.contains(&&column_data.key) {
                 data_with_children.push(column_data);
             } else {
                 data_without_children.push(column_data);
@@ -344,16 +326,28 @@ fn write_single_cell(
     column: &ExcelColumnInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let data_type = &column.data_type;
+    let mut is_date_type = false;
     if data_type.eq_ignore_ascii_case("number") {
         worksheet.write_number(y, x, value.parse::<f64>()?)?;
     } else if data_type.eq_ignore_ascii_case("date") {
         let date_time = ExcelDateTime::parse_from_str(value)?;
         worksheet.write_datetime(y, x, date_time)?;
+        is_date_type = true;
     } else {
         worksheet.write_string(y, x, value)?;
     }
-    if let Some(f) = get_cell_format(value, &column) {
+    if let Some(f) = get_column_value_format(value, &column) {
         worksheet.set_cell_format(y, x, &f)?;
+    } else {
+        worksheet.set_cell_format(
+            y,
+            x,
+            if is_date_type {
+                &DEFAULT_DATE_FORMAT
+            } else {
+                &DEFAULT_FORMAT
+            },
+        )?;
     }
     Ok(())
 }
@@ -377,11 +371,16 @@ fn write_children_row(
                 )?;
             }
             let last_row = t_y - 1;
+
             if t_y > current_y {
                 current_y = last_row;
             }
-            if !column_data.is_root() {
-                if let Some((pos, column)) = column_positions_map.get(&column_data.key) {
+            if let Some((pos, column)) = column_positions_map.get(&column_data.key) {
+                if !column.is_root_group() {
+                    println!(
+                        "last_row: {:?}, y :{:?}, x1: {:?}, value: {:?}, key: {:?}",
+                        last_row, y, pos.x1, &column_data.value, column.key
+                    );
                     if y == last_row {
                         write_single_cell(worksheet, pos.x1, y, &column_data.value, &column)?;
                     } else {
@@ -416,23 +415,19 @@ fn write_range_cell(
     value: &String,
     column: &ExcelColumnInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if let Some(f) = get_cell_format(&value, column) {
+    if let Some(f) = get_column_value_format(&value, column) {
         worksheet.merge_range(y1, x1, y2, x2, &value.as_str(), &f)?;
     } else {
-        worksheet.merge_range(y1, x1, y2, x2, &value.as_str(), &EMPTY_FORMAT)?;
+        worksheet.merge_range(y1, x1, y2, x2, &value.as_str(), &DEFAULT_FORMAT)?;
     }
     Ok(())
 }
 
-fn get_value_cell_format(value_format: &ValueFormat) -> Format {
+fn get_cell_format(value_format: &ExcelCellFormat) -> Format {
     let mut result = Format::new();
     result = result.set_font_size(value_format.font_size);
-    if let Some(c) = parse_color(&value_format.background_color) {
-        result = result.set_background_color(c);
-    }
-    if let Some(c) = parse_color(&value_format.color) {
-        result = result.set_font_color(c);
-    }
+    result = result.set_background_color(Color::from(value_format.background_color.as_str()));
+    result = result.set_font_color(Color::from(value_format.color.as_str()));
     if value_format.bold {
         result = result.set_bold();
     }
@@ -459,16 +454,28 @@ fn get_value_cell_format(value_format: &ValueFormat) -> Format {
     } else if value_format.align_vertical.eq_ignore_ascii_case("bottom") {
         result = result.set_align(FormatAlign::Bottom);
     }
+    if let Some(df) = &value_format.date_format {
+        result = result.set_num_format(df.as_str());
+    }
+    if let Some(border_color) = &value_format.border_color {
+        let c = Color::from(border_color.as_str());
+        result = result.set_border(FormatBorder::Thin);
+        result = result.set_border_color(c);
+    }
+    if let Some(date_format) = &value_format.date_format {
+        result = result.set_num_format(date_format.as_str());
+    }
+    result = result.set_text_wrap();
     result
 }
 
-fn get_cell_format(value: &String, column: &ExcelColumnInfo) -> Option<Format> {
+fn get_column_value_format(value: &String, column: &ExcelColumnInfo) -> Option<Format> {
     let f = column.get_value_format(value);
     if f.is_none() {
         return None;
     }
     let f = f.unwrap();
-    Some(get_value_cell_format(&f))
+    Some(get_cell_format(&f))
 }
 
 fn get_parent_times(
@@ -491,29 +498,9 @@ fn get_parent_times(
     parent_times
 }
 
-fn get_parent_map(info: &ExcelInfo) -> HashMap<String, String> {
-    let mut parent_keys = HashSet::new();
-    for column in info.columns.iter() {
-        if column.has_parent() {
-            parent_keys.insert(column.parent.clone());
-        }
-    }
-    let mut parent_map = HashMap::new();
-    for column in info.columns.iter() {
-        if parent_keys.contains(&column.key) {
-            parent_map.insert(column.key.clone(), column.parent.clone());
-        }
-    }
-    parent_map
-}
-
 fn get_column_positions(info: &ExcelInfo) -> Vec<ExcelColumnPosition> {
-    let parent_map = get_parent_map(&info);
-    let leaf_columns = info
-        .columns
-        .iter()
-        .filter(|c| !parent_map.contains_key(&c.key))
-        .collect::<Vec<&ExcelColumnInfo>>();
+    let parent_map = info.get_parent_map();
+    let leaf_columns = info.get_leaf_columns();
     let levels = get_levels(&leaf_columns, &parent_map);
     let parent_counts = get_parent_times(&leaf_columns, &parent_map);
 

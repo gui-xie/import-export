@@ -8,11 +8,11 @@ import {
   ExcelRowData,
   ExcelColumnData,
   ExcelColumnInfo,
-  ExcelDataType
+  ExcelCellFormat
 } from '@senlinz/import-export-wasm';
 import imexportWasm from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm';
 import { gunzipSync } from 'fflate';
-import { ExcelColumnDefinition, ExcelDefinition } from './declarations/ExcelDefinition';
+import { ExcelColumnDefinition, ExcelDefinition, ExcelCellFormatDefinition } from './declarations/ExcelDefinition';
 
 let wasmInitialized = false;
 
@@ -34,7 +34,7 @@ async function getItems(data: ExcelData, columns: ExcelColumnDefinition[]) {
     const item = {} as any;
     for (const column of row.columns) {
       const columnType = columnTypes[column.key];
-      if (columnType == ExcelDataType.Number) {
+      if (columnType == "number") {
         item[column.key] = parseFloat(column.value);
         continue;
       }
@@ -55,22 +55,65 @@ async function fromExcel<T>(
   return items;
 }
 
+function mapExcelData(items: any[], columnMap: any) {
+  const rows = [];
+  for (const item of items) {
+    let columnData = [];
+    for (const key in item) {
+      if (key === 'root') {
+        const children = item[key];
+        if (!Array.isArray(children)) {
+          throw new Error("children must be an array");
+        }
+        for (const child of children) {
+          if (!Array.isArray(child)) {
+            throw new Error('children must be an array');
+          }
+          columnData.push(ExcelColumnData.newRoot(mapExcelData(child, columnMap)));
+        }
+        continue;
+      }
+      const column = columnMap[key];
+      if (!column) continue;
+      columnData.push(new ExcelColumnData(column.key, item[key].toString()));
+    }
+    if (item.children && columnData.length > 0) {
+      columnData[0] = columnData[0].withChildren(mapExcelData(item.children, columnMap));
+    }
+    rows.push(new ExcelRowData(columnData));
+  }
+  return rows;
+}
+
+function mapRowData(item: any, childrenFields: string[]) {
+  let fields = Array.isArray(childrenFields) ? childrenFields : [childrenFields];
+  const result = {
+    root: []
+  };
+  for (const key in item) {
+    if (fields.includes(key)) {
+      const children = item[key];
+      if (!Array.isArray(children)) {
+        throw new Error("children must be an array");
+      }
+      result['root'].push(children);
+      continue;
+    }
+    result[key] = item[key];
+  }
+  return result;
+}
+
 async function toExcel<T>(
   definition: ExcelDefinition,
   data: T[]
 ) {
   const info = getInfo(definition);
-  const rows = data.map(item => {
-    const columns = info.columns.map(column => {
-      const val = item[column.key];
-      return new ExcelColumnData(
-        column.key,
-        (val === undefined || val === null) ? '' : val.toString()
-      );
-    });
-    const row = new ExcelRowData(columns);
-    return row;
-  });
+  let columnMap = {} as any;
+  for (const column of info.columns) {
+    columnMap[column.key] = column;
+  }
+  const rows = mapExcelData(data, columnMap);
   const excelData = new ExcelData(rows);
   return exportData(info, excelData);
 }
@@ -99,6 +142,24 @@ function download(
   linkInput.click();
 }
 
+function mapFormat(vf: ExcelCellFormatDefinition) {
+  let result = new ExcelCellFormat();
+  if (vf.rule) result = result.withRule(vf.rule);
+  if (vf.value) result = result.withValue(vf.value);
+  if (vf.color) result = result.withColor(vf.color);
+  if (vf.bold) result = result.withBold(vf.bold);
+  if (vf.italic) result = result.withItalic(vf.italic);
+  if (vf.underline) result = result.withUnderline(vf.underline);
+  if (vf.strikethrough) result = result.withStrikethrough(vf.strikethrough);
+  if (vf.fontSize) result = result.withFontSize(vf.fontSize);
+  if (vf.backgroundColor) result = result.withBackgroundColor(vf.backgroundColor);
+  if (vf.align) result = result.withAlign(vf.align);
+  if (vf.alignVertical) result = result.withAlignVertical(vf.alignVertical);
+  if (vf.borderColor) result = result.withBorderColor(vf.borderColor);
+  if (vf.dateFormat) result = result.withDateFormat(vf.dateFormat);
+  return result;
+}
+
 function getInfo(definition: ExcelDefinition): ExcelInfo {
   var columns = definition.columns.map(c => {
     let column = new ExcelColumnInfo(c.key, c.name);
@@ -106,6 +167,14 @@ function getInfo(definition: ExcelDefinition): ExcelInfo {
     if (c.dataType) column = column.withDataType(c.dataType);
     if (c.note) column = column.withNote(c.note);
     if (c.allowedValues) column = column.withAllowedValues(c.allowedValues);
+    if (c.parent) column = column.withParent(c.parent);
+    if (c.format) {
+      column = column.withFormat(mapFormat(c.format));
+    }
+    if (c.valueFormat) {
+      let formats = Array.isArray(c.valueFormat) ? c.valueFormat : [c.valueFormat];
+      column = column.withValueFormat(formats.map(mapFormat));
+    }
     return column;
   });
 
@@ -116,6 +185,15 @@ function getInfo(definition: ExcelDefinition): ExcelInfo {
     definition.author ?? '',
     toDatetimeString(definition.createTime ?? new Date())
   );
+  let dx = definition.dx ?? 0;
+  let dy = definition.dy ?? 0;
+  info = info.withOffset(dx, dy);
+  if (definition.title) info = info.withTitle(definition.title);
+  if (definition.titleHeight) info = info.withTitleHeight(definition.titleHeight);
+  if (definition.titleFormat) info = info.withTitleFormat(mapFormat(definition.titleFormat));
+  if (definition.defaultRowHeight) info = info.withDefaultRowHeight(definition.defaultRowHeight);
+  if (definition.isHeaderFreeze) info = info.withIsHeaderFreeze(definition.isHeaderFreeze);
+
   return info;
 }
 
@@ -189,5 +267,6 @@ export {
   toExcel,
   generateExcelTemplate,
   initializeWasm,
-  download
+  download,
+  mapRowData
 };

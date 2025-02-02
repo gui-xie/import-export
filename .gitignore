@@ -33,5 +33,6 @@ test-results/
 tests/dist/
 coverage/
 test-download/
+target/
 *.snap.new.xlsx
 *.snap.new

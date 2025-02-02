@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]
@@ -8,43 +10,69 @@ pub struct ExcelInfo {
     pub author: String,
     pub create_time: String,
     pub title: Option<String>,
-    pub default_row_height: Option<f64>,
+    pub title_format: Option<ExcelCellFormat>,
     pub title_height: Option<f64>,
-    pub title_color: Option<String>,
-    pub title_font_size: Option<f64>,
-    pub title_background_color: Option<String>,
-    pub title_bold: bool,
+    pub default_row_height: Option<f64>,
     pub dx: u16,
     pub dy: u32,
+    pub is_header_freeze: bool,
 }
 
-#[wasm_bindgen]
 impl ExcelInfo {
-    #[wasm_bindgen(constructor)]
-    pub fn new(
-        name: String,
-        sheet_name: String,
+    pub fn new<T: Into<String>>(
+        name: T,
+        sheet_name: T,
         columns: Vec<ExcelColumnInfo>,
-        author: String,
-        create_time: String,
-    ) -> ExcelInfo {
+        author: T,
+        create_time: T,
+    ) -> Self {
         ExcelInfo::check_columns(&columns);
         ExcelInfo {
-            name,
-            sheet_name,
+            name: name.into(),
+            sheet_name: sheet_name.into(),
             columns,
-            author,
-            create_time,
+            author: author.into(),
+            create_time: create_time.into(),
             title: None,
             default_row_height: None,
             title_height: None,
-            title_color: None,
-            title_font_size: None,
-            title_background_color: None,
-            title_bold: true,
+            title_format: None,
             dx: 0,
             dy: 0,
+            is_header_freeze: false,
         }
+    }
+
+    pub fn with_title<T: Into<String>>(mut self, title: T) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    pub fn get_parent_map(&self) -> HashMap<String, String> {
+        let mut parent_keys = HashSet::new();
+        for column in self.columns.iter() {
+            if column.has_parent() {
+                parent_keys.insert(column.parent.clone());
+            }
+        }
+        let mut parent_map = HashMap::new();
+        for column in self.columns.iter() {
+            if parent_keys.contains(&column.key) {
+                parent_map.insert(column.key.clone(), column.parent.clone());
+            }
+        }
+        parent_map
+    }
+
+    pub fn get_leaf_columns(&self) -> Vec<&ExcelColumnInfo> {
+        let parent_map = self.get_parent_map();
+        let mut leaf_columns = Vec::new();
+        for column in self.columns.iter() {
+            if !parent_map.contains_key(&column.key) {
+                leaf_columns.push(column);
+            }
+        }
+        leaf_columns
     }
 
     fn check_columns(columns: &Vec<ExcelColumnInfo>) {
@@ -69,11 +97,24 @@ impl ExcelInfo {
             processed_columns.push(column.key.clone());
         }
     }
+}
+
+#[wasm_bindgen]
+impl ExcelInfo {
+    #[wasm_bindgen(constructor)]
+    pub fn bind_new(
+        name: String,
+        sheet_name: String,
+        columns: Vec<ExcelColumnInfo>,
+        author: String,
+        create_time: String,
+    ) -> Self {
+        ExcelInfo::new(name, sheet_name, columns, author, create_time)
+    }
 
     #[wasm_bindgen(js_name = withTitle)]
-    pub fn with_title(mut self, title: String) -> Self {
-        self.title = Some(title);
-        self
+    pub fn bind_with_title(self, title: String) -> Self {
+        self.with_title(title)
     }
 
     #[wasm_bindgen(js_name = withDefaultRowHeight)]
@@ -88,27 +129,9 @@ impl ExcelInfo {
         self
     }
 
-    #[wasm_bindgen(js_name = withTitleColor)]
-    pub fn with_title_color(mut self, title_color: String) -> Self {
-        self.title_color = Some(title_color);
-        self
-    }
-
-    #[wasm_bindgen(js_name = withTitleBackgroundColor)]
-    pub fn with_title_background_color(mut self, title_background_color: String) -> Self {
-        self.title_background_color = Some(title_background_color);
-        self
-    }
-
-    #[wasm_bindgen(js_name = withTitleBold)]
-    pub fn with_title_bold(mut self, title_bold: bool) -> Self {
-        self.title_bold = title_bold;
-        self
-    }
-
-    #[wasm_bindgen(js_name = withTitleFontSize)]
-    pub fn with_title_font_size(mut self, title_font_size: f64) -> Self {
-        self.title_font_size = Some(title_font_size);
+    #[wasm_bindgen(js_name= withTitleFormat)]
+    pub fn with_title_format(mut self, title_format: ExcelCellFormat) -> Self {
+        self.title_format = Some(title_format);
         self
     }
 
@@ -118,13 +141,19 @@ impl ExcelInfo {
         self.dy = dy;
         self
     }
+
+    #[wasm_bindgen(js_name = withIsHeaderFreeze)]
+    pub fn with_is_header_freeze(mut self, is_header_freeze: bool) -> Self {
+        self.is_header_freeze = is_header_freeze;
+        self
+    }
 }
 
 #[wasm_bindgen(getter_with_clone)]
 #[derive(Clone)]
-pub struct ValueFormat {
-    pub value: String,
+pub struct ExcelCellFormat {
     pub rule: String,
+    pub value: String,
     pub color: String,
     pub bold: bool,
     pub italic: bool,
@@ -134,15 +163,17 @@ pub struct ValueFormat {
     pub background_color: String,
     pub align: String,
     pub align_vertical: String,
+    pub date_format: Option<String>,
+    pub border_color: Option<String>,
 }
 
 #[wasm_bindgen]
-impl ValueFormat {
+impl ExcelCellFormat {
     #[wasm_bindgen(constructor)]
-    pub fn new(rule: String) -> ValueFormat {
-        ValueFormat {
+    pub fn new() -> ExcelCellFormat {
+        ExcelCellFormat {
+            rule: "default".into(),
             value: "".into(),
-            rule,
             color: "black".into(),
             bold: false,
             italic: false,
@@ -151,8 +182,16 @@ impl ValueFormat {
             font_size: 11.0,
             background_color: "white".into(),
             align: "left".into(),
-            align_vertical: "center".into(),
+            align_vertical: "bottom".into(),
+            date_format: None,
+            border_color: None,
         }
+    }
+
+    #[wasm_bindgen(js_name = withRule)]
+    pub fn with_rule(mut self, rule: String) -> Self {
+        self.rule = rule;
+        self
     }
 
     #[wasm_bindgen(js_name = withValue)]
@@ -162,9 +201,8 @@ impl ValueFormat {
     }
 
     #[wasm_bindgen(js_name = withColor)]
-    pub fn with_color(mut self, color: String) -> Self {
-        self.color = color;
-        self
+    pub fn bind_with_color(self, color: String) -> Self {
+        self.with_color(color)
     }
 
     #[wasm_bindgen(js_name = withBold)]
@@ -204,14 +242,45 @@ impl ValueFormat {
     }
 
     #[wasm_bindgen(js_name = withAlign)]
-    pub fn with_align(mut self, align: String) -> Self {
-        self.align = align;
-        self
+    pub fn bind_with_align(self, align: String) -> Self {
+        self.with_align(align)
     }
 
     #[wasm_bindgen(js_name = withAlignVertical)]
-    pub fn with_align_vertical(mut self, align_vertical: String) -> Self {
-        self.align_vertical = align_vertical;
+    pub fn bind_with_align_vertical(self, align_vertical: String) -> Self {
+        self.with_align_vertical(align_vertical)
+    }
+
+    #[wasm_bindgen(js_name = withDateFormat)]
+    pub fn with_date_format(mut self, date_format: String) -> Self {
+        self.date_format = Some(date_format);
+        self
+    }
+
+    #[wasm_bindgen(js_name = withBorderColor)]
+    pub fn bind_with_border_color(self, border_color: String) -> Self {
+        self.with_border_color(border_color)
+    }
+}
+
+impl ExcelCellFormat {
+    pub fn with_color<T: Into<String>>(mut self, color: T) -> Self {
+        self.color = color.into();
+        self
+    }
+
+    pub fn with_align<T: Into<String>>(mut self, align: T) -> Self {
+        self.align = align.into();
+        self
+    }
+
+    pub fn with_align_vertical<T: Into<String>>(mut self, align_vertical: T) -> Self {
+        self.align_vertical = align_vertical.into();
+        self
+    }
+
+    pub fn with_border_color<T: Into<String>>(mut self, border_color: T) -> Self {
+        self.border_color = Some(border_color.into());
         self
     }
 }
@@ -225,34 +294,18 @@ pub struct ExcelColumnInfo {
     pub note: Option<String>,
     pub data_type: String,
     pub allowed_values: Vec<String>,
-    pub background_color: Option<String>,
-    pub color: Option<String>,
-    pub bold: bool,
     pub parent: String,
-    pub date_format: String,
-    pub font_size: f64,
-    pub value_format: Vec<ValueFormat>,
+    pub format: Option<ExcelCellFormat>,
+    pub value_format: Vec<ExcelCellFormat>,
+    pub data_group: String,
+    pub data_group_parent: String,
 }
 
 #[wasm_bindgen]
 impl ExcelColumnInfo {
     #[wasm_bindgen(constructor)]
-    pub fn new(key: String, name: String) -> ExcelColumnInfo {
-        ExcelColumnInfo {
-            key,
-            name,
-            width: 10.0,
-            note: None,
-            data_type: "text".into(),
-            allowed_values: Vec::new(),
-            background_color: None,
-            color: None,
-            bold: true,
-            parent: "".into(),
-            date_format: "yyyy-mm-dd".into(),
-            value_format: Vec::new(),
-            font_size: 11.0,
-        }
+    pub fn bind_new(key: String, name: String) -> ExcelColumnInfo {
+        ExcelColumnInfo::new(key, name)
     }
 
     #[wasm_bindgen(js_name = withNote)]
@@ -262,9 +315,8 @@ impl ExcelColumnInfo {
     }
 
     #[wasm_bindgen(js_name = withDataType)]
-    pub fn with_data_type(mut self, data_type: String) -> Self {
-        self.data_type = data_type;
-        self
+    pub fn bind_with_data_type(self, data_type: String) -> Self {
+        self.with_data_type(data_type)
     }
 
     #[wasm_bindgen(js_name = withAllowedValues)]
@@ -279,55 +331,80 @@ impl ExcelColumnInfo {
         self
     }
 
-    #[wasm_bindgen(js_name = withBackgroundColor)]
-    pub fn with_background_color(mut self, background_color: String) -> Self {
-        self.background_color = Some(background_color);
-        self
-    }
-
-    #[wasm_bindgen(js_name = withColor)]
-    pub fn with_color(mut self, color: String) -> Self {
-        self.color = Some(color);
-        self
-    }
-
-    #[wasm_bindgen(js_name = withBold)]
-    pub fn with_text_bold(mut self, bold: bool) -> Self {
-        self.bold = bold;
+    #[wasm_bindgen(js_name = withFormat)]
+    pub fn with_format(mut self, format: ExcelCellFormat) -> Self {
+        self.format = Some(format);
         self
     }
 
     #[wasm_bindgen(js_name = withParent)]
-    pub fn with_parent(mut self, parent: String) -> Self {
-        self.parent = parent;
-        self
-    }
-
-    #[wasm_bindgen(js_name = withDateFormat)]
-    pub fn with_date_format(mut self, date_format: String) -> Self {
-        self.date_format = date_format;
-        self
-    }
-
-    #[wasm_bindgen(js_name = withFontSize)]
-    pub fn with_font_size(mut self, font_size: f64) -> Self {
-        self.font_size = font_size;
-        self
+    pub fn bind_with_parent(self, parent: String) -> Self {
+        self.with_parent(parent)
     }
 
     #[wasm_bindgen(js_name = withValueFormat)]
-    pub fn with_value_format(mut self, value_format: Vec<ValueFormat>) -> Self {
+    pub fn with_value_format(mut self, value_format: Vec<ExcelCellFormat>) -> Self {
         self.value_format = value_format;
         self
+    }
+
+    #[wasm_bindgen(js_name = withDataGroup)]
+    pub fn bind_with_data_group(self, group: String) -> Self {
+        self.with_data_group(group)
+    }
+
+    #[wasm_bindgen(js_name = withDataGroupParent)]
+    pub fn bind_with_data_group_parent(self, group_parent: String) -> Self {
+        self.with_data_group_parent(group_parent)
     }
 }
 
 impl ExcelColumnInfo {
+    pub fn new<T: Into<String>>(key: T, name: T) -> Self {
+        ExcelColumnInfo {
+            key: key.into(),
+            name: name.into(),
+            width: 10.0,
+            note: None,
+            data_type: "text".into(),
+            allowed_values: Vec::new(),
+            parent: "".into(),
+            format: None,
+            value_format: Vec::new(),
+            data_group: "".into(),
+            data_group_parent: "".into(),
+        }
+    }
+
+    pub fn with_parent<T: Into<String>>(mut self, parent: T) -> Self {
+        self.parent = parent.into();
+        self
+    }
+
+    pub fn with_data_type<T: Into<String>>(mut self, data_type: T) -> Self {
+        self.data_type = data_type.into();
+        self
+    }
+
+    pub fn with_data_group<T: Into<String>>(mut self, data_group: T) -> Self {
+        self.data_group = data_group.into();
+        self
+    }
+
+    pub fn with_data_group_parent<T: Into<String>>(mut self, data_group_parent: T) -> Self {
+        self.data_group_parent = data_group_parent.into();
+        self
+    }
+
+    pub fn is_root_group(&self) -> bool {
+        !self.data_group.is_empty() && self.data_group_parent.is_empty()
+    }
+
     pub fn has_parent(&self) -> bool {
         !self.parent.is_empty()
     }
 
-    pub fn get_value_format<'a>(&'a self, value: &'a String) -> Option<&'a ValueFormat> {
+    pub fn get_value_format<'a>(&'a self, value: &'a String) -> Option<&'a ExcelCellFormat> {
         let mut result = None;
         for vf in self.value_format.iter() {
             if vf.rule == "eq" {

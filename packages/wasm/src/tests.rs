@@ -56,159 +56,211 @@ mod tests {
         assert_binary_snapshot!("export_data_should_be_correct.xlsx", result);
     }
 
+    #[test]
+    fn export_pokemon_skill_should_be_correct() {
+        // Arrange
+        let info = ExcelInfo::new(
+            "Pokemon",
+            "FireRed Pokédex",
+            vec![
+                ExcelColumnInfo::new("number", "Number"),
+                ExcelColumnInfo::new("name", "Name"),
+                ExcelColumnInfo::new("moves", "Moves").with_data_group("moves"),
+                ExcelColumnInfo::new("moves_by", "By")
+                    .with_parent("moves")
+                    .with_data_group("moves_by")
+                    .with_data_group_parent("moves"),
+                ExcelColumnInfo::new("moves_lv", "LV/TM/HM")
+                    .with_parent("moves")
+                    .with_data_type("number")
+                    .with_data_group_parent("moves_by"),
+                ExcelColumnInfo::new("moves_move", "Move.")
+                    .with_parent("moves")
+                    .with_width(16.0)
+                    .with_data_group_parent("moves_by"),
+                ExcelColumnInfo::new("moves_type", "Type.")
+                    .with_parent("moves")
+                    .with_data_group_parent("moves_by"),
+                ExcelColumnInfo::new("moves_cat", "Cat.")
+                    .with_parent("moves")
+                    .with_data_group_parent("moves_by"),
+                ExcelColumnInfo::new("moves_power", "Power.")
+                    .with_parent("moves")
+                    .with_data_group_parent("moves_by"),
+                ExcelColumnInfo::new("moves_acc", "Acc.")
+                    .with_parent("moves")
+                    .with_data_group_parent("moves_by"),
+            ],
+            "senlinz",
+            "2024-11-01T08:00:00",
+        );
+        let data = ExcelData::new(vec![ExcelRowData::new(vec![
+            ExcelColumnData::new("number", "#001"),
+            ExcelColumnData::new("name", "Bulbasaur"),
+            ExcelColumnData::new_root_group(
+                "moves".into(),
+                vec![
+                    ExcelRowData::new(vec![ExcelColumnData::new_group(
+                        "moves_by".into(),
+                        "Level".into(),
+                        vec![
+                            ExcelRowData::new(vec![
+                                ExcelColumnData::new("moves_lv", "1"),
+                                ExcelColumnData::new("moves_move", "Tackle"),
+                                ExcelColumnData::new("moves_type", "Normal"),
+                                ExcelColumnData::new("moves_cat", "Physical"),
+                                ExcelColumnData::new("moves_power", "40"),
+                                ExcelColumnData::new("moves_acc", "100"),
+                            ]),
+                            ExcelRowData::new(vec![
+                                ExcelColumnData::new("moves_lv", "4"),
+                                ExcelColumnData::new("moves_move", "Growl"),
+                                ExcelColumnData::new("moves_type", "Normal"),
+                                ExcelColumnData::new("moves_cat", "Status"),
+                                ExcelColumnData::new("moves_power", "-"),
+                                ExcelColumnData::new("moves_acc", "100"),
+                            ]),
+                            ExcelRowData::new(vec![
+                                ExcelColumnData::new("moves_lv", "7"),
+                                ExcelColumnData::new("moves_move", "Leech Seed"),
+                                ExcelColumnData::new("moves_type", "Grass"),
+                                ExcelColumnData::new("moves_cat", "Status"),
+                                ExcelColumnData::new("moves_power", "-"),
+                                ExcelColumnData::new("moves_acc", "90"),
+                            ]),
+                            ExcelRowData::new(vec![
+                                ExcelColumnData::new("moves_lv", "10"),
+                                ExcelColumnData::new("moves_move", "Vine Whip"),
+                                ExcelColumnData::new("moves_type", "Grass"),
+                                ExcelColumnData::new("moves_cat", "Special"),
+                                ExcelColumnData::new("moves_power", "35"),
+                                ExcelColumnData::new("moves_acc", "100"),
+                            ]),
+                        ],
+                    )]),
+                    ExcelRowData::new(vec![ExcelColumnData::new_group(
+                        "moves_by".into(),
+                        "Egg".into(),
+                        vec![
+                            ExcelRowData::new(vec![
+                                ExcelColumnData::new("moves_move", "Curse"),
+                                ExcelColumnData::new("moves_type", "Ghost"),
+                                ExcelColumnData::new("moves_cat", "Status"),
+                                ExcelColumnData::new("moves_power", "-"),
+                                ExcelColumnData::new("moves_acc", "—"),
+                            ]),
+                            ExcelRowData::new(vec![
+                                ExcelColumnData::new("moves_move", "Ingrain"),
+                                ExcelColumnData::new("moves_type", "Grass"),
+                                ExcelColumnData::new("moves_cat", "Status"),
+                                ExcelColumnData::new("moves_power", "-"),
+                                ExcelColumnData::new("moves_acc", "—"),
+                            ]),
+                            ExcelRowData::new(vec![
+                                ExcelColumnData::new("moves_move", "Nature Power"),
+                                ExcelColumnData::new("moves_type", "Normal"),
+                                ExcelColumnData::new("moves_cat", "Status"),
+                                ExcelColumnData::new("moves_power", "-"),
+                                ExcelColumnData::new("moves_acc", "—"),
+                            ]),
+                        ],
+                    )]),
+                ],
+            ),
+        ])]);
+
+        // Act
+        let result = export_data_buffer(&info, &data);
+
+        // Assert
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_binary_snapshot!("pokemon_basic_info_should_be_correct.xlsx", result);
+    }
+
+    #[test]
+    fn export_complex_data_should_be_correct() {
+        // Arrange
+        let info = create_excel_info();
+        let data = create_export_data();
+
+        // Act
+        let result = export_data_buffer(&info, &data);
+
+        // Assert
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_binary_snapshot!("complex_data_should_be_correct.xlsx", result);
+    }
+
     fn create_excel_info() -> ExcelInfo {
         let name = "Pokemon";
         let sheet_name = "FireRed Pokédex";
         let author = "senlinz";
         let create_time = "2024-11-01T08:00:00";
         let columns = vec![
-            ExcelColumnInfo::new("number".into(), "Number".into())
-                .with_color("#868686".into())
-                .with_value_format(vec![ValueFormat::new("default".into())
-                    .with_bold(true)
-                    .with_font_size(20.0)
-                    .with_align("center".into())
-                    .with_align_vertical("top".into())]),
-            ExcelColumnInfo::new("type".into(), "Type".into()),
-            ExcelColumnInfo::new("first_type".into(), "First".into())
-                .with_parent("type".into())
-                .with_value_format(vec![ValueFormat::new("eq".into())
-                    .with_value("Grass".into())
-                    .with_background_color("#78C850".into())
-                    .with_color("#FFFFFF".into())
-                    .with_bold(true)
-                    .with_font_size(14.0)
-                    .with_align("center".into())
-                    .with_align_vertical("top".into())]),
-            ExcelColumnInfo::new("second_type".into(), "Second".into())
-                .with_parent("type".into())
-                .with_value_format(vec![
-                    ValueFormat::new("eq".into())
-                        .with_value("Poison".into())
-                        .with_background_color("#A040A0".into())
-                        .with_color("#FFFFFF".into())
-                        .with_italic(true)
-                        .with_font_size(14.0)
-                        .with_align("center".into())
-                        .with_align_vertical("top".into()),
-                    ValueFormat::new("default".into())
-                        .with_italic(true)
-                        .with_strikethrough(true)
-                        .with_underline(true)
-                        .with_font_size(14.0)
-                        .with_align("right".into())
-                        .with_align_vertical("top".into()),
-                ]),
-            ExcelColumnInfo::new("abilities".into(), "Abilities".into())
-                .with_width(30.0)
-                .with_background_color("#00FFFF".into())
-                .with_color("#FF0000".into())
-                .with_value_format(vec![ValueFormat::new("default".into())
-                    .with_bold(true)
-                    .with_align("center".into())
-                    .with_align_vertical("top".into())]),
-            ExcelColumnInfo::new("base_stats".into(), "Base Stats".into()),
-            ExcelColumnInfo::new("hp".into(), "HP".into())
-                .with_data_type("number".into())
-                .with_parent("base_stats".into())
-                .with_value_format(vec![ValueFormat::new("default".into())
-                    .with_align("center".into())
-                    .with_align_vertical("top".into())]),
-            ExcelColumnInfo::new("attack".into(), "Attack".into())
-                .with_data_type("number".into())
-                .with_parent("base_stats".into())
-                .with_value_format(vec![ValueFormat::new("default".into())
-                    .with_align("center".into())
-                    .with_align_vertical("top".into())]),
-            ExcelColumnInfo::new("defense".into(), "Defense".into())
-                .with_data_type("number".into())
-                .with_parent("base_stats".into())
-                .with_value_format(vec![ValueFormat::new("default".into())
-                    .with_align("center".into())
-                    .with_align_vertical("top".into())]),
-            ExcelColumnInfo::new("sp_attack".into(), "Sp. Atk".into())
-                .with_data_type("number".into())
-                .with_parent("base_stats".into())
-                .with_value_format(vec![ValueFormat::new("default".into())
-                    .with_align("center".into())
-                    .with_align_vertical("top".into())]),
-            ExcelColumnInfo::new("sp_defense".into(), "Sp. Def".into())
-                .with_data_type("number".into())
-                .with_parent("base_stats".into())
-                .with_value_format(vec![ValueFormat::new("default".into())
-                    .with_align("center".into())
-                    .with_align_vertical("top".into())]),
-            ExcelColumnInfo::new("speed".into(), "Speed".into())
-                .with_data_type("number".into())
-                .with_parent("base_stats".into())
-                .with_value_format(vec![ValueFormat::new("default".into())
-                    .with_align("center".into())
-                    .with_align_vertical("top".into())]),
-            ExcelColumnInfo::new("total".into(), "Total".into())
-                .with_data_type("number".into())
-                .with_parent("base_stats".into())
-                .with_value_format(vec![ValueFormat::new("default".into())
-                    .with_align("center".into())
-                    .with_align_vertical("top".into())]),
-            ExcelColumnInfo::new("evolution".into(), "Evolution".into()),
-            ExcelColumnInfo::new("evolution_method".into(), "Method".into())
-                .with_parent("evolution".into()),
-            ExcelColumnInfo::new("evolution_condition".into(), "Condition".into())
-                .with_parent("evolution".into()),
-            ExcelColumnInfo::new("evolution_next".into(), "Next".into())
-                .with_parent("evolution".into()),
-            ExcelColumnInfo::new("moves".into(), "Moves".into()),
-            ExcelColumnInfo::new("moves_by".into(), "By".into())
-                .with_parent("moves".into())
-                .with_value_format(vec![ValueFormat::new("default".into())
-                    .with_font_size(14.0)
-                    .with_align("center".into())
-                    .with_align_vertical("center".into())]),
-            ExcelColumnInfo::new("moves_lv".into(), "LV/TM/HM".into())
-                .with_parent("moves".into())
-                .with_data_type("number".into()),
-            ExcelColumnInfo::new("moves_move".into(), "Move.".into()).with_parent("moves".into()),
-            ExcelColumnInfo::new("moves_type".into(), "Type.".into())
-                .with_parent("moves".into())
-                .with_value_format(vec![
-                    ValueFormat::new("eq".into())
-                        .with_value("Grass".into())
-                        .with_background_color("#78C850".into())
-                        .with_color("#FFFFFF".into())
-                        .with_bold(true)
-                        .with_font_size(14.0)
-                        .with_align("center".into())
-                        .with_align_vertical("center".into()),
-                    ValueFormat::new("eq".into())
-                        .with_value("Poison".into())
-                        .with_background_color("#A040A0".into())
-                        .with_color("#FFFFFF".into())
-                        .with_bold(true)
-                        .with_font_size(14.0)
-                        .with_align("center".into())
-                        .with_align_vertical("center".into()),
-                    ValueFormat::new("default".into())
-                        .with_strikethrough(true)
-                        .with_underline(true),
-                ]),
-            ExcelColumnInfo::new("moves_cat".into(), "Cat.".into()).with_parent("moves".into()),
-            ExcelColumnInfo::new("moves_power".into(), "Power.".into()).with_parent("moves".into()),
-            ExcelColumnInfo::new("moves_acc".into(), "Acc.".into()).with_parent("moves".into()),
+            ExcelColumnInfo::new("number", "Number"),
+            ExcelColumnInfo::new("type", "Type"),
+            ExcelColumnInfo::new("first_type", "First").with_parent("type"),
+            ExcelColumnInfo::new("second_type", "Second").with_parent("type"),
+            ExcelColumnInfo::new("abilities", "Abilities"),
+            ExcelColumnInfo::new("base_stats", "Base Stats"),
+            ExcelColumnInfo::new("hp", "HP")
+                .with_data_type("number")
+                .with_parent("base_stats")
+                .with_data_type("number"),
+            ExcelColumnInfo::new("attack", "Attack")
+                .with_data_type("number")
+                .with_parent("base_stats")
+                .with_data_type("number"),
+            ExcelColumnInfo::new("defense", "Defense")
+                .with_data_type("number")
+                .with_parent("base_stats")
+                .with_data_type("number"),
+            ExcelColumnInfo::new("sp_attack", "Sp. Atk")
+                .with_data_type("number")
+                .with_parent("base_stats")
+                .with_data_type("number"),
+            ExcelColumnInfo::new("sp_defense", "Sp. Def")
+                .with_data_type("number")
+                .with_parent("base_stats")
+                .with_data_type("number"),
+            ExcelColumnInfo::new("speed", "Speed")
+                .with_data_type("number")
+                .with_parent("base_stats")
+                .with_data_type("number"),
+            ExcelColumnInfo::new("total", "Total")
+                .with_data_type("number")
+                .with_parent("base_stats"),
+            ExcelColumnInfo::new("evolution", "Evolution"),
+            ExcelColumnInfo::new("evolution_method", "Method").with_parent("evolution"),
+            ExcelColumnInfo::new("evolution_next", "Next").with_parent("evolution"),
+            ExcelColumnInfo::new("moves", "Moves"),
+            ExcelColumnInfo::new("moves_by", "By").with_parent("moves"),
+            ExcelColumnInfo::new("moves_lv", "LV/TM/HM")
+                .with_parent("moves")
+                .with_data_type("number"),
+            ExcelColumnInfo::new("moves_move", "Move.")
+                .with_parent("moves")
+                .with_width(16.0),
+            ExcelColumnInfo::new("moves_type", "Type.").with_parent("moves"),
+            ExcelColumnInfo::new("moves_cat", "Cat.").with_parent("moves"),
+            ExcelColumnInfo::new("moves_power", "Power.").with_parent("moves"),
+            ExcelColumnInfo::new("moves_acc", "Acc.").with_parent("moves"),
         ];
-        excel_info::ExcelInfo::new(
-            name.into(),
-            sheet_name.into(),
-            columns,
-            author.into(),
-            create_time.into(),
-        )
-        .with_default_row_height(30.0)
-        .with_title(sheet_name.into())
-        .with_title_height(50.0)
-        .with_title_background_color("#FF0000".into())
-        .with_title_bold(true)
-        .with_title_color("#00FF00".into())
-        .with_title_font_size(20.0)
+        excel_info::ExcelInfo::new(name, sheet_name, columns, author, create_time)
+            .with_default_row_height(30.0)
+            .with_title(sheet_name)
+            .with_title_height(50.0)
+            .with_title_format(
+                ExcelCellFormat::new()
+                    .with_bold(true)
+                    .with_color("#00FF00")
+                    .with_font_size(20.0)
+                    .with_align("center")
+                    .with_align_vertical("center")
+                    .with_border_color("#0000FF"),
+            )
     }
 
     fn create_export_data() -> excel_data::ExcelData {
@@ -218,334 +270,320 @@ mod tests {
     }
 
     fn create_bulbasaur() -> ExcelRowData {
-        let level_moves = ExcelRowData::new(vec![ExcelColumnData::new(
-            "moves_by".into(),
-            "level".into(),
-        )
-        .with_children(vec![
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "1".into()),
-                ExcelColumnData::new("moves_move".into(), "Tackle".into()),
-                ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                ExcelColumnData::new("moves_power".into(), "40".into()),
-                ExcelColumnData::new("moves_acc".into(), "100".into()),
-            ]),
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "4".into()),
-                ExcelColumnData::new("moves_move".into(), "Growl".into()),
-                ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                ExcelColumnData::new("moves_power".into(), "-".into()),
-                ExcelColumnData::new("moves_acc".into(), "100".into()),
-            ]),
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "7".into()),
-                ExcelColumnData::new("moves_move".into(), "Leech Seed".into()),
-                ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                ExcelColumnData::new("moves_power".into(), "-".into()),
-                ExcelColumnData::new("moves_acc".into(), "90".into()),
-            ]),
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "10".into()),
-                ExcelColumnData::new("moves_move".into(), "Vine Whip".into()),
-                ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                ExcelColumnData::new("moves_cat".into(), "Special".into()),
-                ExcelColumnData::new("moves_power".into(), "35".into()),
-                ExcelColumnData::new("moves_acc".into(), "100".into()),
-            ]),
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "15".into()),
-                ExcelColumnData::new("moves_move".into(), "PoisonPowder".into()),
-                ExcelColumnData::new("moves_type".into(), "Poison".into()),
-                ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                ExcelColumnData::new("moves_power".into(), "-".into()),
-                ExcelColumnData::new("moves_acc".into(), "75".into()),
-            ]),
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "15".into()),
-                ExcelColumnData::new("moves_move".into(), "Sleep Powder".into()),
-                ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                ExcelColumnData::new("moves_power".into(), "-".into()),
-                ExcelColumnData::new("moves_acc".into(), "75".into()),
-            ]),
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "20".into()),
-                ExcelColumnData::new("moves_move".into(), "Razor Leaf".into()),
-                ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                ExcelColumnData::new("moves_cat".into(), "Special".into()),
-                ExcelColumnData::new("moves_power".into(), "55".into()),
-                ExcelColumnData::new("moves_acc".into(), "95".into()),
-            ]),
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "25".into()),
-                ExcelColumnData::new("moves_move".into(), "Sweet Scent".into()),
-                ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                ExcelColumnData::new("moves_power".into(), "-".into()),
-                ExcelColumnData::new("moves_acc".into(), "100".into()),
-            ]),
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "32".into()),
-                ExcelColumnData::new("moves_move".into(), "Growth".into()),
-                ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                ExcelColumnData::new("moves_power".into(), "-".into()),
-                ExcelColumnData::new("moves_acc".into(), "-".into()),
-            ]),
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "39".into()),
-                ExcelColumnData::new("moves_move".into(), "Synthesis".into()),
-                ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                ExcelColumnData::new("moves_power".into(), "-".into()),
-                ExcelColumnData::new("moves_acc".into(), "-".into()),
-            ]),
-            ExcelRowData::new(vec![
-                ExcelColumnData::new("moves_lv".into(), "46".into()),
-                ExcelColumnData::new("moves_move".into(), "SolarBeam".into()),
-                ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                ExcelColumnData::new("moves_cat".into(), "Special".into()),
-                ExcelColumnData::new("moves_power".into(), "120".into()),
-                ExcelColumnData::new("moves_acc".into(), "100".into()),
-            ]),
-        ])]);
-        let egg_moves =
-            ExcelRowData::new(vec![ExcelColumnData::new("moves_by".into(), "egg".into())
-                .with_children(vec![
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_move".into(), "Curse".into()),
-                        ExcelColumnData::new("moves_type".into(), "Ghost".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                        ExcelColumnData::new("moves_power".into(), "-".into()),
-                        ExcelColumnData::new("moves_acc".into(), "—".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_move".into(), "Ingrain".into()),
-                        ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                        ExcelColumnData::new("moves_power".into(), "-".into()),
-                        ExcelColumnData::new("moves_acc".into(), "—".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_move".into(), "Nature Power".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                        ExcelColumnData::new("moves_power".into(), "-".into()),
-                        ExcelColumnData::new("moves_acc".into(), "—".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_move".into(), "Petal Dance".into()),
-                        ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Special".into()),
-                        ExcelColumnData::new("moves_power".into(), "70".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_move".into(), "Skull Bash".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                        ExcelColumnData::new("moves_power".into(), "100".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                ])]);
-        let hm_moves =
-            ExcelRowData::new(vec![ExcelColumnData::new("moves_by".into(), "HM".into())
-                .with_children(vec![
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "01".into()),
-                        ExcelColumnData::new("moves_move".into(), "Cut".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                        ExcelColumnData::new("moves_power".into(), "50".into()),
-                        ExcelColumnData::new("moves_acc".into(), "95".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "04".into()),
-                        ExcelColumnData::new("moves_move".into(), "Strength".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                        ExcelColumnData::new("moves_power".into(), "80".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "05".into()),
-                        ExcelColumnData::new("moves_move".into(), "Flash".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                        ExcelColumnData::new("moves_power".into(), "—".into()),
-                        ExcelColumnData::new("moves_acc".into(), "70".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "06".into()),
-                        ExcelColumnData::new("moves_move".into(), "Rock Smash".into()),
-                        ExcelColumnData::new("moves_type".into(), "Fighting".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                        ExcelColumnData::new("moves_power".into(), "20".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                ])]);
-        let tm_moves =
-            ExcelRowData::new(vec![ExcelColumnData::new("moves_by".into(), "TM".into())
-                .with_children(vec![
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "06".into()),
-                        ExcelColumnData::new("moves_move".into(), "Toxic".into()),
-                        ExcelColumnData::new("moves_type".into(), "Poison".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                        ExcelColumnData::new("moves_power".into(), "—".into()),
-                        ExcelColumnData::new("moves_acc".into(), "85".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "09".into()),
-                        ExcelColumnData::new("moves_move".into(), "Bullet Seed".into()),
-                        ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Special".into()),
-                        ExcelColumnData::new("moves_power".into(), "10".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "10".into()),
-                        ExcelColumnData::new("moves_move".into(), "Hidden Power".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                        ExcelColumnData::new("moves_power".into(), "60".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "11".into()),
-                        ExcelColumnData::new("moves_move".into(), "Sunny Day".into()),
-                        ExcelColumnData::new("moves_type".into(), "Fire".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                        ExcelColumnData::new("moves_power".into(), "—".into()),
-                        ExcelColumnData::new("moves_acc".into(), "—".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "17".into()),
-                        ExcelColumnData::new("moves_move".into(), "Protect".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                        ExcelColumnData::new("moves_power".into(), "—".into()),
-                        ExcelColumnData::new("moves_acc".into(), "—".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "19".into()),
-                        ExcelColumnData::new("moves_move".into(), "Giga Drain".into()),
-                        ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Special".into()),
-                        ExcelColumnData::new("moves_power".into(), "60".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "21".into()),
-                        ExcelColumnData::new("moves_move".into(), "Frustration".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                        ExcelColumnData::new("moves_power".into(), "—".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "22".into()),
-                        ExcelColumnData::new("moves_move".into(), "SolarBeam".into()),
-                        ExcelColumnData::new("moves_type".into(), "Grass".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Special".into()),
-                        ExcelColumnData::new("moves_power".into(), "120".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "27".into()),
-                        ExcelColumnData::new("moves_move".into(), "Return".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                        ExcelColumnData::new("moves_power".into(), "—".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "32".into()),
-                        ExcelColumnData::new("moves_move".into(), "Double Team".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                        ExcelColumnData::new("moves_power".into(), "—".into()),
-                        ExcelColumnData::new("moves_acc".into(), "—".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "36".into()),
-                        ExcelColumnData::new("moves_move".into(), "Sludge Bomb".into()),
-                        ExcelColumnData::new("moves_type".into(), "Poison".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                        ExcelColumnData::new("moves_power".into(), "90".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "42".into()),
-                        ExcelColumnData::new("moves_move".into(), "Facade".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                        ExcelColumnData::new("moves_power".into(), "70".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "43".into()),
-                        ExcelColumnData::new("moves_move".into(), "Secret Power".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Physical".into()),
-                        ExcelColumnData::new("moves_power".into(), "70".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "44".into()),
-                        ExcelColumnData::new("moves_move".into(), "Rest".into()),
-                        ExcelColumnData::new("moves_type".into(), "Psychic".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                        ExcelColumnData::new("moves_power".into(), "—".into()),
-                        ExcelColumnData::new("moves_acc".into(), "—".into()),
-                    ]),
-                    ExcelRowData::new(vec![
-                        ExcelColumnData::new("moves_lv".into(), "45".into()),
-                        ExcelColumnData::new("moves_move".into(), "Attract".into()),
-                        ExcelColumnData::new("moves_type".into(), "Normal".into()),
-                        ExcelColumnData::new("moves_cat".into(), "Status".into()),
-                        ExcelColumnData::new("moves_power".into(), "—".into()),
-                        ExcelColumnData::new("moves_acc".into(), "100".into()),
-                    ]),
-                ])]);
+        let level_moves = ExcelRowData::new(vec![ExcelColumnData::new("moves_by", "level")
+            .with_children(vec![
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "1"),
+                    ExcelColumnData::new("moves_move", "Tackle"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "40"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "4"),
+                    ExcelColumnData::new("moves_move", "Growl"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "-"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "7"),
+                    ExcelColumnData::new("moves_move", "Leech Seed"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "-"),
+                    ExcelColumnData::new("moves_acc", "90"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "10"),
+                    ExcelColumnData::new("moves_move", "Vine Whip"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Special"),
+                    ExcelColumnData::new("moves_power", "35"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "15"),
+                    ExcelColumnData::new("moves_move", "PoisonPowder"),
+                    ExcelColumnData::new("moves_type", "Poison"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "-"),
+                    ExcelColumnData::new("moves_acc", "75"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "15"),
+                    ExcelColumnData::new("moves_move", "Sleep Powder"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "-"),
+                    ExcelColumnData::new("moves_acc", "75"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "20"),
+                    ExcelColumnData::new("moves_move", "Razor Leaf"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Special"),
+                    ExcelColumnData::new("moves_power", "55"),
+                    ExcelColumnData::new("moves_acc", "95"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "25"),
+                    ExcelColumnData::new("moves_move", "Sweet Scent"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "-"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "32"),
+                    ExcelColumnData::new("moves_move", "Growth"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "-"),
+                    ExcelColumnData::new("moves_acc", "-"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "39"),
+                    ExcelColumnData::new("moves_move", "Synthesis"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "-"),
+                    ExcelColumnData::new("moves_acc", "-"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "46"),
+                    ExcelColumnData::new("moves_move", "SolarBeam"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Special"),
+                    ExcelColumnData::new("moves_power", "120"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+            ])]);
+        let egg_moves = ExcelRowData::new(vec![ExcelColumnData::new("moves_by", "egg")
+            .with_children(vec![
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_move", "Curse"),
+                    ExcelColumnData::new("moves_type", "Ghost"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "-"),
+                    ExcelColumnData::new("moves_acc", "—"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_move", "Ingrain"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "-"),
+                    ExcelColumnData::new("moves_acc", "—"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_move", "Nature Power"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "-"),
+                    ExcelColumnData::new("moves_acc", "—"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_move", "Petal Dance"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Special"),
+                    ExcelColumnData::new("moves_power", "70"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_move", "Skull Bash"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "100"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+            ])]);
+        let hm_moves = ExcelRowData::new(vec![ExcelColumnData::new("moves_by", "HM")
+            .with_children(vec![
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "01"),
+                    ExcelColumnData::new("moves_move", "Cut"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "50"),
+                    ExcelColumnData::new("moves_acc", "95"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "04"),
+                    ExcelColumnData::new("moves_move", "Strength"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "80"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "05"),
+                    ExcelColumnData::new("moves_move", "Flash"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "—"),
+                    ExcelColumnData::new("moves_acc", "70"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "06"),
+                    ExcelColumnData::new("moves_move", "Rock Smash"),
+                    ExcelColumnData::new("moves_type", "Fighting"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "20"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+            ])]);
+        let tm_moves = ExcelRowData::new(vec![ExcelColumnData::new("moves_by", "TM")
+            .with_children(vec![
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "06"),
+                    ExcelColumnData::new("moves_move", "Toxic"),
+                    ExcelColumnData::new("moves_type", "Poison"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "—"),
+                    ExcelColumnData::new("moves_acc", "85"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "09"),
+                    ExcelColumnData::new("moves_move", "Bullet Seed"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Special"),
+                    ExcelColumnData::new("moves_power", "10"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "10"),
+                    ExcelColumnData::new("moves_move", "Hidden Power"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "60"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "11"),
+                    ExcelColumnData::new("moves_move", "Sunny Day"),
+                    ExcelColumnData::new("moves_type", "Fire"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "—"),
+                    ExcelColumnData::new("moves_acc", "—"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "17"),
+                    ExcelColumnData::new("moves_move", "Protect"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "—"),
+                    ExcelColumnData::new("moves_acc", "—"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "19"),
+                    ExcelColumnData::new("moves_move", "Giga Drain"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Special"),
+                    ExcelColumnData::new("moves_power", "60"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "21"),
+                    ExcelColumnData::new("moves_move", "Frustration"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "—"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "22"),
+                    ExcelColumnData::new("moves_move", "SolarBeam"),
+                    ExcelColumnData::new("moves_type", "Grass"),
+                    ExcelColumnData::new("moves_cat", "Special"),
+                    ExcelColumnData::new("moves_power", "120"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "27"),
+                    ExcelColumnData::new("moves_move", "Return"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "—"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "32"),
+                    ExcelColumnData::new("moves_move", "Double Team"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "—"),
+                    ExcelColumnData::new("moves_acc", "—"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "36"),
+                    ExcelColumnData::new("moves_move", "Sludge Bomb"),
+                    ExcelColumnData::new("moves_type", "Poison"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "90"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "42"),
+                    ExcelColumnData::new("moves_move", "Facade"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "70"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "43"),
+                    ExcelColumnData::new("moves_move", "Secret Power"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Physical"),
+                    ExcelColumnData::new("moves_power", "70"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "44"),
+                    ExcelColumnData::new("moves_move", "Rest"),
+                    ExcelColumnData::new("moves_type", "Psychic"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "—"),
+                    ExcelColumnData::new("moves_acc", "—"),
+                ]),
+                ExcelRowData::new(vec![
+                    ExcelColumnData::new("moves_lv", "45"),
+                    ExcelColumnData::new("moves_move", "Attract"),
+                    ExcelColumnData::new("moves_type", "Normal"),
+                    ExcelColumnData::new("moves_cat", "Status"),
+                    ExcelColumnData::new("moves_power", "—"),
+                    ExcelColumnData::new("moves_acc", "100"),
+                ]),
+            ])]);
 
         ExcelRowData::new(vec![
-            ExcelColumnData::new("number".into(), "#001".into()),
-            ExcelColumnData::new("first_type".into(), "Grass".into()),
-            ExcelColumnData::new("second_type".into(), "Poison".into()),
-            ExcelColumnData::root().with_children(vec![
-                ExcelRowData::new(vec![ExcelColumnData::new(
-                    "abilities".into(),
-                    "Overgrow".into(),
-                )]),
-                ExcelRowData::new(vec![ExcelColumnData::new(
-                    "abilities".into(),
-                    "Chlorophyll".into(),
-                )]),
+            ExcelColumnData::new("number", "#001"),
+            ExcelColumnData::new("first_type", "Grass"),
+            ExcelColumnData::new("second_type", "Poison"),
+            ExcelColumnData::new_root(vec![
+                ExcelRowData::new(vec![ExcelColumnData::new("abilities", "Overgrow")]),
+                ExcelRowData::new(vec![ExcelColumnData::new("abilities", "Chlorophyll")]),
             ]),
-            ExcelColumnData::new("hp".into(), "45".into()),
-            ExcelColumnData::new("attack".into(), "49".into()),
-            ExcelColumnData::new("defense".into(), "49".into()),
-            ExcelColumnData::new("sp_attack".into(), "65".into()),
-            ExcelColumnData::new("sp_defense".into(), "65".into()),
-            ExcelColumnData::new("speed".into(), "45".into()),
-            ExcelColumnData::new("total".into(), "318".into()),
-            ExcelColumnData::root().with_children(vec![
+            ExcelColumnData::new("hp", "45"),
+            ExcelColumnData::new("attack", "49"),
+            ExcelColumnData::new("defense", "49"),
+            ExcelColumnData::new("sp_attack", "65"),
+            ExcelColumnData::new("sp_defense", "65"),
+            ExcelColumnData::new("speed", "45"),
+            ExcelColumnData::new("total", "318"),
+            ExcelColumnData::new_root(vec![
                 ExcelRowData::new(vec![
-                    ExcelColumnData::new("evolution_method".into(), "Level 16".into()),
-                    ExcelColumnData::new("evolution_condition".into(), "None".into()),
-                    ExcelColumnData::new("evolution_next".into(), "Ivysaur".into()),
+                    ExcelColumnData::new("evolution_method", "Level 16"),
+                    ExcelColumnData::new("evolution_next", "Ivysaur"),
                 ]),
                 ExcelRowData::new(vec![
-                    ExcelColumnData::new("evolution_method".into(), "Level 32".into()),
-                    ExcelColumnData::new("evolution_condition".into(), "None".into()),
-                    ExcelColumnData::new("evolution_next".into(), "Venusaur".into()),
+                    ExcelColumnData::new("evolution_method", "Level 32"),
+                    ExcelColumnData::new("evolution_next", "Venusaur"),
                 ]),
             ]),
-            ExcelColumnData::root().with_children(vec![level_moves, egg_moves, hm_moves, tm_moves]),
+            ExcelColumnData::new_root(vec![level_moves, egg_moves, hm_moves, tm_moves]),
         ])
     }
 }
