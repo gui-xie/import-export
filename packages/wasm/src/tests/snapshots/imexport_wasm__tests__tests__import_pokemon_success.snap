@@ -1,0 +1,7 @@
+---
+source: src/tests/mod.rs
+assertion_line: 63
+expression: snapshot
+---
+data
+  number: #001,name: Bulbasaur,first_type: Grass,second_type: Poison,abilities: Overgrow/Chlorophyll,hp: 45,attack: 49,defense: 49,sp_attack: 65,sp_defense: 65,speed: 45,total: 318,

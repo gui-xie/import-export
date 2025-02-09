@@ -1,9 +1,12 @@
-use wasm_bindgen::prelude::*;
+use std::fmt;
 
 const ROOT_DATA_KEY: &str = "root";
+use wasm_bindgen::prelude::*;
+
+use super::excel_row_data::ExcelRowData;
 
 #[wasm_bindgen(getter_with_clone)]
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ExcelColumnData {
     pub key: String,
     pub value: String,
@@ -67,43 +70,9 @@ impl ExcelColumnData {
     }
 }
 
-#[wasm_bindgen(getter_with_clone)]
-#[derive(Clone, Debug)]
-pub struct ExcelRowData {
-    pub columns: Vec<ExcelColumnData>,
-}
-
-impl ExcelRowData {
-    pub fn get_row_len(&self) -> u32 {
-        let mut row_len = 1;
-        for (_, column_data) in self.columns.iter().enumerate() {
-            let len = column_data.get_children_len();
-            if len > row_len {
-                row_len += len;
-            }
-        }
-        row_len as u32
-    }
-}
-
-#[wasm_bindgen]
-impl ExcelRowData {
-    #[wasm_bindgen(constructor)]
-    pub fn new(columns: Vec<ExcelColumnData>) -> ExcelRowData {
-        ExcelRowData { columns }
-    }
-}
-
-#[wasm_bindgen(getter_with_clone)]
-#[derive(Clone, Debug)]
-pub struct ExcelData {
-    pub rows: Vec<ExcelRowData>,
-}
-
-#[wasm_bindgen]
-impl ExcelData {
-    #[wasm_bindgen(constructor)]
-    pub fn new(rows: Vec<ExcelRowData>) -> ExcelData {
-        ExcelData { rows }
+impl fmt::Debug for ExcelColumnData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}", self.key, self.value)?;
+        Ok(())
     }
 }

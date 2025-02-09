@@ -1,0 +1,7 @@
+---
+source: src/tests/mod.rs
+assertion_line: 228
+expression: result
+extension: xlsx
+snapshot_kind: binary
+---

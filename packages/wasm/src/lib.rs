@@ -1,20 +1,19 @@
 use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
-use excel_info::ExcelCellFormat;
+use excel_structs::excel_info::ExcelCellFormat;
 use rust_xlsxwriter::*;
 use std::collections::HashMap;
 use std::io::Cursor;
 use std::sync::LazyLock;
 use wasm_bindgen::prelude::*;
 
-mod excel_data;
-mod excel_info;
+mod excel_structs;
 mod tests;
 
-pub use excel_data::ExcelColumnData;
-pub use excel_data::ExcelData;
-pub use excel_data::ExcelRowData;
-pub use excel_info::ExcelColumnInfo;
-pub use excel_info::ExcelInfo;
+pub use excel_structs::excel_column_data::ExcelColumnData;
+pub use excel_structs::excel_data::ExcelData;
+pub use excel_structs::excel_info::ExcelColumnInfo;
+pub use excel_structs::excel_info::ExcelInfo;
+pub use excel_structs::excel_row_data::ExcelRowData;
 
 const SECONDS_IN_A_DAY: f64 = 86400.0;
 const EXCEL_BASE_DATE: i64 = 25569; // Number of days from 1899-12-30 to 1970-01-01
@@ -377,10 +376,6 @@ fn write_children_row(
             }
             if let Some((pos, column)) = column_positions_map.get(&column_data.key) {
                 if !column.is_root_group() {
-                    println!(
-                        "last_row: {:?}, y :{:?}, x1: {:?}, value: {:?}, key: {:?}",
-                        last_row, y, pos.x1, &column_data.value, column.key
-                    );
                     if y == last_row {
                         write_single_cell(worksheet, pos.x1, y, &column_data.value, &column)?;
                     } else {
