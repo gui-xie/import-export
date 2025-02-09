@@ -8,7 +8,6 @@ import {
     toExcel,
     generateExcelTemplate,
     initializeWasm,
-    mapRowData
 } from './utils.js';
 
 function getUtils() {
@@ -20,7 +19,6 @@ function getUtils() {
         fromExcel,
         toExcel,
         generateExcelTemplate,
-        mapRowData
     }
 }
 

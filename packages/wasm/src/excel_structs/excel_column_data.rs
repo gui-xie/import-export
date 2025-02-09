@@ -1,8 +1,5 @@
 use std::fmt;
-
-const ROOT_DATA_KEY: &str = "root";
 use wasm_bindgen::prelude::*;
-
 use super::excel_row_data::ExcelRowData;
 
 #[wasm_bindgen(getter_with_clone)]
@@ -20,18 +17,6 @@ impl ExcelColumnData {
             value: value.into(),
             children: Vec::new(),
         }
-    }
-
-    pub fn new_group(group_name: String, value: String, children: Vec<ExcelRowData>) -> Self {
-        ExcelColumnData {
-            key: group_name.into(),
-            value: value.into(),
-            children,
-        }
-    }
-
-    pub fn new_root_group(group_name: String, children: Vec<ExcelRowData>) -> Self {
-        ExcelColumnData::new_group(group_name, "".into(), children)
     }
 
     pub fn get_children_len(&self) -> usize {
@@ -54,16 +39,21 @@ impl ExcelColumnData {
         ExcelColumnData::new(key, value)
     }
 
-    #[wasm_bindgen(js_name = newRoot)]
-    pub fn new_root(children: Vec<ExcelRowData>) -> ExcelColumnData {
+    #[wasm_bindgen(js_name = newGroup)]
+    pub fn new_group(group_name: String, value: String, children: Vec<ExcelRowData>) -> Self {
         ExcelColumnData {
-            key: ROOT_DATA_KEY.into(),
-            value: "".into(),
+            key: group_name.into(),
+            value: value.into(),
             children,
         }
     }
 
-    #[wasm_bindgen(js_name=withChildren)]
+    #[wasm_bindgen(js_name = newRootGroup)]
+    pub fn new_root_group(group_name: String, children: Vec<ExcelRowData>) -> Self {
+        ExcelColumnData::new_group(group_name, "".into(), children)
+    }
+
+    #[wasm_bindgen(js_name = withChildren)]
     pub fn with_children(mut self, children: Vec<ExcelRowData>) -> Self {
         self.children = children;
         self

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Export-Group-Test</title>
+</head>
+<button id="btnExport">Export</button>
+
+<body>
+  <script type="module">
+    import {
+      exportExcel,
+    } from './dist/index.js';
+
+
+    btnExport.addEventListener('click', exportClick);
+
+    function exportClick() {
+      const info = {
+        name: 'Pokemon',
+        sheetName: 'FireRed Pokédex',
+        columns: [
+          { key: 'number', name: 'Number', note: 'required' },
+          { key: 'name', name: 'Name', note: 'required' },
+          { key: 'moves', name: 'Moves', dataGroup: "moves" },
+          { key: 'moves_by', name: 'By', parent: 'moves', dataGroup: "moves_by", dataGroupParent: 'moves' },
+          { key: 'moves_lv', name: "LV/TM/HM", dataType: 'number', parent: 'moves', dataGroupParent: 'moves_by' },
+          { key: 'moves_move', name: "Move.", width: 16, parent: 'moves', dataGroupParent: 'moves_by' },
+          { key: 'moves_type', name: "Type.", parent: 'moves', dataGroupParent: 'moves_by' },
+          { key: 'moves_cat', name: "Cat.", parent: 'moves', dataGroupParent: 'moves_by' },
+          { key: 'moves_power', name: "Power.", parent: 'moves', dataGroupParent: 'moves_by' },
+          { key: 'moves_acc', name: "Acc.", parent: 'moves', dataGroupParent: 'moves_by' }
+        ],
+        author: 'senlinz',
+        createTime: '2024-11-01T09:00:00'
+      };
+      const data = [
+        {
+          number: '#001',
+          name: 'Bulbasaur',
+          moves: {
+            children: [
+              {
+                moves_by: {
+                  value: 'Level',
+                  children: [
+                    {
+                      moves_lv: '1',
+                      moves_move: 'Tackle',
+                      moves_type: 'Normal',
+                      moves_cat: 'Physical',
+                      moves_power: '40',
+                      moves_acc: '100'
+                    },
+                    {
+                      moves_lv: '4',
+                      moves_move: 'Growl',
+                      moves_type: 'Normal',
+                      moves_cat: 'Status',
+                      moves_power: '-',
+                      moves_acc: '100'
+                    },
+                    {
+                      moves_lv: '7',
+                      moves_move: 'Leech Seed',
+                      moves_type: 'Grass',
+                      moves_cat: 'Status',
+                      moves_power: '-',
+                      moves_acc: '90'
+                    },
+                  ]
+                },
+              },
+              {
+                moves_by: {
+                  value: 'Egg',
+                  children: [
+                    {
+                      moves_move: 'Curse',
+                      moves_type: 'Ghost',
+                      moves_cat: 'Status',
+                      moves_power: '-',
+                      moves_acc: '-'
+                    },
+                    {
+                      moves_move: 'Ingrain',
+                      moves_type: 'Grass',
+                      moves_cat: 'Status',
+                      moves_power: '-',
+                      moves_acc: '-'
+                    },
+                  ]
+                }
+              }
+            ]
+          }
+        },
+      ];
+      exportExcel(info, data);
+    }
+  </script>
+</body>
+
+</html>

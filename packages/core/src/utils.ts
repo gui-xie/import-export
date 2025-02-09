@@ -55,53 +55,30 @@ async function fromExcel<T>(
   return items;
 }
 
-function mapExcelData(items: any[], columnMap: any) {
+function mapExcelData(items: any[], columnMap: any, parentKey: string = '') {
   const rows = [];
   for (const item of items) {
     let columnData = [];
-    for (const key in item) {
-      if (key === 'root') {
-        const children = item[key];
-        if (!Array.isArray(children)) {
-          throw new Error("children must be an array");
-        }
-        for (const child of children) {
-          if (!Array.isArray(child)) {
-            throw new Error('children must be an array');
-          }
-          columnData.push(ExcelColumnData.newRoot(mapExcelData(child, columnMap)));
-        }
+    for (const columnKey in item) {
+      let column: ExcelColumnInfo = columnMap[columnKey];
+      let v = item[columnKey];
+      if (!column || v === undefined) continue;
+      if (!column.data_group) {
+        columnData.push(new ExcelColumnData(columnKey, v.toString()));
         continue;
       }
-      const column = columnMap[key];
-      if (!column) continue;
-      columnData.push(new ExcelColumnData(column.key, item[key].toString()));
-    }
-    if (item.children && columnData.length > 0) {
-      columnData[0] = columnData[0].withChildren(mapExcelData(item.children, columnMap));
+      if (v.children && v.children.length) {
+        let children = mapExcelData(v.children, columnMap, columnKey);
+        if (!parentKey) {
+          columnData.push(ExcelColumnData.newRootGroup(columnKey, children));
+        } else {
+          columnData.push(ExcelColumnData.newGroup(columnKey, v.value.toString(), children));
+        }
+      }
     }
     rows.push(new ExcelRowData(columnData));
   }
   return rows;
-}
-
-function mapRowData(item: any, childrenFields: string[]) {
-  let fields = Array.isArray(childrenFields) ? childrenFields : [childrenFields];
-  const result = {
-    root: []
-  };
-  for (const key in item) {
-    if (fields.includes(key)) {
-      const children = item[key];
-      if (!Array.isArray(children)) {
-        throw new Error("children must be an array");
-      }
-      result['root'].push(children);
-      continue;
-    }
-    result[key] = item[key];
-  }
-  return result;
 }
 
 async function toExcel<T>(
@@ -175,6 +152,8 @@ function getInfo(definition: ExcelDefinition): ExcelInfo {
       let formats = Array.isArray(c.valueFormat) ? c.valueFormat : [c.valueFormat];
       column = column.withValueFormat(formats.map(mapFormat));
     }
+    if (c.dataGroup) column = column.withDataGroup(c.dataGroup);
+    if (c.dataGroupParent) column = column.withDataGroupParent(c.dataGroupParent);
     return column;
   });
 
@@ -267,6 +246,5 @@ export {
   toExcel,
   generateExcelTemplate,
   initializeWasm,
-  download,
-  mapRowData
+  download
 };
