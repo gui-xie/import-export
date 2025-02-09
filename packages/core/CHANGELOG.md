@@ -1,5 +1,13 @@
 # @senlinz/import-export
 
+## 0.1.0-beta.11
+
+### Patch Changes
+
+- add complex data export
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.0-beta.11
+
 ## 0.1.0-beta.10
 
 ### Patch Changes
