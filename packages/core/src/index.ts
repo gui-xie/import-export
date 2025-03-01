@@ -32,6 +32,16 @@ function _exportExcel<T>(defintion: ExcelDefinition, data: T[]): Promise<void> {
     return exportExcel(defintion, data);
 }
 
+function _fromExcel<T>(definition: ExcelDefinition, buffer: Uint8Array): Promise<T[]> {
+    initializeWasm();
+    return fromExcel(definition, buffer);
+}
+
+function _toExcel<T>(definition: ExcelDefinition, data: T[]): Promise<Uint8Array> {
+    initializeWasm();
+    return toExcel(definition, data);
+}
+
 function _downloadExcelTemplate(defintion: ExcelDefinition): Promise<void> {
     initializeWasm();
     return downloadExcelTemplate(defintion);
@@ -41,5 +51,7 @@ export {
     getUtils,
     _importExcel as importExcel,
     _exportExcel as exportExcel,
+    _fromExcel as fromExcel,
+    _toExcel as toExcel,
     _downloadExcelTemplate as downloadExcelTemplate
 };

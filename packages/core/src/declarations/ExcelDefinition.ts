@@ -26,8 +26,8 @@ interface ExcelColumnDefinition {
     bold?: boolean,
     format?: ExcelCellFormatDefinition,
     valueFormat?: ExcelCellFormatDefinition[] | ExcelCellFormatDefinition,
-    dataGroup: string,
-    dataGroupParent: string
+    dataGroup?: string,
+    dataGroupParent?: string
 }
 
 interface ExcelCellFormatDefinition {
