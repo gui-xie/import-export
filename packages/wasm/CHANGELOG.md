@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 0.1.0-beta.12
+
+### Patch Changes
+
+- change column definiton with optional property
+
 ## 0.1.0-beta.11
 
 ### Patch Changes
