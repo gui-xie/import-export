@@ -10,12 +10,13 @@ export const config: Config = {
       customElementsExportBehavior: 'auto-define-custom-elements',
       externalRuntime: false,
       minify: true,
-      generateTypeDeclarations: false
+      generateTypeDeclarations: true
     }
   ],
   testing: {
     browserHeadless: false,
-    testRegex: ['src/.*\\.spec\\.(ts|tsx)$']
+    testRegex: ['src/.*\\.spec\\.(ts|tsx)$'],
+    
   },
   rollupPlugins: {
     before: [imexportWasm(), terser()]

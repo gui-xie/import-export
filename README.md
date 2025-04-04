@@ -8,7 +8,6 @@
 - Import and export Excel files in browser environments.
 - Rust WebAssembly core for efficient Excel data handling.
 - Built with Rust's [calamine](https://docs.rs/calamine/) and [rust_xlsxwriter](https://docs.rs/rust_xlsxwriter/) libraries for efficient handling of Excel data.
-- Web component generation using [Stencil.js](https://stenciljs.com/).
 
 ## Packages
 - **@senlinz/import-export**: The Stencil web component with the Rust WebAssembly core.
