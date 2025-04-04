@@ -1,5 +1,13 @@
 # @senlinz/import-export
 
+## 0.1.0-beta.14
+
+### Patch Changes
+
+- add image datatype
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.0-beta.14
+
 ## 0.1.0-beta.13
 
 ### Patch Changes
