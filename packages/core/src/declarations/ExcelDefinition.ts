@@ -20,7 +20,7 @@ interface ExcelColumnDefinition {
     name: string,
     width?: number,
     note?: string,
-    dataType?: "string" | "number" | "date",
+    dataType?: "string" | "number" | "date" | "image",
     allowedValues?: string[],
     parent?: string,
     backgroundColor?: string,

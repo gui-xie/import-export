@@ -13,10 +13,6 @@
     ".": {
       "import": "./dist/components/index.js",
       "types": "./dist/types/index.d.ts"
-    },
-    "./components/import-export-studio.js": {
-      "import": "./dist/components/import-export-studio.js",
-      "types": "./dist/types/components/import-export-studio.d.ts"
     }
   },
   "scripts": {
