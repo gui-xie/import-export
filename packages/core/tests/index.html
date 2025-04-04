@@ -26,10 +26,12 @@
       columns: [
         { key: 'name', name: 'Name', dataType: 'text', width: 20, note: 'required' },
         { key: 'age', name: 'Age', dataType: 'number', width: 10 },
-        { key: 'category', name: 'Category', dataType: 'text', allowedValues: ['Cat', 'Mouse'] }
+        { key: 'category', name: 'Category', dataType: 'text', allowedValues: ['Cat', 'Mouse'] },
+        { key: 'image', name: 'Image', dataType: 'image', width: 10 }
       ],
       author: 'senlinz',
-      createTime: '2024-11-01T09:00:00'
+      createTime: '2024-11-01T09:00:00',
+      imageFetcher: fetchImage
     };
 
     btnImport.addEventListener('click', importClick);
@@ -38,8 +40,8 @@
 
     function exportClick() {
       exportExcel(excelInfo, [
-        { name: 'Tom', age: 12, category: 'Cat' },
-        { name: 'Jerry', age: 13, category: 'Mouse' }
+        { name: 'Tom', age: 12, category: 'Cat', image: './Tom.jpg' },
+        { name: 'Jerry', age: 13, category: 'Mouse', image: './Jerry.png' }
       ]);
     }
 
@@ -53,6 +55,26 @@
 
     function downloadTemplateClick() {
       downloadExcelTemplate(excelInfo);
+    }
+
+    function fetchImage(url) {
+      return new Promise((resolve, reject) => {
+        fetch(url)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+            }
+            return response.arrayBuffer();
+          })
+          .then(buffer => {
+            const uint8Array = new Uint8Array(buffer);
+            resolve(uint8Array);
+          })
+          .catch(error => {
+            console.error("Error fetching image:", error);
+            reject(error);
+          });
+      });
     }
   </script>
 </body>

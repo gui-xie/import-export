@@ -45,7 +45,7 @@ async function getItems(data: ExcelData, columns: ExcelColumnDefinition[]) {
   return result;
 }
 
-async function fromExcel<T>(
+async function _fromExcel<T>(
   definition: ExcelDefinition,
   buffer: Uint8Array,
 ): Promise<T[]> {
@@ -81,7 +81,7 @@ function mapExcelData(items: any[], columnMap: any, parentKey: string = '') {
   return rows;
 }
 
-async function toExcel<T>(
+async function _toExcel<T>(
   definition: ExcelDefinition,
   data: T[]
 ) {
@@ -172,7 +172,8 @@ function getInfo(definition: ExcelDefinition): ExcelInfo {
   if (definition.titleFormat) info = info.withTitleFormat(mapFormat(definition.titleFormat));
   if (definition.defaultRowHeight) info = info.withDefaultRowHeight(definition.defaultRowHeight);
   if (definition.isHeaderFreeze) info = info.withIsHeaderFreeze(definition.isHeaderFreeze);
-
+  if (definition.progressCallback) info = info.withProgressCallback(definition.progressCallback);
+  if (definition.imageFetcher) info = info.withImageFetcher(definition.imageFetcher);
   return info;
 }
 
@@ -223,7 +224,7 @@ function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
       const reader = new FileReader();
       reader.onload = async () => {
         const buffer = new Uint8Array(reader.result as ArrayBuffer);
-        const items = await fromExcel(defintion, buffer);
+        const items = await _fromExcel(defintion, buffer);
         fileInput.removeEventListener('change', fileHandler);
         fileInput.remove();
         resolve(items as T[]);
@@ -234,7 +235,7 @@ function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
 }
 
 async function exportExcel<T>(definition: ExcelDefinition, data: T[]) {
-  const excelData = await toExcel(definition, data);
+  const excelData = await _toExcel(definition, data);
   download(excelData, `${definition.name}.xlsx`);
 }
 
@@ -242,8 +243,8 @@ export {
   importExcel,
   exportExcel,
   downloadExcelTemplate,
-  fromExcel,
-  toExcel,
+  _fromExcel as fromExcel,
+  _toExcel as toExcel,
   generateExcelTemplate,
   initializeWasm,
   download

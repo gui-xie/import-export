@@ -13,7 +13,7 @@
     <button id="btnDownloadTemplate">Download Template</button>
     <div id="importOutput"></div>
     <script type="module">
-        import init, { importData, createTemplate, exportData, ExcelInfo, ExcelColumnInfo, ExcelData, ExcelRowData, ExcelColumnData, ExcelDataType } from './dist/imexport_wasm.js';
+        import init, { importData, createTemplate, exportData, ExcelInfo, ExcelColumnInfo, ExcelData, ExcelRowData, ExcelColumnData } from './dist/imexport_wasm.js';
         await init();
 
         const btnImport = document.getElementById('btnImport');
@@ -31,11 +31,11 @@
             download(templateData, name);
         }
 
-        function exportClick() {
+        async function exportClick() {
             const info = getExcelInfo();
             const name = info.name;
             const data = getExcelData();
-            const excelData = exportData(info, data);
+            const excelData = await exportData(info, data);
             download(excelData, name);
         }
 
@@ -79,33 +79,38 @@
                     [
                         new ExcelColumnData('name', 'Tom'),
                         new ExcelColumnData('age', '12'),
-                        new ExcelColumnData('category', 'Cat')
+                        new ExcelColumnData('category', 'Cat'),
+                        new ExcelColumnData('image', './Tom.jpg')
                     ]
                 ),
                 new ExcelRowData(
                     [
                         new ExcelColumnData('name', 'Jerry'),
                         new ExcelColumnData('age', '13'),
-                        new ExcelColumnData('category', 'Mouse')
+                        new ExcelColumnData('category', 'Mouse'),
+                        new ExcelColumnData('image', './Jerry.png')
                     ]
                 )
             ]);
         }
 
         function getExcelInfo() {
-            const nameColumn = new ExcelColumnInfo('name', 'Name', 20);
-            nameColumn.setNote('Required');
-            const ageColumn = new ExcelColumnInfo('age', 'Age', 10);
-            ageColumn.setDataType(ExcelDataType.Number);
-            const categoryColumn = new ExcelColumnInfo('category', 'Category', 20);
-            categoryColumn.setAllowedValues(['Cat', 'Mouse']);
-            const info = new ExcelInfo(
+            let nameColumn = new ExcelColumnInfo('name', 'Name').withNote('Required');
+            const ageColumn = new ExcelColumnInfo('age', 'Age').withDataType('Number');
+            const categoryColumn = new ExcelColumnInfo('category', 'Category').withAllowedValues(['Cat', 'Mouse']);
+            const imageColumn = new ExcelColumnInfo('image', 'Image').withDataType('Image');
+            let info = new ExcelInfo(
                 'TomAndJerry',
                 'sheet1',
-                [nameColumn, ageColumn, categoryColumn],
+                [nameColumn, ageColumn, categoryColumn, imageColumn],
                 'senlinz',
                 '2024-11-01T08:00:00'
             );
+            info = info.withDefaultRowHeight(40);
+            info = info.withImageFetcher(async (url) => {
+                const imageData = await fetchImage(url);
+                return imageData;
+            });
             return info;
         }
 
@@ -119,6 +124,26 @@
             a.download = name + '.xlsx';
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        function fetchImage(url) {
+            return new Promise((resolve, reject) => {
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+                        }
+                        return response.arrayBuffer();
+                    })
+                    .then(buffer => {
+                        const uint8Array = new Uint8Array(buffer);
+                        resolve(uint8Array);
+                    })
+                    .catch(error => {
+                        console.error("Error fetching image:", error);
+                        reject(error);
+                    });
+            });
         }
     </script>
 </body>

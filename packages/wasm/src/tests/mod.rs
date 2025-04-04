@@ -7,9 +7,6 @@ mod tests {
     use excel_info::*;
     use excel_row_data::*;
     use insta::{assert_binary_snapshot, assert_snapshot};
-    use wasm_bindgen_test::*;
-
-    wasm_bindgen_test_configure!(run_in_browser);
 
     fn create_excel_info() -> ExcelInfo {
         let name = "Pokemon";
@@ -77,8 +74,8 @@ mod tests {
         assert_binary_snapshot!("create_pokemon_template_success.xlsx", result);
     }
 
-    #[test]
-    fn export_pokemon_success() {
+    #[tokio::test]
+    async fn export_pokemon_success() {
         // Arrange
         let info = create_excel_info();
         let data = excel_data::ExcelData {
@@ -99,7 +96,7 @@ mod tests {
         };
 
         // Act
-        let result = export_data_buffer(&info, &data);
+        let result = export_data_buffer(&info, &data).await;
 
         // Assert
         assert!(result.is_ok());
@@ -107,8 +104,8 @@ mod tests {
         assert_binary_snapshot!("export_pokemon_success.xlsx", result);
     }
 
-    #[test]
-    fn export_pokemon_skill_success() {
+    #[tokio::test]
+    async fn export_pokemon_skill_success() {
         // Arrange
         let info = ExcelInfo::new(
             "Pokemon",
@@ -145,6 +142,7 @@ mod tests {
             "senlinz",
             "2024-11-01T08:00:00",
         );
+
         let data = ExcelData::new(vec![ExcelRowData::new(vec![
             ExcelColumnData::new("number", "#001"),
             ExcelColumnData::new("name", "Bulbasaur"),
@@ -221,7 +219,7 @@ mod tests {
         ])]);
 
         // Act
-        let result = export_data_buffer(&info, &data);
+        let result = export_data_buffer(&info, &data).await;
 
         // Assert
         assert!(result.is_ok());

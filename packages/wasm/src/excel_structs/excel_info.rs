@@ -1,5 +1,5 @@
+use js_sys::Function;
 use std::collections::{HashMap, HashSet};
-
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]
@@ -16,6 +16,10 @@ pub struct ExcelInfo {
     pub dx: u16,
     pub dy: u32,
     pub is_header_freeze: bool,
+    #[wasm_bindgen(skip)]
+    pub progress_callback: Option<Function>,
+    #[wasm_bindgen(skip)]
+    pub image_fetcher: Option<Function>,
 }
 
 impl ExcelInfo {
@@ -39,8 +43,20 @@ impl ExcelInfo {
             title_format: None,
             dx: 0,
             dy: 0,
-            is_header_freeze: false,
+            is_header_freeze: false,  
+            progress_callback: None,
+            image_fetcher: None
         }
+    }
+
+    pub fn with_progress_callback(mut self, callback: Function) -> Self {
+        self.progress_callback = Some(callback);
+        self
+    }
+
+    pub fn with_image_fetcher(mut self, fetcher: Function) -> Self {
+        self.image_fetcher = Some(fetcher);
+        self
     }
 
     pub fn with_title<T: Into<String>>(mut self, title: T) -> Self {
@@ -146,6 +162,16 @@ impl ExcelInfo {
     pub fn with_is_header_freeze(mut self, is_header_freeze: bool) -> Self {
         self.is_header_freeze = is_header_freeze;
         self
+    }
+
+    #[wasm_bindgen(js_name = withProgressCallback)]
+    pub fn bind_with_progress_callback(self, callback: Function) -> Self {
+        self.with_progress_callback(callback)
+    }
+
+    #[wasm_bindgen(js_name = withImageFetcher)]
+    pub fn bind_with_image_fetcher(self, fetcher: Function) -> Self {
+        self.with_image_fetcher(fetcher)
     }
 }
 

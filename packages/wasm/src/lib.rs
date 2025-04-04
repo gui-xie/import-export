@@ -2,9 +2,13 @@ use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
 use excel_structs::excel_info::ExcelCellFormat;
 use rust_xlsxwriter::*;
 use std::collections::HashMap;
+use std::future::Future;
 use std::io::Cursor;
+use std::pin::Pin;
 use std::sync::LazyLock;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::future_to_promise;
+use wasm_bindgen_futures::JsFuture;
 
 mod excel_structs;
 mod tests;
@@ -49,8 +53,17 @@ pub fn import_data(info: ExcelInfo, excel_bytes: &[u8]) -> Result<ExcelData, JsE
 }
 
 #[wasm_bindgen(js_name = exportData)]
-pub fn export_data(info: ExcelInfo, data: ExcelData) -> Result<Vec<u8>, JsError> {
-    export_data_buffer(&info, &data).map_err(|e| JsError::new(&e.to_string()))
+pub fn export_data(info: ExcelInfo, data: ExcelData) -> js_sys::Promise {
+    let future = async move {
+        match export_data_buffer(&info, &data).await {
+            Ok(buffer) => {
+                let uint8array = js_sys::Uint8Array::from(&buffer[..]);
+                Ok(uint8array.into())
+            }
+            Err(e) => Err(JsValue::from(e.to_string())),
+        }
+    };
+    future_to_promise(future)
 }
 
 fn create_template_workbook(
@@ -203,11 +216,10 @@ fn import_data_buffer(
     let range = workbook.worksheet_range(info.sheet_name.as_str())?;
     let column_positions = get_column_positions(&info);
     excel_data.rows = get_rows_data(&column_positions, &range);
-
     Ok(excel_data)
 }
 
-fn export_data_buffer(
+async fn export_data_buffer(
     info: &ExcelInfo,
     data: &ExcelData,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
@@ -229,7 +241,17 @@ fn export_data_buffer(
         .map(|(key, _)| key)
         .collect::<Vec<&String>>();
 
-    for (_, row) in data.rows.iter().enumerate() {
+    let total_rows = data.rows.len();
+
+    for (row_index, row) in data.rows.iter().enumerate() {
+        if let Some(callback) = &info.progress_callback {
+            let progress = (row_index as f64) / (total_rows as f64);
+            let _ = callback.call1(
+                &wasm_bindgen::JsValue::NULL,
+                &wasm_bindgen::JsValue::from_f64(progress),
+            );
+        }
+
         let mut data_with_children = Vec::new();
         let mut data_without_children = Vec::new();
         for column_data in row.columns.iter() {
@@ -240,7 +262,14 @@ fn export_data_buffer(
             }
         }
 
-        let next_y = write_children_row(worksheet, data_with_children, y, &column_positions_map)?;
+        let next_y = write_children_row(
+            worksheet,
+            data_with_children,
+            y,
+            &column_positions_map,
+            &info,
+        )
+        .await?; // Add .await here
         let y2 = next_y - 1;
         let has_children = y2 > y;
 
@@ -257,12 +286,21 @@ fn export_data_buffer(
                         &column,
                     )?;
                 } else {
-                    write_single_cell(worksheet, pos.x1, y2, &column_data.value, &column)?;
+                    write_single_cell(worksheet, pos.x1, y2, &column_data.value, &column, &info)
+                        .await?; // Add .await here
                 }
             }
         }
         y = next_y;
     }
+
+    if let Some(callback) = &info.progress_callback {
+        let _ = callback.call1(
+            &wasm_bindgen::JsValue::NULL,
+            &wasm_bindgen::JsValue::from_f64(1.0),
+        );
+    }
+
     column_positions_map
         .iter()
         .enumerate()
@@ -317,16 +355,45 @@ impl ExcelColumnPosition {
     }
 }
 
-fn write_single_cell(
+async fn write_single_cell(
     worksheet: &mut Worksheet,
     x: u16,
     y: u32,
     value: &String,
     column: &ExcelColumnInfo,
+    info: &ExcelInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let data_type = &column.data_type;
     let mut is_date_type = false;
-    if data_type.eq_ignore_ascii_case("number") {
+    if data_type.eq_ignore_ascii_case("image") {
+        if let Some(fetcher) = &info.image_fetcher {
+            let values: Vec<&str> = value.split(",").collect();
+            for v in values.iter() {
+                let url_value = JsValue::from_str(v);
+                let result = fetcher
+                    .call1(&JsValue::NULL, &url_value)
+                    .map_err(|e| format!("Error calling image fetcher: {:?}", e))?;
+                let promise = js_sys::Promise::resolve(&result);
+                let result = JsFuture::from(promise)
+                    .await
+                    .map_err(|e| format!("Error waiting for image fetcher: {:?}", e))?;
+
+                if result.is_object() {
+                    let image_data: Vec<u8> = js_sys::Uint8Array::new(&result).to_vec();
+                    let image = Image::new_from_buffer(&image_data)?;
+                    
+                    worksheet.insert_image_fit_to_cell(y, x, &image, true)?;
+                    return Ok(());
+                } else {
+                    return Err(
+                        format!("Image fetcher returned invalid data for URL: {}", v).into(),
+                    );
+                }
+            }
+        } else {
+            return Err("Image fetcher is not defined".into());
+        }
+    } else if data_type.eq_ignore_ascii_case("number") {
         worksheet.write_number(y, x, value.parse::<f64>()?)?;
     } else if data_type.eq_ignore_ascii_case("date") {
         let date_time = ExcelDateTime::parse_from_str(value)?;
@@ -351,54 +418,67 @@ fn write_single_cell(
     Ok(())
 }
 
-fn write_children_row(
-    worksheet: &mut Worksheet,
-    row: Vec<&ExcelColumnData>,
+fn write_children_row<'a>(
+    worksheet: &'a mut Worksheet,
+    row: Vec<&'a ExcelColumnData>,
     y: u32,
-    column_positions_map: &HashMap<String, (&ExcelColumnPosition, &ExcelColumnInfo)>,
-) -> Result<u32, Box<dyn std::error::Error>> {
-    let mut current_y = y;
-    let mut t_y = y;
-    for (_, column_data) in row.iter().enumerate() {
-        if !column_data.children.is_empty() {
-            for d in column_data.children.iter() {
-                t_y = write_children_row(
-                    worksheet,
-                    d.columns.iter().collect(),
-                    t_y,
-                    column_positions_map,
-                )?;
-            }
-            let last_row = t_y - 1;
+    column_positions_map: &'a HashMap<String, (&'a ExcelColumnPosition, &'a ExcelColumnInfo)>,
+    info: &'a ExcelInfo,
+) -> Pin<Box<dyn Future<Output = Result<u32, Box<dyn std::error::Error>>> + 'a>> {
+    Box::pin(async move {
+        let mut current_y = y;
+        let mut t_y = y;
+        for (_, column_data) in row.iter().enumerate() {
+            if !column_data.children.is_empty() {
+                for d in column_data.children.iter() {
+                    t_y = write_children_row(
+                        worksheet,
+                        d.columns.iter().collect(),
+                        t_y,
+                        column_positions_map,
+                        &info,
+                    )
+                    .await?;
+                }
+                let last_row = t_y - 1;
 
-            if t_y > current_y {
-                current_y = last_row;
-            }
-            if let Some((pos, column)) = column_positions_map.get(&column_data.key) {
-                if !column.is_root_group() {
-                    if y == last_row {
-                        write_single_cell(worksheet, pos.x1, y, &column_data.value, &column)?;
-                    } else {
-                        write_range_cell(
-                            worksheet,
-                            pos.x1,
-                            pos.x2,
-                            y,
-                            last_row,
-                            &column_data.value,
-                            &column,
-                        )?;
+                if t_y > current_y {
+                    current_y = last_row;
+                }
+                if let Some((pos, column)) = column_positions_map.get(&column_data.key) {
+                    if !column.is_root_group() {
+                        if y == last_row {
+                            write_single_cell(
+                                worksheet,
+                                pos.x1,
+                                y,
+                                &column_data.value,
+                                &column,
+                                info,
+                            )
+                            .await?;
+                        } else {
+                            write_range_cell(
+                                worksheet,
+                                pos.x1,
+                                pos.x2,
+                                y,
+                                last_row,
+                                &column_data.value,
+                                &column,
+                            )?;
+                        }
                     }
                 }
+                t_y = y;
+                continue;
             }
-            t_y = y;
-            continue;
+            if let Some((pos, column)) = column_positions_map.get(&column_data.key) {
+                write_single_cell(worksheet, pos.x1, y, &column_data.value, &column, &info).await?;
+            }
         }
-        if let Some((pos, column)) = column_positions_map.get(&column_data.key) {
-            write_single_cell(worksheet, pos.x1, y, &column_data.value, &column)?;
-        }
-    }
-    Ok(current_y + 1)
+        Ok(current_y + 1)
+    })
 }
 
 fn write_range_cell(

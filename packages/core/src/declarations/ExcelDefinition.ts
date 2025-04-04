@@ -10,7 +10,9 @@ interface ExcelDefinition {
     defaultRowHeight?: number,
     dx?: number,
     dy?: number,
-    isHeaderFreeze?: boolean
+    isHeaderFreeze?: boolean,
+    progressCallback?: (progress: number) => void,
+    imageFetcher?: (url: string) => Promise<Uint8Array>,
 }
 
 interface ExcelColumnDefinition {
