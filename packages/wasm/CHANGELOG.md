@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 0.1.0-beta.13
+
+### Patch Changes
+
+- add image export support
+
 ## 0.1.0-beta.12
 
 ### Patch Changes
