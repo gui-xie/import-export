@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 0.1.0-beta.15
+
+### Patch Changes
+
+- 779a9ee: remove custom component
+
 ## 0.1.0-beta.14
 
 ### Patch Changes
