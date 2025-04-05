@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 0.1.0-beta.16
+
+### Patch Changes
+
+- 91bda5b: remove stencil components
+
 ## 0.1.0-beta.15
 
 ### Patch Changes
