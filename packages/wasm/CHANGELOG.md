@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 0.1.0-beta.17
+
+### Patch Changes
+
+- 56a4e1a: fix package.json entry
+
 ## 0.1.0-beta.16
 
 ### Patch Changes
