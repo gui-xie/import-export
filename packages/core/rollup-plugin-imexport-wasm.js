@@ -6,7 +6,7 @@ const imexportWasmName = 'imexport_wasm_bg.wasm';
 export default function imexportWasm() {
     return {
         name: 'imexport-wasm',
-        async resolveId(source: string) {
+        async resolveId(source) {
             if (source.endsWith(imexportWasmName)) {
                 const resolved = await this.resolve(source, undefined, { skipSelf: true });
                 if (resolved) {
@@ -15,7 +15,7 @@ export default function imexportWasm() {
             }
             return null;
         },
-        load(id: string) {
+        load(id) {
             if (id.endsWith(imexportWasmName)) {
                 const wasm = fs.readFileSync(id);
                 const gzipped = gzipSync(wasm);

@@ -1,5 +1,5 @@
-export type * from './components.d.ts';
-import { ExcelDefinition } from './declarations/ExcelDefinition.js';
+export type * from './ExcelDefinition';
+import { ExcelDefinition } from './ExcelDefinition';
 import {
     importExcel,
     exportExcel,

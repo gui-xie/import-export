@@ -12,7 +12,7 @@ import {
 } from '@senlinz/import-export-wasm';
 import imexportWasm from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm';
 import { gunzipSync } from 'fflate';
-import { ExcelColumnDefinition, ExcelDefinition, ExcelCellFormatDefinition } from './declarations/ExcelDefinition';
+import { ExcelColumnDefinition, ExcelDefinition, ExcelCellFormatDefinition } from './ExcelDefinition';
 
 let wasmInitialized = false;
 
@@ -55,7 +55,7 @@ async function _fromExcel<T>(
   return items;
 }
 
-function mapExcelData(items: any[], columnMap: any, parentKey: string = '') {
+function mapExcelData(items: any[], columnMap: any, parentKey: string = ''): ExcelRowData[] {
   const rows = [];
   for (const item of items) {
     let columnData = [];
@@ -220,7 +220,11 @@ function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
     document.body.removeChild(button);
 
     function fileHandler(event: Event) {
-      const file = (event.target as HTMLInputElement).files[0];
+      const target = event.target as HTMLInputElement;
+      if (!target || !target.files || target.files.length === 0) {
+        return;
+      }
+      const file = target.files[0];
       const reader = new FileReader();
       reader.onload = async () => {
         const buffer = new Uint8Array(reader.result as ArrayBuffer);
