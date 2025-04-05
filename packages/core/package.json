@@ -8,11 +8,11 @@
     "README.md"
   ],
   "type": "module",
-  "module": "dist/components/index.js",
+  "module": "dist/index.js",
   "types": "dist/types/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/components/index.js",
+      "import": "./dist/index.js",
       "types": "./dist/types/index.d.ts"
     }
   },
