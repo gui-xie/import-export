@@ -123,12 +123,24 @@ fn create_template_workbook(
                     )
                     .unwrap();
             }
+            if let Some(note) = column.note.as_ref() {
+                let note = Note::new(note.clone()).set_author(info.author.clone());
+                worksheet
+                    .insert_note(position.y1, position.x1, &note)
+                    .unwrap();
+            }
             if position.is_leaf {
                 worksheet
                     .set_column_width(position.x1, column.width)
                     .unwrap();
             }
+            if let Some(header_row_height) = info.header_row_height {
+                worksheet
+                    .set_row_height(position.y1, header_row_height)
+                    .unwrap();
+            }
         });
+
     if info.is_header_freeze {
         worksheet.set_freeze_panes(
             column_positions.iter().max_by_key(|p| p.y2).unwrap().y2 + 1,
@@ -381,7 +393,7 @@ async fn write_single_cell(
                 if result.is_object() {
                     let image_data: Vec<u8> = js_sys::Uint8Array::new(&result).to_vec();
                     let image = Image::new_from_buffer(&image_data)?;
-                    
+
                     worksheet.insert_image_fit_to_cell(y, x, &image, true)?;
                     return Ok(());
                 } else {

@@ -171,6 +171,7 @@ function getInfo(definition: ExcelDefinition): ExcelInfo {
   if (definition.titleHeight) info = info.withTitleHeight(definition.titleHeight);
   if (definition.titleFormat) info = info.withTitleFormat(mapFormat(definition.titleFormat));
   if (definition.defaultRowHeight) info = info.withDefaultRowHeight(definition.defaultRowHeight);
+  if (definition.headerRowHeight) info = info.withHeaderRowHeight(definition.headerRowHeight);
   if (definition.isHeaderFreeze) info = info.withIsHeaderFreeze(definition.isHeaderFreeze);
   if (definition.progressCallback) info = info.withProgressCallback(definition.progressCallback);
   if (definition.imageFetcher) info = info.withImageFetcher(definition.imageFetcher);

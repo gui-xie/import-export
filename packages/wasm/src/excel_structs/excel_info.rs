@@ -13,6 +13,7 @@ pub struct ExcelInfo {
     pub title_format: Option<ExcelCellFormat>,
     pub title_height: Option<f64>,
     pub default_row_height: Option<f64>,
+    pub header_row_height: Option<f64>,
     pub dx: u16,
     pub dy: u32,
     pub is_header_freeze: bool,
@@ -39,13 +40,14 @@ impl ExcelInfo {
             create_time: create_time.into(),
             title: None,
             default_row_height: None,
+            header_row_height: None,
             title_height: None,
             title_format: None,
             dx: 0,
             dy: 0,
-            is_header_freeze: false,  
+            is_header_freeze: false,
             progress_callback: None,
-            image_fetcher: None
+            image_fetcher: None,
         }
     }
 
@@ -136,6 +138,12 @@ impl ExcelInfo {
     #[wasm_bindgen(js_name = withDefaultRowHeight)]
     pub fn with_default_row_height(mut self, row_height: f64) -> Self {
         self.default_row_height = Some(row_height);
+        self
+    }
+
+    #[wasm_bindgen(js_name = withHeaderRowHeight)]
+    pub fn with_header_row_height(mut self, row_height: f64) -> Self {
+        self.header_row_height = Some(row_height);
         self
     }
 

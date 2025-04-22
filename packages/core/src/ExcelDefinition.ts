@@ -8,6 +8,7 @@ interface ExcelDefinition {
     titleHeight?: number,
     titleFormat?: ExcelCellFormatDefinition,
     defaultRowHeight?: number,
+    headerRowHeight?: number,
     dx?: number,
     dy?: number,
     isHeaderFreeze?: boolean,

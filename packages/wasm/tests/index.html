@@ -96,7 +96,7 @@
 
         function getExcelInfo() {
             let nameColumn = new ExcelColumnInfo('name', 'Name').withNote('Required');
-            const ageColumn = new ExcelColumnInfo('age', 'Age').withDataType('Number');
+            const ageColumn = new ExcelColumnInfo('age', 'Age').withDataType('Number').withNote('asdasdasda');
             const categoryColumn = new ExcelColumnInfo('category', 'Category').withAllowedValues(['Cat', 'Mouse']);
             const imageColumn = new ExcelColumnInfo('image', 'Image').withDataType('Image');
             let info = new ExcelInfo(
@@ -106,7 +106,8 @@
                 'senlinz',
                 '2024-11-01T08:00:00'
             );
-            info = info.withDefaultRowHeight(40);
+            info = info.withDefaultRowHeight(80);
+            info = info.withHeaderRowHeight(40);
             info = info.withImageFetcher(async (url) => {
                 const imageData = await fetchImage(url);
                 return imageData;
