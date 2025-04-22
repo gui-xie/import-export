@@ -1,5 +1,13 @@
 # @senlinz/import-export
 
+## 0.1.0-beta.18
+
+### Patch Changes
+
+- 48a7aae: fix note, add header row height support
+- Updated dependencies [48a7aae]
+  - @senlinz/import-export-wasm@0.1.0-beta.18
+
 ## 0.1.0-beta.17
 
 ### Patch Changes

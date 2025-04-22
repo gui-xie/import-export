@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 0.1.0-beta.18
+
+### Patch Changes
+
+- 48a7aae: fix note, add header row height support
+
 ## 0.1.0-beta.17
 
 ### Patch Changes

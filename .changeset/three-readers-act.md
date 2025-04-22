@@ -3,4 +3,4 @@
 "@senlinz/import-export-wasm": patch
 ---
 
-update version
+fix note, add header row height support
