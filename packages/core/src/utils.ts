@@ -64,7 +64,7 @@ function mapExcelData(items: any[], columnMap: any, parentKey: string = ''): Exc
       let v = item[columnKey];
       if (!column || v === undefined) continue;
       if (!column.data_group) {
-        columnData.push(new ExcelColumnData(columnKey, v.toString()));
+        columnData.push(new ExcelColumnData(columnKey, v === null ? '' : v.toString()));
         continue;
       }
       if (v.children && v.children.length) {
@@ -72,7 +72,7 @@ function mapExcelData(items: any[], columnMap: any, parentKey: string = ''): Exc
         if (!parentKey) {
           columnData.push(ExcelColumnData.newRootGroup(columnKey, children));
         } else {
-          columnData.push(ExcelColumnData.newGroup(columnKey, v.value.toString(), children));
+          columnData.push(ExcelColumnData.newGroup(columnKey, v.value === null ? '' : v.value.toString(), children));
         }
       }
     }

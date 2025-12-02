@@ -1,5 +1,13 @@
 # @senlinz/import-export
 
+## 0.1.0-beta.19
+
+### Patch Changes
+
+- fix null string data
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.0-beta.19
+
 ## 0.1.0-beta.18
 
 ### Patch Changes
