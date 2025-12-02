@@ -1,5 +1,13 @@
 # @senlinz/import-export
 
+## 0.1.0-beta.20
+
+### Patch Changes
+
+- update to beta.20
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.0-beta.20
+
 ## 0.1.0-beta.19
 
 ### Patch Changes
