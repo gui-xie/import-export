@@ -61,6 +61,44 @@ mod tests {
     }
 
     #[test]
+    fn import_pokemon_header_mismatch_fails() {
+        // Arrange
+        let source_info = create_excel_info();
+        let excel_bytes = create_template_buffer(&source_info).unwrap();
+        let mut import_info = create_excel_info();
+        import_info.columns[0].name = "No.".into();
+
+        // Act
+        let result = import_data_buffer(import_info, &excel_bytes);
+
+        // Assert
+        assert!(result.is_err());
+        let error = result.err().unwrap().to_string();
+        assert!(error.contains("Header mismatch"));
+        assert!(error.contains("expected 'No.'"));
+    }
+
+    #[test]
+    fn import_pokemon_missing_header_fails() {
+        // Arrange
+        let source_info = create_excel_info();
+        let excel_bytes = create_template_buffer(&source_info).unwrap();
+        let mut import_info = create_excel_info();
+        import_info
+            .columns
+            .push(ExcelColumnInfo::new("region", "Region"));
+
+        // Act
+        let result = import_data_buffer(import_info, &excel_bytes);
+
+        // Assert
+        assert!(result.is_err());
+        let error = result.err().unwrap().to_string();
+        assert!(error.contains("Header mismatch"));
+        assert!(error.contains("expected 'Region'"));
+    }
+
+    #[test]
     fn create_pokemon_template_success() {
         // Arrange
         let info = create_excel_info();
@@ -102,6 +140,42 @@ mod tests {
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_binary_snapshot!("export_pokemon_success.xlsx", result);
+    }
+
+    #[tokio::test]
+    async fn import_pokemon_with_offset_success() {
+        // Arrange
+        let info = create_excel_info().with_offset(2, 1).with_title("Pokemon");
+        let data = excel_data::ExcelData {
+            rows: vec![ExcelRowData::new(vec![
+                ExcelColumnData::new("number", "#001"),
+                ExcelColumnData::new("name", "Bulbasaur"),
+                ExcelColumnData::new("first_type", "Grass"),
+                ExcelColumnData::new("second_type", "Poison"),
+                ExcelColumnData::new("abilities", "Overgrow/Chlorophyll"),
+                ExcelColumnData::new("hp", "45"),
+                ExcelColumnData::new("attack", "49"),
+                ExcelColumnData::new("defense", "49"),
+                ExcelColumnData::new("sp_attack", "65"),
+                ExcelColumnData::new("sp_defense", "65"),
+                ExcelColumnData::new("speed", "45"),
+                ExcelColumnData::new("total", "318"),
+            ])],
+        };
+        let excel_bytes = export_data_buffer(&info, &data).await.unwrap();
+
+        // Act
+        let result = import_data_buffer(info, &excel_bytes);
+
+        // Assert
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(result.rows.len(), 1);
+        assert_eq!(result.rows[0].columns.len(), 12);
+        assert_eq!(result.rows[0].columns[0].key, "number");
+        assert_eq!(result.rows[0].columns[0].value, "#001");
+        assert_eq!(result.rows[0].columns[1].key, "name");
+        assert_eq!(result.rows[0].columns[1].value, "Bulbasaur");
     }
 
     #[tokio::test]

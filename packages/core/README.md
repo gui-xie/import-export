@@ -1,6 +1,11 @@
 # @senlinz/import-export
 example for import and export excel file
 
+Import validation note:
+- `importExcel` validates that worksheet headers exactly match the configured `columns[].name` positions in your definition.
+- If a header is missing or different, import fails with a descriptive header mismatch error.
+- To avoid mismatch issues, generate and use the template from `downloadExcelTemplate`.
+
 ```html
 <!DOCTYPE html>
 <html lang="en">

@@ -25,9 +25,10 @@ js-sys = "0.3.77"
 futures = "0.3.31"
 wasm-bindgen-futures = "0.4.50"
 calamine = {version = "0.26.1", features = ["picture"] }
+indexmap = "=2.7.0"
 
 [dev-dependencies]
-insta = "1.16.0"
+insta = "=1.42.2"
 tokio = { version = "1", features = ["rt", "macros"] }
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]

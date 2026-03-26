@@ -171,17 +171,29 @@ fn get_rows_data<'a>(
         .filter(|c| c.is_leaf)
         .map(|c| (c.key.clone(), c.x1 as usize, c.data_type.clone()))
         .collect::<Vec<(String, usize, String)>>();
-    range
-        .rows()
-        .skip(header_max_y)
-        .map(|r| ExcelRowData {
+    let Some((range_start_y, _)) = range.start() else {
+        return Vec::new();
+    };
+    let Some((range_end_y, _)) = range.end() else {
+        return Vec::new();
+    };
+    let first_data_row = std::cmp::max(header_max_y as u32, range_start_y);
+    if first_data_row > range_end_y {
+        return Vec::new();
+    }
+
+    (first_data_row..=range_end_y)
+        .map(|row_index| ExcelRowData {
             columns: leaf_columns
                 .iter()
                 .map(|(key, x1, data_type)| {
-                    let cell = r.get(*x1).unwrap_or(&Data::Empty);
+                    let value = range
+                        .get_value((row_index, *x1 as u32))
+                        .map(|cell| format_value(cell, data_type))
+                        .unwrap_or_default();
                     ExcelColumnData {
                         key: key.clone(),
-                        value: format_value(cell, data_type),
+                        value,
                         children: Vec::new(),
                     }
                 })
@@ -218,6 +230,57 @@ fn format_value(data: &Data, data_type: &String) -> String {
     }
 }
 
+fn format_header_value(data: Option<&Data>) -> String {
+    match data {
+        Some(Data::Empty) => "".to_string(),
+        Some(Data::String(s)) => s.trim().to_string(),
+        Some(value) => value.to_string().trim().to_string(),
+        None => "".to_string(),
+    }
+}
+
+fn get_excel_column_name(column_index: u16) -> String {
+    let mut column_number = column_index as usize + 1;
+    let mut letters = Vec::new();
+    while column_number > 0 {
+        let remainder = (column_number - 1) % 26;
+        letters.push((b'A' + remainder as u8) as char);
+        column_number = (column_number - 1) / 26;
+    }
+    letters.into_iter().rev().collect()
+}
+
+fn get_excel_cell_ref(x: u16, y: u32) -> String {
+    format!("{}{}", get_excel_column_name(x), y + 1)
+}
+
+fn validate_headers(
+    info: &ExcelInfo,
+    range: &calamine::Range<Data>,
+    column_positions: &[ExcelColumnPosition],
+) -> Result<(), Box<dyn std::error::Error>> {
+    for position in column_positions.iter() {
+        let expected_header = info
+            .columns
+            .iter()
+            .find(|column| column.key == position.key)
+            .map(|column| column.name.as_str())
+            .ok_or_else(|| format!("Column key '{}' is missing in definition", position.key))?;
+        let actual_header = format_header_value(range.get_value((position.y1, position.x1 as u32)));
+        if actual_header != expected_header.trim() {
+            return Err(format!(
+                "Header mismatch at {} in sheet '{}': expected '{}', found '{}'",
+                get_excel_cell_ref(position.x1, position.y1),
+                info.sheet_name,
+                expected_header,
+                actual_header
+            )
+            .into());
+        }
+    }
+    Ok(())
+}
+
 fn import_data_buffer(
     info: ExcelInfo,
     excel_bytes: &[u8],
@@ -227,6 +290,7 @@ fn import_data_buffer(
     let mut excel_data = ExcelData { rows: Vec::new() };
     let range = workbook.worksheet_range(info.sheet_name.as_str())?;
     let column_positions = get_column_positions(&info);
+    validate_headers(&info, &range, &column_positions)?;
     excel_data.rows = get_rows_data(&column_positions, &range);
     Ok(excel_data)
 }
