@@ -74,23 +74,22 @@ jobs:
         run: |
           set -euo pipefail
           get_dist_tag() {
-            node -e "const version = require(process.argv[1]).version; const match = version.match(/-([0-9A-Za-z-]+)(?:\\.|$)/); if (match) process.stdout.write(match[1]);" "$1"
+            node -e "const packageJsonPath = process.argv[1]; const { version } = require(packageJsonPath); const prerelease = version.split('-', 2)[1] || ''; const tag = prerelease ? prerelease.split('.')[0] : ''; process.stdout.write(tag);" "$1"
           }
           echo "WASM_TAG=$(get_dist_tag "$GITHUB_WORKSPACE/packages/wasm/package.json")" >> "$GITHUB_ENV"
           echo "CORE_TAG=$(get_dist_tag "$GITHUB_WORKSPACE/packages/core/package.json")" >> "$GITHUB_ENV"
 
-      - name: Publish wasm package
+      - name: Publish npm packages
         run: |
-          if [ -n "${WASM_TAG:-}" ]; then
-            npm publish "$WASM_TARBALL" --provenance --access public --tag "$WASM_TAG"
-          else
-            npm publish "$WASM_TARBALL" --provenance --access public
-          fi
-
-      - name: Publish core package
-        run: |
-          if [ -n "${CORE_TAG:-}" ]; then
-            npm publish "$CORE_TARBALL" --provenance --access public --tag "$CORE_TAG"
-          else
-            npm publish "$CORE_TARBALL" --provenance --access public
-          fi
+          set -euo pipefail
+          publish_package() {
+            local tarball="$1"
+            local tag="$2"
+            if [ -n "$tag" ]; then
+              npm publish "$tarball" --provenance --access public --tag "$tag"
+            else
+              npm publish "$tarball" --provenance --access public
+            fi
+          }
+          publish_package "$WASM_TARBALL" "${WASM_TAG:-}"
+          publish_package "$CORE_TARBALL" "${CORE_TAG:-}"
