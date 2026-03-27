@@ -20,7 +20,7 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "jest",
-    "e2e-serve": "serve dist"
+    "e2e-serve": "serve -l 8080 ."
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.3",

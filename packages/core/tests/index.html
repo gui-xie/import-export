@@ -10,6 +10,7 @@
 <button id="btnExport">Export</button>
 <button id="btnDownloadTemplate">Download Template</button>
 <div id="importOutput"></div>
+<div id="importError"></div>
 
 <body>
   <script type="module">
@@ -17,7 +18,7 @@
       importExcel,
       exportExcel,
       downloadExcelTemplate
-    } from './dist/index.js';
+    } from '../dist/index.js';
 
 
     const excelInfo = {
@@ -40,16 +41,18 @@
 
     function exportClick() {
       exportExcel(excelInfo, [
-        { name: 'Tom', age: 12, category: 'Cat', image: './Tom.jpg' },
-        { name: 'Jerry', age: 13, category: 'Mouse', image: './Jerry.png' }
+        { name: 'Tom', age: 12, category: 'Cat', image: './tests/Tom.jpg' },
+        { name: 'Jerry', age: 13, category: 'Mouse', image: './tests/Jerry.png' }
       ]);
     }
 
     function importClick() {
+      importOutput.innerText = '';
+      importError.innerText = '';
       importExcel(excelInfo).then(data => {
         importOutput.innerText = JSON.stringify(data, null);
       }).catch(err => {
-        console.log(err);
+        importError.innerText = err?.message ?? String(err);
       });
     }
 
