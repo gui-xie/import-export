@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import Export Manual WASM Example</title>
+</head>
+<button id="btnImport">Import</button>
+<button id="btnExport">Export</button>
+<button id="btnDownloadTemplate">Download Template</button>
+<div id="statusOutput"></div>
+<div id="importOutput"></div>
+<div id="importError"></div>
+
+<body>
+  <script type="module">
+    import {
+      bundledWasmSource,
+      downloadExcelTemplate,
+      exportExcel,
+      importExcel,
+      initializeWasm
+    } from '../dist/index.js';
+
+    const excelInfo = {
+      name: 'TomAndJerry',
+      sheetName: 'sheet1',
+      columns: [
+        { key: 'name', name: 'Name', dataType: 'text', width: 20, note: 'required' },
+        { key: 'age', name: 'Age', dataType: 'number', width: 10 },
+        { key: 'birthday', name: 'Birthday', dataType: 'date', width: 18 },
+        { key: 'category', name: 'Category', dataType: 'text', allowedValues: ['Cat', 'Mouse'] },
+        { key: 'image', name: 'Image', dataType: 'image', width: 10 }
+      ],
+      author: 'senlinz',
+      createTime: '2024-11-01T09:00:00',
+      imageFetcher: fetchImage
+    };
+
+    initializeWasm({ source: bundledWasmSource });
+    statusOutput.innerText = 'Manual WASM initialization completed.';
+    document.body.dataset.ready = 'true';
+
+    btnImport.addEventListener('click', importClick);
+    btnExport.addEventListener('click', exportClick);
+    btnDownloadTemplate.addEventListener('click', downloadTemplateClick);
+
+    function exportClick() {
+      exportExcel(excelInfo, [
+        { name: 'Tom', age: 12, birthday: '2024-11-01 00:00:00', category: 'Cat', image: '../tests/Tom.jpg' },
+        { name: 'Jerry', age: null, birthday: null, category: 'Mouse', image: '../tests/Jerry.png' }
+      ]).catch(showError);
+    }
+
+    function importClick() {
+      importOutput.innerText = '';
+      importError.innerText = '';
+      importExcel(excelInfo).then(data => {
+        importOutput.innerText = JSON.stringify(data, null);
+      }).catch(showError);
+    }
+
+    function downloadTemplateClick() {
+      downloadExcelTemplate(excelInfo).catch(showError);
+    }
+
+    function showError(err) {
+      importError.innerText = err?.message ?? String(err);
+    }
+
+    function fetchImage(url) {
+      return fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+          }
+          return response.arrayBuffer();
+        })
+        .then(buffer => new Uint8Array(buffer));
+    }
+  </script>
+</body>
+
+</html>

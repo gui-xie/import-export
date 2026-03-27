@@ -46,6 +46,31 @@ await exportExcel(definition, [
 const rows = await importExcel(definition);
 ```
 
+## 选择使用模式
+
+### 默认模式（推荐）
+
+- 继续直接使用现有顶层 API，无需额外设置。
+- 包会在需要时自动初始化内置 WASM 运行时。
+
+### 高级模式
+
+- 在使用同一套顶层 API 之前先调用 `initializeWasm(...)`。
+- 适用于希望自己控制 WASM 的 source / bytes / module 加载方式的场景，例如自定义托管、bundler 控制或性能敏感初始化。
+
+```ts
+import { initializeWasm, exportExcel } from '@senlinz/import-export';
+
+const wasmBytes = new Uint8Array(
+  await (await fetch('/assets/imexport_wasm_bg.wasm')).arrayBuffer()
+);
+
+initializeWasm({ bytes: wasmBytes });
+await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:00:00', category: 'Cat' }]);
+```
+
+手动初始化支持 `source`、`bytes`、`module` 三种输入，并会在输入无效时返回明确的错误。
+
 ## 稳定支持的 Schema
 
 - `columns[].dataType` 仅支持 `text`、`number`、`date`、`image`。
@@ -58,6 +83,7 @@ const rows = await importExcel(definition);
 - 主要面向浏览器 ESM 运行时。
 - 依赖的浏览器 API：`Blob`、`FileReader`、`URL.createObjectURL`、`atob`。
 - 当运行时提供兼容的浏览器全局对象时，也可以在非 DOM 环境下使用 `fromExcel`、`toExcel`、`generateExcelTemplate`。
+- `initializeWasm` 允许高级用户提供自己的 WASM source、bytes 或编译后的 module。
 
 ## 已知限制
 
@@ -69,6 +95,7 @@ const rows = await importExcel(definition);
 ## 示例
 
 - [基础浏览器流程](./packages/core/examples/basic-browser.html)
+- [手动初始化 WASM 的浏览器流程](./packages/core/examples/manual-wasm-browser.html)
 - [分组导出流程](./packages/core/examples/grouped-export.html)
 - [直接使用 WASM 的浏览器流程](./packages/wasm/examples/direct-browser.html)
 
