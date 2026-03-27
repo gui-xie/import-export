@@ -48,7 +48,7 @@ const rows = await importExcel(definition);
 
 ## Stable supported schema
 
-- `columns[].dataType` supports `text`, `number`, `date`, and `image`; use `text` directly because `string` is not supported.
+- `columns[].dataType` supports `text`, `number`, `date`, and `image`.
 - Parent headers must be declared before child headers.
 - `dataGroup` and `dataGroupParent` are the supported advanced nesting features for grouped export rows.
 - Image export requires `imageFetcher`.

@@ -48,7 +48,7 @@ const rows = await importExcel(definition);
 
 ## 稳定支持的 Schema
 
-- `columns[].dataType` 仅支持 `text`、`number`、`date`、`image`；请直接使用 `text`，不再支持 `string`。
+- `columns[].dataType` 仅支持 `text`、`number`、`date`、`image`。
 - 父级表头必须先于子级表头声明。
 - `dataGroup` 和 `dataGroupParent` 是当前稳定支持的分组导出能力。
 - 图片导出需要提供 `imageFetcher`。

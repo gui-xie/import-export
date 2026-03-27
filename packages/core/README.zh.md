@@ -42,7 +42,7 @@ pnpm add @senlinz/import-export
 
 ### 支持的 `dataType`
 
-- `text`：默认文本类型；旧的 `string` 别名不再支持
+- `text`：默认文本类型
 - `number`：有限数值
 - `date`：导出时支持 `Date` 实例或日期字符串
 - `image`：通过 `imageFetcher` 解析图片 URL 或标识
