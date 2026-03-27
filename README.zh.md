@@ -101,7 +101,7 @@ await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:
 
 ## 发布准备
 
-- `0.1.0` 已准备为稳定版本发布，发布到 npm 时应使用 `latest` 标签。
+- `0.1.0-beta.24` 当前为 beta 发布线，发布到 npm 时应使用 `beta` 标签。
 - 发布前请先验证打包产物：
 
 ```bash

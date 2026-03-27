@@ -1,8 +1,8 @@
 # @senlinz/import-export
 
-## 0.1.0
+## 0.1.0-beta.24
 
-First stable release.
+Continue the beta release line before the first stable publish.
 
 ### Highlights
 
@@ -11,7 +11,7 @@ First stable release.
 - Added stronger schema validation and clearer runtime errors for malformed definitions, grouped data, numbers, and dates.
 - Expanded supported features around grouped export data, image export, notes, header sizing, and worksheet fallback on import.
 - Refreshed English and Chinese package documentation and example coverage.
-- Updated the bundled WASM dependency to `@senlinz/import-export-wasm@0.1.0`.
+- Updated the bundled WASM dependency to `@senlinz/import-export-wasm@0.1.0-beta.24`.
 
 ## 0.1.0-beta.23
 
