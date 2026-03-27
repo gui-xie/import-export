@@ -61,7 +61,7 @@ function isBufferSource(value: unknown): value is BufferSource {
 }
 
 function getByteLength(value: BufferSource): number {
-  return value instanceof ArrayBuffer ? value.byteLength : value.byteLength;
+  return value.byteLength;
 }
 
 function getProvidedInputKind(options: InitializeWasmOptions): WasmInitializationInputKind[] {
