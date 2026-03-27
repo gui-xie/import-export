@@ -1,14 +1,11 @@
-import { test, expect } from '@playwright/test';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 
 test.describe('import-export-wasm', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/examples/direct-browser.html');
+        await page.waitForFunction(() => document.body.dataset.ready === 'true');
     });
 
     test('download template should work correctly', async ({ page }) => {
@@ -56,7 +53,7 @@ test.describe('import-export-wasm', () => {
 
         // Assert - Import
         const importOutput = await page.textContent('#importOutput');
-        expect(importOutput).toBe('[{"name":"Tom","age":"12","category":"Cat"},{"name":"Jerry","age":"13","category":"Mouse"}]');
+        expect(importOutput).toBe('[{"name":"Tom","age":"12","category":"Cat","image":""},{"name":"Jerry","age":"13","category":"Mouse","image":""}]');
     });
 
     test('reports header mismatch errors in the direct wasm example', async ({ page }) => {

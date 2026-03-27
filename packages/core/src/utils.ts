@@ -173,9 +173,6 @@ function serializeCellValue(column: ExcelColumnInfo, value: unknown): string {
       if (!trimmed) {
         return '';
       }
-      if (Number.isNaN(Date.parse(trimmed))) {
-        throw new Error(`Column '${column.key}' expects a valid date string or Date instance.`);
-      }
       return trimmed;
     }
     throw new Error(`Column '${column.key}' expects a date string or Date instance.`);

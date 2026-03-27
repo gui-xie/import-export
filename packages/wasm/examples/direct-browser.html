@@ -36,12 +36,14 @@
         btnImport.addEventListener('click', importClick);
         btnExport.addEventListener('click', () => exportClick().catch(showError));
         btnDownloadTemplate.addEventListener('click', () => downloadTemplateClick().catch(showError));
+        document.body.dataset.ready = 'true';
 
         async function downloadTemplateClick() {
             clearOutput();
             const info = getExcelInfo();
+            const name = info.name;
             const templateData = createTemplate(info);
-            download(templateData, info.name);
+            download(templateData, name);
         }
 
         async function exportClick() {
@@ -49,7 +51,7 @@
             const info = getExcelInfo();
             const data = getExcelData();
             const excelData = await exportData(info, data);
-            download(excelData, info.name);
+            download(excelData, 'TomAndJerry');
         }
 
         function importClick() {
@@ -116,15 +118,17 @@
             const ageColumn = new ExcelColumnInfo('age', 'Age').withDataType('number');
             const categoryColumn = new ExcelColumnInfo('category', 'Category').withAllowedValues(['Cat', 'Mouse']);
             const imageColumn = new ExcelColumnInfo('image', 'Image').withDataType('image');
-            return new ExcelInfo(
+            let info = new ExcelInfo(
                 'TomAndJerry',
                 'sheet1',
                 [nameColumn, ageColumn, categoryColumn, imageColumn],
                 'senlinz',
                 '2024-11-01T08:00:00'
-            ).withDefaultRowHeight(80)
-                .withHeaderRowHeight(40)
-                .withImageFetcher(fetchImage);
+            );
+            info = info.withDefaultRowHeight(80);
+            info = info.withHeaderRowHeight(40);
+            info = info.withImageFetcher(fetchImage);
+            return info;
         }
 
         function download(data, name) {

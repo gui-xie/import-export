@@ -52,15 +52,15 @@ test.describe('import-export core', () => {
     await expect(page.locator('#errorOutput')).toContainText("Invalid dataType 'unsupported'");
 
     const duplicateKeyError = await page.evaluate(async () => {
-      const { generateExcelTemplate } = await import('../dist/index.js');
+      const { toExcel } = await import('../dist/index.js');
       try {
-        await generateExcelTemplate({
+        await toExcel({
           name: 'DuplicateKeys',
           columns: [
             { key: 'name', name: 'Name', dataType: 'text' },
             { key: 'name', name: 'Alias', dataType: 'text' }
           ]
-        });
+        }, [{ name: 'Tom' }]);
         return '';
       } catch (error) {
         return error instanceof Error ? error.message : String(error);
