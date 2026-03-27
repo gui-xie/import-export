@@ -29,6 +29,6 @@
 
 ## Release preparation
 - [x] Review prerelease state in `/.changeset/pre.json`
-- [ ] Decide whether the next release should be stable or one final prerelease
-- [ ] Prepare release notes and verify installability from packed tarballs
+- [x] Decide whether the next release should be stable or one final prerelease
+- [x] Prepare release notes and verify installability from packed tarballs
 - [ ] Publish the coordinated package release when blockers are complete

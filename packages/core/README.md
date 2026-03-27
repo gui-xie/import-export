@@ -42,7 +42,7 @@ pnpm add @senlinz/import-export
 
 ### Supported `dataType` values
 
-- `text` - default string/text cells
+- `text` - default text cells; the legacy `string` alias is not supported
 - `number` - finite numeric values
 - `date` - `Date` instances or parseable date strings on export
 - `image` - image URLs or identifiers resolved through `imageFetcher`

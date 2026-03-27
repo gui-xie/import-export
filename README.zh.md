@@ -48,7 +48,7 @@ const rows = await importExcel(definition);
 
 ## 稳定支持的 Schema
 
-- `columns[].dataType` 仅支持 `text`、`number`、`date`、`image`。
+- `columns[].dataType` 仅支持 `text`、`number`、`date`、`image`；请直接使用 `text`，不再支持 `string`。
 - 父级表头必须先于子级表头声明。
 - `dataGroup` 和 `dataGroupParent` 是当前稳定支持的分组导出能力。
 - 图片导出需要提供 `imageFetcher`。
@@ -71,6 +71,19 @@ const rows = await importExcel(definition);
 - [基础浏览器流程](./packages/core/examples/basic-browser.html)
 - [分组导出流程](./packages/core/examples/grouped-export.html)
 - [直接使用 WASM 的浏览器流程](./packages/wasm/examples/direct-browser.html)
+
+## 发布准备
+
+- `0.1.0` 已作为稳定版本发布线准备完成，发布到 npm 时应使用 `latest` 标签。
+- 发布前请先验证打包产物：
+
+```bash
+corepack pnpm --filter @senlinz/import-export-wasm build
+corepack pnpm --filter @senlinz/import-export build
+mkdir -p /tmp/import-export-release
+corepack pnpm --dir packages/wasm pack --pack-destination /tmp/import-export-release
+corepack pnpm --dir packages/core pack --pack-destination /tmp/import-export-release
+```
 
 ## 开发
 

@@ -48,7 +48,7 @@ const rows = await importExcel(definition);
 
 ## Stable supported schema
 
-- `columns[].dataType` supports `text`, `number`, `date`, and `image`.
+- `columns[].dataType` supports `text`, `number`, `date`, and `image`; use `text` directly because `string` is not supported.
 - Parent headers must be declared before child headers.
 - `dataGroup` and `dataGroupParent` are the supported advanced nesting features for grouped export rows.
 - Image export requires `imageFetcher`.
@@ -71,6 +71,19 @@ const rows = await importExcel(definition);
 - [Basic browser flow](./packages/core/examples/basic-browser.html)
 - [Grouped export flow](./packages/core/examples/grouped-export.html)
 - [Direct WASM browser flow](./packages/wasm/examples/direct-browser.html)
+
+## Release preparation
+
+- `0.1.0` is the prepared stable release line and publishes to npm `latest`.
+- Verify packed artifacts before publishing:
+
+```bash
+corepack pnpm --filter @senlinz/import-export-wasm build
+corepack pnpm --filter @senlinz/import-export build
+mkdir -p /tmp/import-export-release
+corepack pnpm --dir packages/wasm pack --pack-destination /tmp/import-export-release
+corepack pnpm --dir packages/core pack --pack-destination /tmp/import-export-release
+```
 
 ## Development
 
