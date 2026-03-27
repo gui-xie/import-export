@@ -40,7 +40,7 @@ jobs:
         run: corepack enable
 
       - name: Update npm
-        run: npm install --global npm@latest
+        run: npm install --global npm@11.5.1
 
       - name: Install dependencies
         run: corepack pnpm install --frozen-lockfile
