@@ -1,0 +1,74 @@
+name: Publish packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type "publish" to publish both npm packages
+        required: true
+        type: string
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: ${{ github.event.inputs.confirm == 'publish' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Update npm
+        run: npm install --global npm@latest
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+
+      - name: Build wasm package
+        run: corepack pnpm --filter @senlinz/import-export-wasm build
+
+      - name: Build core package
+        run: corepack pnpm --filter @senlinz/import-export build
+
+      - name: Pack npm packages
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/npm-packages"
+          corepack pnpm --filter @senlinz/import-export-wasm pack --pack-destination "$RUNNER_TEMP/npm-packages"
+          corepack pnpm --filter @senlinz/import-export pack --pack-destination "$RUNNER_TEMP/npm-packages"
+          wasm_tarball="$(find "$RUNNER_TEMP/npm-packages" -maxdepth 1 -name 'senlinz-import-export-wasm-*.tgz' -print -quit)"
+          core_tarball="$(find "$RUNNER_TEMP/npm-packages" -maxdepth 1 -name 'senlinz-import-export-*.tgz' ! -name 'senlinz-import-export-wasm-*.tgz' -print -quit)"
+          test -n "$wasm_tarball"
+          test -n "$core_tarball"
+          echo "WASM_TARBALL=$wasm_tarball" >> "$GITHUB_ENV"
+          echo "CORE_TARBALL=$core_tarball" >> "$GITHUB_ENV"
+
+      - name: Publish wasm package
+        run: npm publish "$WASM_TARBALL" --provenance --access public
+
+      - name: Publish core package
+        run: npm publish "$CORE_TARBALL" --provenance --access public
