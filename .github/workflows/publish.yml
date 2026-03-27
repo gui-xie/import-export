@@ -70,8 +70,27 @@ jobs:
           echo "WASM_TARBALL=$wasm_tarball" >> "$GITHUB_ENV"
           echo "CORE_TARBALL=$core_tarball" >> "$GITHUB_ENV"
 
+      - name: Determine npm dist-tags
+        run: |
+          set -euo pipefail
+          get_dist_tag() {
+            node -e "const version = require(process.argv[1]).version; const match = version.match(/-([0-9A-Za-z-]+)(?:\\.|$)/); if (match) process.stdout.write(match[1]);" "$1"
+          }
+          echo "WASM_TAG=$(get_dist_tag "$GITHUB_WORKSPACE/packages/wasm/package.json")" >> "$GITHUB_ENV"
+          echo "CORE_TAG=$(get_dist_tag "$GITHUB_WORKSPACE/packages/core/package.json")" >> "$GITHUB_ENV"
+
       - name: Publish wasm package
-        run: npm publish "$WASM_TARBALL" --provenance --access public
+        run: |
+          if [ -n "${WASM_TAG:-}" ]; then
+            npm publish "$WASM_TARBALL" --provenance --access public --tag "$WASM_TAG"
+          else
+            npm publish "$WASM_TARBALL" --provenance --access public
+          fi
 
       - name: Publish core package
-        run: npm publish "$CORE_TARBALL" --provenance --access public
+        run: |
+          if [ -n "${CORE_TAG:-}" ]; then
+            npm publish "$CORE_TARBALL" --provenance --access public --tag "$CORE_TAG"
+          else
+            npm publish "$CORE_TARBALL" --provenance --access public
+          fi
