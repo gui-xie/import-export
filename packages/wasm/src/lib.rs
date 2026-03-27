@@ -94,58 +94,45 @@ fn create_template_workbook(
             worksheet.set_row_height(info.dy, title_height)?;
         }
     }
-    column_positions
-        .iter()
-        .enumerate()
-        .for_each(|(_, position)| {
-            let column = info.columns.iter().find(|c| c.key == position.key).unwrap();
-            let f = column.format.as_ref().map(|f| get_cell_format(f));
-            if position.is_single_cell() {
-                worksheet
-                    .write_string(position.y1, position.x1, &column.name)
-                    .unwrap();
-                worksheet
-                    .set_cell_format(
-                        position.y1,
-                        position.x1,
-                        f.as_ref().unwrap_or(&DEFAULT_HEADER_FORMAT),
-                    )
-                    .unwrap();
-            } else {
-                worksheet
-                    .merge_range(
-                        position.y1,
-                        position.x1,
-                        position.y2,
-                        position.x2,
-                        &column.name,
-                        f.as_ref().unwrap_or(&DEFAULT_HEADER_FORMAT),
-                    )
-                    .unwrap();
-            }
-            if let Some(note) = column.note.as_ref() {
-                let note = Note::new(note.clone()).set_author(info.author.clone());
-                worksheet
-                    .insert_note(position.y1, position.x1, &note)
-                    .unwrap();
-            }
-            if position.is_leaf {
-                worksheet
-                    .set_column_width(position.x1, column.width)
-                    .unwrap();
-            }
-            if let Some(header_row_height) = info.header_row_height {
-                worksheet
-                    .set_row_height(position.y1, header_row_height)
-                    .unwrap();
-            }
-        });
+    for position in &column_positions {
+        let column = find_column(info, &position.key)?;
+        let f = column.format.as_ref().map(get_cell_format);
+        if position.is_single_cell() {
+            worksheet.write_string(position.y1, position.x1, &column.name)?;
+            worksheet.set_cell_format(
+                position.y1,
+                position.x1,
+                f.as_ref().unwrap_or(&DEFAULT_HEADER_FORMAT),
+            )?;
+        } else {
+            worksheet.merge_range(
+                position.y1,
+                position.x1,
+                position.y2,
+                position.x2,
+                &column.name,
+                f.as_ref().unwrap_or(&DEFAULT_HEADER_FORMAT),
+            )?;
+        }
+        if let Some(note) = column.note.as_ref() {
+            let note = Note::new(note.clone()).set_author(info.author.clone());
+            worksheet.insert_note(position.y1, position.x1, &note)?;
+        }
+        if position.is_leaf {
+            worksheet.set_column_width(position.x1, column.width)?;
+        }
+        if let Some(header_row_height) = info.header_row_height {
+            worksheet.set_row_height(position.y1, header_row_height)?;
+        }
+    }
 
     if info.is_header_freeze {
-        worksheet.set_freeze_panes(
-            column_positions.iter().max_by_key(|p| p.y2).unwrap().y2 + 1,
-            0,
-        )?;
+        let freeze_row = column_positions
+            .iter()
+            .map(|position| position.y2 + 1)
+            .max()
+            .unwrap_or(info.dy + u32::from(info.title.is_some()));
+        worksheet.set_freeze_panes(freeze_row, 0)?;
     }
 
     worksheet.set_name(info.sheet_name.as_str())?;
@@ -312,13 +299,12 @@ async fn export_data_buffer(
     data: &ExcelData,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let (mut workbook, column_positions) = create_template_workbook(&info)?;
-    let column_positions_map: HashMap<String, (&ExcelColumnPosition, &ExcelColumnInfo)> =
-        HashMap::from_iter(column_positions.iter().map(|c| {
-            (
-                c.key.clone(),
-                (c, info.columns.iter().find(|ci| ci.key == c.key).unwrap()),
-            )
-        }));
+    let mut column_positions_map: HashMap<String, (&ExcelColumnPosition, &ExcelColumnInfo)> =
+        HashMap::new();
+    for column_position in &column_positions {
+        let column = find_column(info, &column_position.key)?;
+        column_positions_map.insert(column_position.key.clone(), (column_position, column));
+    }
 
     let y_min = column_positions.iter().map(|p| p.y2).max().unwrap_or(0) + 1;
     let mut y = y_min;
@@ -389,15 +375,12 @@ async fn export_data_buffer(
         );
     }
 
-    column_positions_map
-        .iter()
-        .enumerate()
-        .for_each(|(_, (_, (pos, info)))| {
-            if info.allowed_values.len() == 0 || !pos.is_leaf {
-                return;
-            }
-            add_data_validation(&mut worksheet, info, pos.x1, y_min, y).unwrap();
-        });
+    for (_, (pos, info)) in &column_positions_map {
+        if info.allowed_values.is_empty() || !pos.is_leaf {
+            continue;
+        }
+        add_data_validation(&mut worksheet, info, pos.x1, y_min, y)?;
+    }
 
     Ok(workbook.save_to_buffer()?)
 }
@@ -653,12 +636,7 @@ fn get_cell_format(value_format: &ExcelCellFormat) -> Format {
 }
 
 fn get_column_value_format(value: &String, column: &ExcelColumnInfo) -> Option<Format> {
-    let f = column.get_value_format(value);
-    if f.is_none() {
-        return None;
-    }
-    let f = f.unwrap();
-    Some(get_cell_format(&f))
+    column.get_value_format(value).map(get_cell_format)
 }
 
 fn get_parent_times(
@@ -668,14 +646,9 @@ fn get_parent_times(
     let mut parent_times: HashMap<String, u16> = HashMap::new();
     for column in leaf_columns.iter() {
         let mut p: &String = &column.parent;
-        while parent_map.contains_key(p) {
-            if parent_times.contains_key(p) {
-                let count = parent_times.get_mut(p).unwrap();
-                *count += 1;
-            } else {
-                parent_times.insert(p.clone(), 1);
-            }
-            p = parent_map.get(p).unwrap();
+        while let Some(parent) = parent_map.get(p) {
+            *parent_times.entry(p.clone()).or_insert(0) += 1;
+            p = parent;
         }
     }
     parent_times
@@ -729,14 +702,27 @@ fn get_levels<'a>(
         let mut parent = &column.parent;
         parents.push((&column.key, 0));
 
-        while parent_map.contains_key(parent) {
+        while let Some(next_parent) = parent_map.get(parent) {
             for (_, count) in parents.iter_mut() {
                 *count += 1;
             }
             parents.push((parent, 0));
-            parent = &parent_map[parent];
+            parent = next_parent;
         }
         result.extend(parents);
     }
     result
+}
+
+fn find_column<'a>(
+    info: &'a ExcelInfo,
+    key: &str,
+) -> Result<&'a ExcelColumnInfo, Box<dyn std::error::Error>> {
+    info.columns.iter().find(|column| column.key == key).ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("Column key '{}' is missing in definition", key),
+        )
+        .into()
+    })
 }

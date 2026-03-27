@@ -204,6 +204,17 @@ mod tests {
         assert_binary_snapshot!("create_pokemon_template_success.xlsx", result);
     }
 
+    #[test]
+    fn create_template_with_no_columns_and_freeze_success() {
+        let info = ExcelInfo::new("Empty", "sheet1", vec![], "senlinz", "2024-11-01T08:00:00")
+            .with_is_header_freeze(true);
+
+        let result = create_template_buffer(&info);
+
+        assert!(result.is_ok());
+        assert!(!result.unwrap().is_empty());
+    }
+
     #[tokio::test]
     async fn export_pokemon_success() {
         // Arrange
