@@ -93,26 +93,76 @@ impl ExcelInfo {
         leaf_columns
     }
 
+    fn is_supported_data_type(data_type: &str) -> bool {
+        ["text", "number", "date", "image"]
+            .iter()
+            .any(|candidate| data_type.eq_ignore_ascii_case(candidate))
+    }
+
     fn check_columns(columns: &Vec<ExcelColumnInfo>) {
-        let mut processed_columns = Vec::new();
+        let mut processed_columns = HashSet::new();
+        let mut processed_groups = HashSet::new();
         for column in columns.iter() {
+            if column.key.trim().is_empty() {
+                panic!("Invalid definition: column keys must be non-empty.");
+            }
+            if column.name.trim().is_empty() {
+                panic!(
+                    "Invalid definition: column '{}' must define a non-empty header name.",
+                    column.key
+                );
+            }
+            if processed_columns.contains(&column.key) {
+                panic!(
+                    "Invalid definition: duplicate column key '{}' found in schema.",
+                    column.key
+                );
+            }
+            if !ExcelInfo::is_supported_data_type(&column.data_type) {
+                panic!(
+                    "Invalid definition: column '{}' uses unsupported dataType '{}'. Supported values are text, number, date, image.",
+                    column.key, column.data_type
+                );
+            }
             if column.has_parent() {
-                let mut flag = false;
-                while let Some(p) = processed_columns.pop() {
-                    if p == column.parent {
-                        flag = true;
-                        processed_columns.push(p);
-                        break;
-                    }
-                }
-                if !flag {
+                if column.parent == column.key {
                     panic!(
-                        "Check Error: Parent column {} not found for column {}",
+                        "Invalid definition: column '{}' cannot reference itself as a parent.",
+                        column.key
+                    );
+                }
+                if !processed_columns.contains(&column.parent) {
+                    panic!(
+                        "Invalid definition: parent column '{}' for '{}' must exist and be declared before the child column.",
                         column.parent, column.key
                     );
                 }
             }
-            processed_columns.push(column.key.clone());
+            if !column.data_group.is_empty() {
+                if processed_groups.contains(&column.data_group) {
+                    panic!(
+                        "Invalid definition: duplicate dataGroup '{}' found in schema.",
+                        column.data_group
+                    );
+                }
+                if !column.data_group_parent.is_empty() && column.data_group == column.data_group_parent
+                {
+                    panic!(
+                        "Invalid definition: column '{}' cannot reference its own dataGroup '{}' as dataGroupParent.",
+                        column.key, column.data_group
+                    );
+                }
+                processed_groups.insert(column.data_group.clone());
+            }
+            if !column.data_group_parent.is_empty()
+                && !processed_groups.contains(&column.data_group_parent)
+            {
+                panic!(
+                    "Invalid definition: dataGroupParent '{}' for column '{}' must exist and be declared before the dependent column.",
+                    column.data_group_parent, column.key
+                );
+            }
+            processed_columns.insert(column.key.clone());
         }
     }
 }

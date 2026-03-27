@@ -7,6 +7,17 @@ mod tests {
     use excel_info::*;
     use excel_row_data::*;
     use insta::{assert_binary_snapshot, assert_snapshot};
+    use std::panic;
+
+    fn panic_message(error: Box<dyn std::any::Any + Send>) -> String {
+        if let Some(message) = error.downcast_ref::<String>() {
+            return message.clone();
+        }
+        if let Some(message) = error.downcast_ref::<&str>() {
+            return message.to_string();
+        }
+        format!("{:?}", error)
+    }
 
     fn create_excel_info() -> ExcelInfo {
         let name = "Pokemon";
@@ -121,6 +132,65 @@ mod tests {
     }
 
     #[test]
+    fn invalid_schema_duplicate_key_panics() {
+        let result = panic::catch_unwind(|| {
+            ExcelInfo::new(
+                "Broken",
+                "sheet1",
+                vec![
+                    ExcelColumnInfo::new("name", "Name"),
+                    ExcelColumnInfo::new("name", "Alias"),
+                ],
+                "senlinz",
+                "2024-11-01T08:00:00",
+            )
+        });
+
+        assert!(result.is_err());
+        let message = panic_message(result.err().unwrap());
+        assert!(message.contains("duplicate column key"));
+    }
+
+    #[test]
+    fn invalid_schema_unknown_group_parent_panics() {
+        let result = panic::catch_unwind(|| {
+            ExcelInfo::new(
+                "Broken",
+                "sheet1",
+                vec![
+                    ExcelColumnInfo::new("moves", "Moves"),
+                    ExcelColumnInfo::new("move_name", "Move")
+                        .with_parent("moves")
+                        .with_data_group_parent("missing_group"),
+                ],
+                "senlinz",
+                "2024-11-01T08:00:00",
+            )
+        });
+
+        assert!(result.is_err());
+        let message = panic_message(result.err().unwrap());
+        assert!(message.contains("dataGroupParent"));
+    }
+
+    #[test]
+    fn invalid_schema_string_data_type_panics() {
+        let result = panic::catch_unwind(|| {
+            ExcelInfo::new(
+                "Broken",
+                "sheet1",
+                vec![ExcelColumnInfo::new("name", "Name").with_data_type("string")],
+                "senlinz",
+                "2024-11-01T08:00:00",
+            )
+        });
+
+        assert!(result.is_err());
+        let message = panic_message(result.err().unwrap());
+        assert!(message.contains("unsupported dataType 'string'"));
+    }
+
+    #[test]
     fn create_pokemon_template_success() {
         // Arrange
         let info = create_excel_info();
@@ -162,6 +232,51 @@ mod tests {
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_binary_snapshot!("export_pokemon_success.xlsx", result);
+    }
+
+    #[tokio::test]
+    async fn export_number_column_with_invalid_value_fails() {
+        let info = ExcelInfo::new(
+            "Pokemon",
+            "FireRed Pokédex",
+            vec![ExcelColumnInfo::new("hp", "HP").with_data_type("number")],
+            "senlinz",
+            "2024-11-01T08:00:00",
+        );
+        let data = ExcelData::new(vec![ExcelRowData::new(vec![ExcelColumnData::new("hp", "abc")])]);
+
+        let result = export_data_buffer(&info, &data).await;
+
+        assert!(result.is_err());
+        assert!(result
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("Invalid number value 'abc'"));
+    }
+
+    #[tokio::test]
+    async fn export_date_column_with_invalid_value_fails() {
+        let info = ExcelInfo::new(
+            "Pokemon",
+            "FireRed Pokédex",
+            vec![ExcelColumnInfo::new("caught_on", "Caught On").with_data_type("date")],
+            "senlinz",
+            "2024-11-01T08:00:00",
+        );
+        let data = ExcelData::new(vec![ExcelRowData::new(vec![ExcelColumnData::new(
+            "caught_on",
+            "not-a-date",
+        )])]);
+
+        let result = export_data_buffer(&info, &data).await;
+
+        assert!(result.is_err());
+        assert!(result
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("Invalid date value 'not-a-date'"));
     }
 
     #[tokio::test]

@@ -1,18 +1,18 @@
 # @senlinz/import-export-wasm
 
-Direct Rust/WebAssembly bindings for importing, exporting, and templating Excel workbooks.
+用于导入、导出和生成 Excel 工作簿的 Rust / WebAssembly 直接绑定。
 
-[中文文档](./README.zh.md)
+[English](./README.md)
 
-## Install
+## 安装
 
 ```bash
 pnpm add @senlinz/import-export-wasm
 ```
 
-## Initialization
+## 初始化
 
-Build the package and load the generated module in the browser:
+先构建包，再在浏览器中加载生成的模块：
 
 ```ts
 import init, {
@@ -29,7 +29,7 @@ import init, {
 await init();
 ```
 
-## Direct WASM usage
+## 直接使用 WASM
 
 ```ts
 const info = new ExcelInfo(
@@ -58,27 +58,27 @@ const workbook = await exportData(info, data);
 const imported = importData(info, workbook);
 ```
 
-## Supported schema rules
+## 支持的 Schema 规则
 
-- Column keys must be unique.
-- Header names must be non-empty.
-- Supported `dataType` values are `text`, `number`, `date`, and `image`.
-- Parent columns must be declared before child columns.
-- `dataGroupParent` values must refer to a previously declared `dataGroup`.
+- 列 key 必须唯一。
+- 表头名称不能为空。
+- `dataType` 仅支持 `text`、`number`、`date`、`image`。
+- 父级列必须先于子级列声明。
+- `dataGroupParent` 必须引用已声明的 `dataGroup`。
 
-## Direct WASM examples
+## 直接 WASM 示例
 
-- [Browser example](./examples/direct-browser.html)
+- [浏览器示例](./examples/direct-browser.html)
 
-The browser example is covered by Playwright tests in [`./tests/wasm.test.js`](./tests/wasm.test.js).
+该浏览器示例由 [`./tests/wasm.test.js`](./tests/wasm.test.js) 中的 Playwright 用例覆盖。
 
-## Runtime notes
+## 运行时说明
 
-- Browser usage requires the generated JS/WASM assets from `wasm-pack build`.
-- Image export requires `.withImageFetcher(...)`.
-- Invalid schemas and invalid exported number/date values now fail with explicit errors.
+- 浏览器使用前需要通过 `wasm-pack build` 生成 JS / WASM 产物。
+- 图片导出需要 `.withImageFetcher(...)`。
+- 非法 schema、非法数字值、非法日期值都会返回明确错误。
 
-## Development
+## 开发
 
 ```bash
 cargo test --lib

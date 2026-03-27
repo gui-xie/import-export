@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Senlinz Import Export Wasm Example</title>
+</head>
+
+<body>
+    <button id="btnImport">Import</button>
+    <button id="btnExport">Export</button>
+    <button id="btnDownloadTemplate">Download Template</button>
+    <div id="importOutput"></div>
+    <div id="errorOutput"></div>
+    <script type="module">
+        import init, {
+            importData,
+            createTemplate,
+            exportData,
+            ExcelInfo,
+            ExcelColumnInfo,
+            ExcelData,
+            ExcelRowData,
+            ExcelColumnData
+        } from '../tests/dist/imexport_wasm.js';
+
+        await init();
+
+        const btnImport = document.getElementById('btnImport');
+        const btnExport = document.getElementById('btnExport');
+        const btnDownloadTemplate = document.getElementById('btnDownloadTemplate');
+        const importOutput = document.getElementById('importOutput');
+        const errorOutput = document.getElementById('errorOutput');
+
+        btnImport.addEventListener('click', importClick);
+        btnExport.addEventListener('click', () => exportClick().catch(showError));
+        btnDownloadTemplate.addEventListener('click', () => downloadTemplateClick().catch(showError));
+        document.body.dataset.ready = 'true';
+
+        async function downloadTemplateClick() {
+            clearOutput();
+            const info = getExcelInfo();
+            const name = info.name;
+            const templateData = createTemplate(info);
+            download(templateData, name);
+        }
+
+        async function exportClick() {
+            clearOutput();
+            const info = getExcelInfo();
+            const data = getExcelData();
+            const excelData = await exportData(info, data);
+            download(excelData, 'TomAndJerry');
+        }
+
+        function importClick() {
+            clearOutput();
+            document.getElementById('fileInput')?.remove();
+            const input = document.createElement('input');
+            input.id = 'fileInput';
+            input.type = 'file';
+            input.accept = '.xlsx';
+            input.onchange = async (e) => {
+                try {
+                    const file = e.target.files[0];
+                    const buffer = await file.arrayBuffer();
+                    const data = new Uint8Array(buffer);
+                    const result = importData(getExcelInfo(), data);
+                    importOutput.innerText = JSON.stringify(toJson(result), null);
+                } catch (error) {
+                    showError(error);
+                }
+            };
+            input.click();
+        }
+
+        function clearOutput() {
+            importOutput.innerText = '';
+            errorOutput.innerText = '';
+        }
+
+        function showError(error) {
+            errorOutput.innerText = error?.message ?? String(error);
+        }
+
+        function toJson(data) {
+            const result = [];
+            for (const row of data.rows) {
+                const rowData = {};
+                for (const column of row.columns) {
+                    rowData[column.key] = column.value;
+                }
+                result.push(rowData);
+            }
+            return result;
+        }
+
+        function getExcelData() {
+            return new ExcelData([
+                new ExcelRowData([
+                    new ExcelColumnData('name', 'Tom'),
+                    new ExcelColumnData('age', '12'),
+                    new ExcelColumnData('category', 'Cat'),
+                    new ExcelColumnData('image', '../tests/Tom.jpg')
+                ]),
+                new ExcelRowData([
+                    new ExcelColumnData('name', 'Jerry'),
+                    new ExcelColumnData('age', '13'),
+                    new ExcelColumnData('category', 'Mouse'),
+                    new ExcelColumnData('image', '../tests/Jerry.png')
+                ])
+            ]);
+        }
+
+        function getExcelInfo() {
+            const nameColumn = new ExcelColumnInfo('name', 'Name').withNote('Required');
+            const ageColumn = new ExcelColumnInfo('age', 'Age').withDataType('number');
+            const categoryColumn = new ExcelColumnInfo('category', 'Category').withAllowedValues(['Cat', 'Mouse']);
+            const imageColumn = new ExcelColumnInfo('image', 'Image').withDataType('image');
+            let info = new ExcelInfo(
+                'TomAndJerry',
+                'sheet1',
+                [nameColumn, ageColumn, categoryColumn, imageColumn],
+                'senlinz',
+                '2024-11-01T08:00:00'
+            );
+            info = info.withDefaultRowHeight(80);
+            info = info.withHeaderRowHeight(40);
+            info = info.withImageFetcher(fetchImage);
+            return info;
+        }
+
+        function download(data, name) {
+            const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            document.getElementById('downloadTemplate')?.remove();
+            const anchor = document.createElement('a');
+            anchor.id = 'downloadTemplate';
+            anchor.href = url;
+            anchor.download = `${name}.xlsx`;
+            anchor.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function fetchImage(url) {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+            }
+            return new Uint8Array(await response.arrayBuffer());
+        }
+    </script>
+</body>
+
+</html>
