@@ -21,6 +21,7 @@ import {
 
 let wasmInitialized = false;
 const SUPPORTED_DATA_TYPES = ['text', 'number', 'date', 'image'] as const;
+const DOWNLOAD_URL_REVOKE_DELAY_MS = 200;
 type NormalizedDataType = typeof SUPPORTED_DATA_TYPES[number];
 type NormalizedExcelColumnDefinition = Omit<ExcelColumnDefinition, 'dataType'> & {
   dataType?: NormalizedDataType;
@@ -299,7 +300,7 @@ function download(
   const objectUrl = URL.createObjectURL(blob);
   linkInput.href = objectUrl;
   linkInput.click();
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+  setTimeout(() => URL.revokeObjectURL(objectUrl), DOWNLOAD_URL_REVOKE_DELAY_MS);
 }
 
 function mapFormat(vf: ExcelCellFormatDefinition) {
