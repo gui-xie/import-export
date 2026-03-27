@@ -2,6 +2,8 @@
 
 High-level browser API for Excel template generation, export, and import.
 
+[中文文档](./README.zh.md)
+
 ## Install
 
 ```bash
@@ -44,7 +46,6 @@ pnpm add @senlinz/import-export
 - `number` - finite numeric values
 - `date` - `Date` instances or parseable date strings on export
 - `image` - image URLs or identifiers resolved through `imageFetcher`
-- `string` - supported legacy alias for `text`
 
 ## Import/export flow
 

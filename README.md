@@ -2,6 +2,8 @@
 
 Browser-first Excel import/export packages backed by Rust and WebAssembly.
 
+[中文文档](./README.zh.md)
+
 ## Packages
 
 - [`@senlinz/import-export`](./packages/core/README.md): the high-level browser API for template generation, import, and export.
@@ -47,7 +49,6 @@ const rows = await importExcel(definition);
 ## Stable supported schema
 
 - `columns[].dataType` supports `text`, `number`, `date`, and `image`.
-- `string` remains accepted as a legacy alias for `text`.
 - Parent headers must be declared before child headers.
 - `dataGroup` and `dataGroupParent` are the supported advanced nesting features for grouped export rows.
 - Image export requires `imageFetcher`.

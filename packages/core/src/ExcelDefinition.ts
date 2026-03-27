@@ -1,9 +1,7 @@
 /**
  * Stable scalar cell types supported by the public API.
- *
- * `string` remains accepted as a backwards-compatible alias for `text`.
  */
-type ExcelColumnDataType = "text" | "string" | "number" | "date" | "image";
+type ExcelColumnDataType = "text" | "number" | "date" | "image";
 
 /**
  * Runtime support:
@@ -53,8 +51,7 @@ interface ExcelColumnDefinition {
     note?: string,
     /**
      * Supported values:
-     * - `text` (preferred)
-     * - `string` (legacy alias for `text`)
+     * - `text`
      * - `number`
      * - `date`
      * - `image`

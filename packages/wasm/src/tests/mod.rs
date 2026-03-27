@@ -174,6 +174,23 @@ mod tests {
     }
 
     #[test]
+    fn invalid_schema_string_data_type_panics() {
+        let result = panic::catch_unwind(|| {
+            ExcelInfo::new(
+                "Broken",
+                "sheet1",
+                vec![ExcelColumnInfo::new("name", "Name").with_data_type("string")],
+                "senlinz",
+                "2024-11-01T08:00:00",
+            )
+        });
+
+        assert!(result.is_err());
+        let message = panic_message(result.err().unwrap());
+        assert!(message.contains("unsupported dataType 'string'"));
+    }
+
+    #[test]
     fn create_pokemon_template_success() {
         // Arrange
         let info = create_excel_info();

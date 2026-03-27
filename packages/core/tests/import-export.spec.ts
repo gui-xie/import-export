@@ -68,6 +68,23 @@ test.describe('import-export core', () => {
     });
 
     expect(duplicateKeyError).toContain("Duplicate column key 'name'");
+
+    const stringAliasError = await page.evaluate(async () => {
+      const { toExcel } = await import('../dist/index.js');
+      try {
+        await toExcel({
+          name: 'StringAlias',
+          columns: [
+            { key: 'name', name: 'Name', dataType: 'string' }
+          ]
+        }, [{ name: 'Tom' }]);
+        return '';
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
+    });
+
+    expect(stringAliasError).toContain("Invalid dataType 'string'");
   });
 
   test('exports the grouped example without browser-side errors', async ({ page }) => {

@@ -94,7 +94,7 @@ impl ExcelInfo {
     }
 
     fn is_supported_data_type(data_type: &str) -> bool {
-        ["text", "string", "number", "date", "image"]
+        ["text", "number", "date", "image"]
             .iter()
             .any(|candidate| data_type.eq_ignore_ascii_case(candidate))
     }
@@ -120,7 +120,7 @@ impl ExcelInfo {
             }
             if !ExcelInfo::is_supported_data_type(&column.data_type) {
                 panic!(
-                    "Invalid definition: column '{}' uses unsupported dataType '{}'. Supported values are text, string, number, date, image.",
+                    "Invalid definition: column '{}' uses unsupported dataType '{}'. Supported values are text, number, date, image.",
                     column.key, column.data_type
                 );
             }

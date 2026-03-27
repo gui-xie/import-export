@@ -43,7 +43,7 @@ function normalizeDataType(dataType: ExcelColumnDataType | undefined, columnKey:
     throw new Error(`Invalid dataType '${String(rawDataType)}' for column '${columnKey}'. dataType values must be strings.`);
   }
   const normalized = rawDataType.trim().toLowerCase();
-  const canonical = normalized === 'string' ? 'text' : normalized;
+  const canonical = normalized;
   if (!SUPPORTED_DATA_TYPES.includes(canonical as NormalizedDataType)) {
     throw new Error(
       `Invalid dataType '${dataType}' for column '${columnKey}'. Supported values are: ${SUPPORTED_DATA_TYPES.join(', ')}.`
