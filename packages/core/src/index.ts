@@ -19,17 +19,17 @@ function getUtils() {
         fromExcel,
         toExcel,
         generateExcelTemplate,
-    }
+    };
 }
 
-function _importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
+function _importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
     initializeWasm();
-    return importExcel(defintion);
+    return importExcel(definition);
 }
 
-function _exportExcel<T>(defintion: ExcelDefinition, data: T[]): Promise<void> {
+function _exportExcel<T>(definition: ExcelDefinition, data: T[]): Promise<void> {
     initializeWasm();
-    return exportExcel(defintion, data);
+    return exportExcel(definition, data);
 }
 
 function _fromExcel<T>(definition: ExcelDefinition, buffer: Uint8Array): Promise<T[]> {
@@ -42,9 +42,9 @@ function _toExcel<T>(definition: ExcelDefinition, data: T[]): Promise<Uint8Array
     return toExcel(definition, data);
 }
 
-function _downloadExcelTemplate(defintion: ExcelDefinition): Promise<void> {
+function _downloadExcelTemplate(definition: ExcelDefinition): Promise<void> {
     initializeWasm();
-    return downloadExcelTemplate(defintion);
+    return downloadExcelTemplate(definition);
 }
 
 export {
