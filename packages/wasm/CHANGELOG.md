@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 0.1.0-beta.23
+
+### Patch Changes
+
+- update to beta.23
+
 ## 0.1.0-beta.22
 
 ### Patch Changes
