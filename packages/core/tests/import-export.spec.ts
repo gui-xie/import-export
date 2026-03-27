@@ -39,7 +39,7 @@ test.describe('import-export core', () => {
     ]);
     await validChooser.setFiles(validFilePath);
     await expect(page.locator('#importOutput')).toHaveText(
-      '[{"name":"Tom","age":"12","category":"Cat"},{"name":"Jerry","age":"13","category":"Mouse"}]'
+      '[{"name":"Tom","age":12,"category":"Cat","image":""},{"name":"Jerry","age":13,"category":"Mouse","image":""}]'
     );
     await expect(page.locator('#importError')).toHaveText('');
   });
