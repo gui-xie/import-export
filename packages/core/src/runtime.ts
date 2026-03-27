@@ -165,7 +165,7 @@ function initializeWasm(options?: InitializeWasmOptions) {
   }
 
   throw new Error(
-    `The Excel WASM runtime is already initialized with custom ${runtimeState.inputKind} input and cannot be reinitialized with different ${normalized.inputKind} input in the same page/context.`
+    `The Excel WASM runtime is already initialized with custom ${runtimeState.inputKind} input and cannot be reinitialized with different ${normalized.inputKind} input in the same page/context. Refresh the page or create a new context to initialize with different WASM input.`
   );
 }
 

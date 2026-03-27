@@ -161,6 +161,7 @@ test.describe('import-export core', () => {
         bundledWasmSourceType: typeof mod.bundledWasmSource,
         exportPresence: exportNames.map(name => [name, typeof mod[name as keyof typeof mod] !== 'undefined']),
         invalidSourceError,
+        templateHeader: Array.from(template.slice(0, 4)),
         templateLength: template.length,
       };
     });
@@ -177,6 +178,7 @@ test.describe('import-export core', () => {
       ['bundledWasmSource', true]
     ]);
     expect(result.invalidSourceError).toContain('Invalid WASM source provided to initializeWasm({ source })');
+    expect(result.templateHeader).toEqual([80, 75, 3, 4]);
     expect(result.templateLength).toBeGreaterThan(0);
   });
 });
