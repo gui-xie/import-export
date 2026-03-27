@@ -74,7 +74,7 @@ const rows = await importExcel(definition);
 
 ## 发布准备
 
-- `0.1.0` 已作为稳定版本发布线准备完成，发布到 npm 时应使用 `latest` 标签。
+- `0.1.0` 已准备为稳定版本发布，发布到 npm 时应使用 `latest` 标签。
 - 发布前请先验证打包产物：
 
 ```bash
