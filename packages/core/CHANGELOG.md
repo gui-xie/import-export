@@ -1,5 +1,13 @@
 # @senlinz/import-export
 
+## 0.1.0-beta.22
+
+### Patch Changes
+
+- Fall back to the first worksheet during import when the configured sheet name is missing.
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.0-beta.22
+
 ## 0.1.0-beta.21
 
 ### Patch Changes
