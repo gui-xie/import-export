@@ -10,6 +10,38 @@ High-level browser API for Excel template generation, export, and import.
 pnpm add @senlinz/import-export
 ```
 
+## Choose your mode
+
+### Default mode (recommended)
+
+- No setup required.
+- `importExcel`, `exportExcel`, `fromExcel`, `toExcel`, `downloadExcelTemplate`, and `generateExcelTemplate` automatically initialize the bundled WASM runtime.
+- Best for most browser applications.
+
+### Advanced mode
+
+- Call `initializeWasm(...)` yourself before using the Excel APIs.
+- Use this when you want custom WASM hosting, bundler control, or to reuse bytes/modules that you loaded elsewhere.
+- Supported manual inputs: `source`, `bytes`, or `module`.
+- `bundledWasmSource` is also exported for self-contained demos/tests that still want explicit manual initialization.
+
+```ts
+import { initializeWasm, toExcel } from '@senlinz/import-export';
+
+const wasmBytes = new Uint8Array(
+  await (await fetch('/assets/imexport_wasm_bg.wasm')).arrayBuffer()
+);
+
+initializeWasm({ bytes: wasmBytes });
+
+const workbook = await toExcel({
+  name: 'TomAndJerry',
+  columns: [{ key: 'name', name: 'Name', dataType: 'text' }],
+}, [{ name: 'Tom' }]);
+```
+
+If you provide invalid manual input, `initializeWasm(...)` throws a clear error immediately.
+
 ## Supported API
 
 ### Stable definition fields
@@ -108,10 +140,12 @@ These advanced features are supported and considered part of the public API:
 - Browser ESM runtimes are the primary target.
 - `downloadExcelTemplate`, `exportExcel`, and `importExcel` require DOM/browser APIs.
 - `fromExcel`, `toExcel`, and `generateExcelTemplate` can be used in other runtimes when browser-compatible globals are available.
+- `initializeWasm` can be used to pre-initialize the runtime with caller-managed `source`, `bytes`, or `module`.
 
 ## Examples
 
 - [Basic browser example](./examples/basic-browser.html)
+- [Manual WASM browser example](./examples/manual-wasm-browser.html)
 - [Grouped export example](./examples/grouped-export.html)
 - [Definition validation example](./examples/definition-errors.html)
 

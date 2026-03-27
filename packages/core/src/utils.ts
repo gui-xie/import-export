@@ -1,5 +1,4 @@
 import {
-  initSync,
   createTemplate,
   importData,
   exportData,
@@ -10,16 +9,12 @@ import {
   ExcelColumnInfo,
   ExcelCellFormat
 } from '@senlinz/import-export-wasm';
-import imexportWasm from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm';
-import { gunzipSync } from 'fflate';
 import {
   ExcelColumnDefinition,
   ExcelDefinition,
   ExcelCellFormatDefinition,
   ExcelColumnDataType
 } from './ExcelDefinition';
-
-let wasmInitialized = false;
 const SUPPORTED_DATA_TYPES = ['text', 'number', 'date', 'image'] as const;
 const DOWNLOAD_URL_REVOKE_DELAY_MS = 200;
 type NormalizedDataType = typeof SUPPORTED_DATA_TYPES[number];
@@ -38,18 +33,6 @@ type GroupedCellValue = {
   value?: unknown;
   children: ExportRow[];
 };
-
-function decodeEmbeddedWasm(wasmSource: string): Uint8Array {
-  return gunzipSync(Uint8Array.from(atob(wasmSource), char => char.charCodeAt(0)));
-}
-
-function initializeWasm() {
-  if (!wasmInitialized) {
-    const wasm = decodeEmbeddedWasm(imexportWasm);
-    initSync({ module: wasm });
-    wasmInitialized = true;
-  }
-}
 
 function normalizeDataType(dataType: ExcelColumnDataType | undefined, columnKey: string): NormalizedDataType {
   const rawDataType = dataType ?? 'text';
@@ -439,6 +422,5 @@ export {
   _fromExcel as fromExcel,
   _toExcel as toExcel,
   generateExcelTemplate,
-  initializeWasm,
   download
 };

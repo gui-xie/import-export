@@ -46,6 +46,31 @@ await exportExcel(definition, [
 const rows = await importExcel(definition);
 ```
 
+## Choose your mode
+
+### Default mode (recommended)
+
+- Keep using the existing top-level APIs with no setup.
+- The package auto-initializes its bundled WASM runtime when needed.
+
+### Advanced mode
+
+- Call `initializeWasm(...)` before using the same top-level APIs.
+- Use this when you want to load the WASM bytes/module/source yourself for custom hosting, bundler control, or performance-sensitive setups.
+
+```ts
+import { initializeWasm, exportExcel } from '@senlinz/import-export';
+
+const wasmBytes = new Uint8Array(
+  await (await fetch('/assets/imexport_wasm_bg.wasm')).arrayBuffer()
+);
+
+initializeWasm({ bytes: wasmBytes });
+await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:00:00', category: 'Cat' }]);
+```
+
+Manual initialization accepts `source`, `bytes`, or `module` and throws a clear error for invalid input.
+
 ## Stable supported schema
 
 - `columns[].dataType` supports `text`, `number`, `date`, and `image`.
@@ -58,6 +83,7 @@ const rows = await importExcel(definition);
 - Primary target: browser ESM runtimes.
 - Required browser APIs: `Blob`, `FileReader`, `URL.createObjectURL`, and `atob`.
 - `fromExcel`, `toExcel`, and `generateExcelTemplate` can also be used in non-DOM runtimes when those browser-compatible globals are available.
+- `initializeWasm` lets advanced users provide their own WASM source, bytes, or compiled module.
 
 ## Known limitations
 
@@ -69,12 +95,13 @@ const rows = await importExcel(definition);
 ## Examples
 
 - [Basic browser flow](./packages/core/examples/basic-browser.html)
+- [Manual WASM browser flow](./packages/core/examples/manual-wasm-browser.html)
 - [Grouped export flow](./packages/core/examples/grouped-export.html)
 - [Direct WASM browser flow](./packages/wasm/examples/direct-browser.html)
 
 ## Release preparation
 
-- `0.1.0` is the prepared stable release line and publishes to npm `latest`.
+- `0.1.0-beta.24` is the prepared beta release line and should publish to npm with the `beta` tag.
 - Verify packed artifacts before publishing:
 
 ```bash

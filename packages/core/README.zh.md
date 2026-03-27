@@ -10,6 +10,38 @@
 pnpm add @senlinz/import-export
 ```
 
+## 选择使用模式
+
+### 默认模式（推荐）
+
+- 无需额外初始化。
+- `importExcel`、`exportExcel`、`fromExcel`、`toExcel`、`downloadExcelTemplate`、`generateExcelTemplate` 会自动初始化内置 WASM 运行时。
+- 适合绝大多数浏览器场景。
+
+### 高级模式
+
+- 在使用这些 Excel API 之前，先手动调用 `initializeWasm(...)`。
+- 适用于自定义 WASM 托管、需要自己控制 bundler 行为，或希望复用已加载 bytes / module 的场景。
+- 支持的手动输入：`source`、`bytes`、`module`。
+- 同时也导出了 `bundledWasmSource`，方便在自包含 demo / 测试中显式走手动初始化流程。
+
+```ts
+import { initializeWasm, toExcel } from '@senlinz/import-export';
+
+const wasmBytes = new Uint8Array(
+  await (await fetch('/assets/imexport_wasm_bg.wasm')).arrayBuffer()
+);
+
+initializeWasm({ bytes: wasmBytes });
+
+const workbook = await toExcel({
+  name: 'TomAndJerry',
+  columns: [{ key: 'name', name: 'Name', dataType: 'text' }],
+}, [{ name: 'Tom' }]);
+```
+
+如果手动传入的 WASM 输入无效，`initializeWasm(...)` 会立即抛出清晰的错误信息。
+
 ## 支持的 API
 
 ### 稳定的 definition 字段
@@ -108,10 +140,12 @@ const rows = await importExcel(definition);
 - 主要面向浏览器 ESM 运行时。
 - `downloadExcelTemplate`、`exportExcel`、`importExcel` 依赖 DOM / 浏览器 API。
 - 当运行时提供兼容的浏览器全局对象时，也可以使用 `fromExcel`、`toExcel`、`generateExcelTemplate`。
+- `initializeWasm` 可用于使用调用方提供的 `source`、`bytes` 或 `module` 预初始化运行时。
 
 ## 示例
 
 - [基础浏览器示例](./examples/basic-browser.html)
+- [手动初始化 WASM 的浏览器示例](./examples/manual-wasm-browser.html)
 - [分组导出示例](./examples/grouped-export.html)
 - [Definition 校验示例](./examples/definition-errors.html)
 
