@@ -193,32 +193,27 @@ function toDatetimeString(date: Date | string) {
 }
 
 function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
-  return new Promise<T[]>((resolve, _) => {
-    let fileInput = document.querySelector('#senlinzImportExportInput') as HTMLInputElement;
-    if (!fileInput) {
-      document.querySelector('#senlinzImportExportInput')?.remove();
-      fileInput = document.createElement('input');
-      fileInput.id = 'senlinzImportExportInput';
-      fileInput.style.display = 'none';
-      fileInput.type = 'file';
-      fileInput.accept = '.xlsx,.xls,.xlsm,.xlsb,.xla,.xlam,.ods';
-      fileInput.addEventListener('change', fileHandler);
-      document.body.appendChild(fileInput);
-    }
+  return new Promise<T[]>((resolve, reject) => {
+    document.querySelector('#senlinzImportExportInput')?.remove();
+    const fileInput = document.createElement('input');
+    fileInput.id = 'senlinzImportExportInput';
+    fileInput.style.display = 'none';
+    fileInput.type = 'file';
+    fileInput.accept = '.xlsx,.xls,.xlsm,.xlsb,.xla,.xlam,.ods';
+    document.body.appendChild(fileInput);
 
-    const button = document.createElement('button');
-    button.textContent = 'Import Excel';
-    button.style.display = 'none';
-    button.addEventListener('click', () => {
-      fileInput.click();
-    });
+    const cleanup = () => {
+      fileInput.removeEventListener('change', fileHandler);
+      fileInput.remove();
+    };
 
-    document.body.appendChild(button);
-    button.click();
-    button.removeEventListener('click', () => {
-      fileInput.click();
-    });
-    document.body.removeChild(button);
+    const rejectWithError = (error: unknown) => {
+      cleanup();
+      reject(error instanceof Error ? error : new Error(String(error)));
+    };
+
+    fileInput.addEventListener('change', fileHandler);
+    fileInput.click();
 
     function fileHandler(event: Event) {
       const target = event.target as HTMLInputElement;
@@ -227,12 +222,21 @@ function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
       }
       const file = target.files[0];
       const reader = new FileReader();
+      reader.onerror = () => {
+        rejectWithError(reader.error ?? new Error('Failed to read import file.'));
+      };
+      reader.onabort = () => {
+        rejectWithError(new Error('Import file read was aborted.'));
+      };
       reader.onload = async () => {
-        const buffer = new Uint8Array(reader.result as ArrayBuffer);
-        const items = await _fromExcel(defintion, buffer);
-        fileInput.removeEventListener('change', fileHandler);
-        fileInput.remove();
-        resolve(items as T[]);
+        try {
+          const buffer = new Uint8Array(reader.result as ArrayBuffer);
+          const items = await _fromExcel(defintion, buffer);
+          cleanup();
+          resolve(items as T[]);
+        } catch (error) {
+          rejectWithError(error);
+        }
       };
       reader.readAsArrayBuffer(file);
     }

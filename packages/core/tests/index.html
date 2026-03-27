@@ -10,6 +10,7 @@
 <button id="btnExport">Export</button>
 <button id="btnDownloadTemplate">Download Template</button>
 <div id="importOutput"></div>
+<div id="importError"></div>
 
 <body>
   <script type="module">
@@ -46,10 +47,12 @@
     }
 
     function importClick() {
+      importOutput.innerText = '';
+      importError.innerText = '';
       importExcel(excelInfo).then(data => {
         importOutput.innerText = JSON.stringify(data, null);
       }).catch(err => {
-        console.log(err);
+        importError.innerText = err?.message ?? String(err);
       });
     }
 
