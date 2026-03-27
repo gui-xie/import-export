@@ -79,6 +79,28 @@ mod tests {
     }
 
     #[test]
+    fn import_pokemon_uses_first_sheet_when_named_sheet_is_missing() {
+        // Arrange
+        let source_info = ExcelInfo::new(
+            "Pokemon",
+            "Kanto Pokédex",
+            create_excel_info().columns,
+            "senlinz",
+            "2024-11-01T08:00:00",
+        );
+        let excel_bytes = create_template_buffer(&source_info).unwrap();
+        let import_info = create_excel_info();
+
+        // Act
+        let result = import_data_buffer(import_info, &excel_bytes);
+
+        // Assert
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(result.rows.is_empty());
+    }
+
+    #[test]
     fn import_pokemon_missing_header_fails() {
         // Arrange
         let source_info = create_excel_info();
