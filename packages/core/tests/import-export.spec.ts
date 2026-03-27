@@ -5,14 +5,18 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const downloadPath = path.join(__dirname, 'test-download');
 
 test.describe('import-export core', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/tests/index.html');
   });
 
+  test.afterEach(() => {
+    fs.rmSync(downloadPath, { recursive: true, force: true });
+  });
+
   test('can retry import after a failed import', async ({ page }) => {
-    const downloadPath = path.join(__dirname, 'test-download');
     fs.mkdirSync(downloadPath, { recursive: true });
     const validFilePath = path.join(downloadPath, 'TomAndJerry.xlsx');
     const invalidFilePath = path.resolve(
