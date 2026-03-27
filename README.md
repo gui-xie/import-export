@@ -72,6 +72,19 @@ const rows = await importExcel(definition);
 - [Grouped export flow](./packages/core/examples/grouped-export.html)
 - [Direct WASM browser flow](./packages/wasm/examples/direct-browser.html)
 
+## Release preparation
+
+- `0.1.0` is the prepared stable release line and publishes to npm `latest`.
+- Verify packed artifacts before publishing:
+
+```bash
+corepack pnpm --filter @senlinz/import-export-wasm build
+corepack pnpm --filter @senlinz/import-export build
+mkdir -p /tmp/import-export-release
+corepack pnpm --dir packages/wasm pack --pack-destination /tmp/import-export-release
+corepack pnpm --dir packages/core pack --pack-destination /tmp/import-export-release
+```
+
 ## Development
 
 ```bash

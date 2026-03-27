@@ -14,35 +14,35 @@ pnpm add @senlinz/import-export
 
 ### Stable definition fields
 
-- `name`
-- `sheetName`
-- `columns`
-- `author`
-- `createTime`
-- `title`, `titleHeight`, `titleFormat`
-- `defaultRowHeight`, `headerRowHeight`
-- `dx`, `dy`
-- `isHeaderFreeze`
-- `progressCallback`
-- `imageFetcher`
+- `name` - file name used for template/export downloads
+- `sheetName` - worksheet name used for export and preferred during import
+- `columns` - stable schema for headers, validation, and row mapping
+- `author` - optional workbook author metadata
+- `createTime` - optional workbook creation time as a `Date` or date string
+- `title`, `titleHeight`, `titleFormat` - optional merged title row and its layout/format
+- `defaultRowHeight`, `headerRowHeight` - row heights for exported data rows and header rows
+- `dx`, `dy` - horizontal and vertical offsets before the header starts
+- `isHeaderFreeze` - freezes the header area so column labels stay visible while scrolling
+- `progressCallback` - progress hook for long-running import/export work
+- `imageFetcher` - required resolver for `image` columns during export
 
 ### Stable column fields
 
-- `key`
-- `name`
-- `width`
-- `note`
-- `dataType`
-- `allowedValues`
-- `parent`
-- `format`
-- `valueFormat`
-- `dataGroup`
-- `dataGroupParent`
+- `key` - unique programmatic field key
+- `name` - visible worksheet header label
+- `width` - exported column width
+- `note` - header note/comment shown in Excel
+- `dataType` - scalar cell type
+- `allowedValues` - validation list for allowed cell values
+- `parent` - parent header key for multi-row headers
+- `format` - base cell format for the column
+- `valueFormat` - direct or conditional format overrides for exported values
+- `dataGroup` - logical group identifier for nested export data
+- `dataGroupParent` - parent group identifier for nested export data
 
 ### Supported `dataType` values
 
-- `text` - default string/text cells
+- `text` - default text cells
 - `number` - finite numeric values
 - `date` - `Date` instances or parseable date strings on export
 - `image` - image URLs or identifiers resolved through `imageFetcher`

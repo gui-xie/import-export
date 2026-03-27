@@ -72,6 +72,19 @@ const rows = await importExcel(definition);
 - [分组导出流程](./packages/core/examples/grouped-export.html)
 - [直接使用 WASM 的浏览器流程](./packages/wasm/examples/direct-browser.html)
 
+## 发布准备
+
+- `0.1.0` 已准备为稳定版本发布，发布到 npm 时应使用 `latest` 标签。
+- 发布前请先验证打包产物：
+
+```bash
+corepack pnpm --filter @senlinz/import-export-wasm build
+corepack pnpm --filter @senlinz/import-export build
+mkdir -p /tmp/import-export-release
+corepack pnpm --dir packages/wasm pack --pack-destination /tmp/import-export-release
+corepack pnpm --dir packages/core pack --pack-destination /tmp/import-export-release
+```
+
 ## 开发
 
 ```bash
