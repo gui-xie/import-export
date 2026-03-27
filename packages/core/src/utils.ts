@@ -21,6 +21,7 @@ import {
 
 let wasmInitialized = false;
 const SUPPORTED_DATA_TYPES = ['text', 'number', 'date', 'image'] as const;
+const DOWNLOAD_URL_REVOKE_DELAY_MS = 200;
 type NormalizedDataType = typeof SUPPORTED_DATA_TYPES[number];
 type NormalizedExcelColumnDefinition = Omit<ExcelColumnDefinition, 'dataType'> & {
   dataType?: NormalizedDataType;
@@ -28,10 +29,23 @@ type NormalizedExcelColumnDefinition = Omit<ExcelColumnDefinition, 'dataType'> &
 type NormalizedExcelDefinition = Omit<ExcelDefinition, 'columns'> & {
   columns: NormalizedExcelColumnDefinition[];
 };
+type ImportedCellValue = number | string | null;
+type ImportedRow = Record<string, ImportedCellValue>;
+type ExportRow = Record<string, unknown>;
+type ColumnDefinitionMap = Record<string, NormalizedExcelColumnDefinition>;
+type ColumnInfoMap = Record<string, ExcelColumnInfo>;
+type GroupedCellValue = {
+  value?: unknown;
+  children: ExportRow[];
+};
+
+function decodeEmbeddedWasm(wasmSource: string): Uint8Array {
+  return gunzipSync(Uint8Array.from(atob(wasmSource), char => char.charCodeAt(0)));
+}
 
 function initializeWasm() {
   if (!wasmInitialized) {
-    const wasm = gunzipSync(Uint8Array.from(atob(imexportWasm as any), c => c.charCodeAt(0)));
+    const wasm = decodeEmbeddedWasm(imexportWasm);
     initSync({ module: wasm });
     wasmInitialized = true;
   }
@@ -131,7 +145,7 @@ function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefini
   return {
     ...definition,
     name: definition.name.trim(),
-    sheetName: definition.sheetName?.trim() || definition.sheetName,
+    sheetName: definition.sheetName?.trim() || undefined,
     columns,
   };
 }
@@ -181,14 +195,14 @@ function serializeCellValue(column: ExcelColumnInfo, value: unknown): string {
   return value.toString();
 }
 
-async function getItems(data: ExcelData, columns: NormalizedExcelColumnDefinition[]) {
-  const result = [] as any;
-  const columnMap = {} as Record<string, NormalizedExcelColumnDefinition>;
+function getItems(data: ExcelData, columns: NormalizedExcelColumnDefinition[]): ImportedRow[] {
+  const result: ImportedRow[] = [];
+  const columnMap: ColumnDefinitionMap = {};
   for (const column of columns) {
     columnMap[column.key] = column;
   }
   for (const row of data.rows) {
-    const item = {} as any;
+    const item: ImportedRow = {};
     for (const column of row.columns) {
       const definition = columnMap[column.key];
       if (!definition) {
@@ -209,16 +223,20 @@ async function _fromExcel<T>(
   const info = getInfo(normalizedDefinition);
   const data = importData(info, buffer);
   const items = getItems(data, normalizedDefinition.columns);
-  return items;
+  return items as T[];
 }
 
-function mapExcelData(items: any[], columnMap: any, parentKey: string = ''): ExcelRowData[] {
-  const rows = [];
+function isGroupedCellValue(value: unknown): value is GroupedCellValue {
+  return typeof value === 'object' && value !== null && Array.isArray((value as GroupedCellValue).children);
+}
+
+function mapExcelData(items: ExportRow[], columnMap: ColumnInfoMap, parentKey: string = ''): ExcelRowData[] {
+  const rows: ExcelRowData[] = [];
   for (const item of items) {
-    let columnData = [];
+    const columnData: ExcelColumnData[] = [];
     for (const columnKey in item) {
-      let column: ExcelColumnInfo = columnMap[columnKey];
-      let v = item[columnKey];
+      const column = columnMap[columnKey];
+      const v = item[columnKey];
       if (!column || v === undefined) continue;
       if (!column.data_group) {
         columnData.push(new ExcelColumnData(columnKey, serializeCellValue(column, v)));
@@ -227,11 +245,11 @@ function mapExcelData(items: any[], columnMap: any, parentKey: string = ''): Exc
       if (v === null) {
         continue;
       }
-      if (typeof v !== 'object' || !Array.isArray(v.children)) {
+      if (!isGroupedCellValue(v)) {
         throw new Error(`Grouped column '${columnKey}' must be an object with a children array.`);
       }
       if (v.children.length) {
-        let children = mapExcelData(v.children, columnMap, columnKey);
+        const children = mapExcelData(v.children, columnMap, columnKey);
         if (!parentKey) {
           columnData.push(ExcelColumnData.newRootGroup(columnKey, children));
         } else {
@@ -250,11 +268,11 @@ async function _toExcel<T>(
 ) {
   const normalizedDefinition = normalizeDefinition(definition);
   const info = getInfo(normalizedDefinition);
-  let columnMap = {} as any;
+  const columnMap: ColumnInfoMap = {};
   for (const column of info.columns) {
     columnMap[column.key] = column;
   }
-  const rows = mapExcelData(data, columnMap);
+  const rows = mapExcelData(data as ExportRow[], columnMap);
   const excelData = new ExcelData(rows);
   return exportData(info, excelData);
 }
@@ -279,8 +297,10 @@ function download(
   linkInput.id = id;
   linkInput.download = name;
   const blob = new Blob([data], { type });
-  linkInput.href = URL.createObjectURL(blob);
+  const objectUrl = URL.createObjectURL(blob);
+  linkInput.href = objectUrl;
   linkInput.click();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), DOWNLOAD_URL_REVOKE_DELAY_MS);
 }
 
 function mapFormat(vf: ExcelCellFormatDefinition) {
@@ -302,7 +322,7 @@ function mapFormat(vf: ExcelCellFormatDefinition) {
 }
 
 function getInfo(definition: NormalizedExcelDefinition): ExcelInfo {
-  var columns = definition.columns.map(c => {
+  const columns = definition.columns.map(c => {
     let column = new ExcelColumnInfo(c.key, c.name);
     if (c.width) column = column.withWidth(c.width);
     if (c.dataType) column = column.withDataType(c.dataType);
@@ -313,7 +333,7 @@ function getInfo(definition: NormalizedExcelDefinition): ExcelInfo {
       column = column.withFormat(mapFormat(c.format));
     }
     if (c.valueFormat) {
-      let formats = Array.isArray(c.valueFormat) ? c.valueFormat : [c.valueFormat];
+      const formats = Array.isArray(c.valueFormat) ? c.valueFormat : [c.valueFormat];
       column = column.withValueFormat(formats.map(mapFormat));
     }
     if (c.dataGroup) column = column.withDataGroup(c.dataGroup);
@@ -321,15 +341,15 @@ function getInfo(definition: NormalizedExcelDefinition): ExcelInfo {
     return column;
   });
 
-  var info = new ExcelInfo(
+  let info = new ExcelInfo(
     definition.name,
     definition.sheetName ?? 'sheet1',
     columns,
     definition.author ?? '',
     toDatetimeString(definition.createTime ?? new Date())
   );
-  let dx = definition.dx ?? 0;
-  let dy = definition.dy ?? 0;
+  const dx = definition.dx ?? 0;
+  const dy = definition.dy ?? 0;
   info = info.withOffset(dx, dy);
   if (definition.title) info = info.withTitle(definition.title);
   if (definition.titleHeight) info = info.withTitleHeight(definition.titleHeight);
@@ -356,7 +376,7 @@ function toDatetimeString(date: Date | string) {
   return `${year}-${pad(month)}-${pad(day)} ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
-function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
+function importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
   return new Promise<T[]>((resolve, reject) => {
     document.querySelector('#senlinzImportExportInput')?.remove();
     const fileInput = document.createElement('input');
@@ -395,9 +415,9 @@ function importExcel<T>(defintion: ExcelDefinition): Promise<T[]> {
       reader.onload = async () => {
         try {
           const buffer = new Uint8Array(reader.result as ArrayBuffer);
-          const items = await _fromExcel(defintion, buffer);
+          const items = await _fromExcel<T>(definition, buffer);
           cleanup();
-          resolve(items as T[]);
+          resolve(items);
         } catch (error) {
           rejectWithError(error);
         }
