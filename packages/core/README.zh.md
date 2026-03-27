@@ -14,31 +14,31 @@ pnpm add @senlinz/import-export
 
 ### 稳定的 definition 字段
 
-- `name`
-- `sheetName`
-- `columns`
-- `author`
-- `createTime`
-- `title`、`titleHeight`、`titleFormat`
-- `defaultRowHeight`、`headerRowHeight`
-- `dx`、`dy`
-- `isHeaderFreeze`
-- `progressCallback`
-- `imageFetcher`
+- `name`：模板 / 导出下载时使用的文件名
+- `sheetName`：导出时使用、导入时优先匹配的工作表名称
+- `columns`：表头、校验和行映射使用的稳定列定义
+- `author`：可选的工作簿作者元数据
+- `createTime`：可选的工作簿创建时间，支持 `Date` 或日期字符串
+- `title`、`titleHeight`、`titleFormat`：可选的合并标题行及其高度、样式
+- `defaultRowHeight`、`headerRowHeight`：导出时数据行和表头行的行高
+- `dx`、`dy`：表头写入前的横向、纵向偏移量
+- `isHeaderFreeze`：冻结表头区域，滚动时仍保持列标题可见
+- `progressCallback`：长时间导入 / 导出过程中的进度回调
+- `imageFetcher`：导出 `image` 列时必需的图片数据解析回调
 
 ### 稳定的列字段
 
-- `key`
-- `name`
-- `width`
-- `note`
-- `dataType`
-- `allowedValues`
-- `parent`
-- `format`
-- `valueFormat`
-- `dataGroup`
-- `dataGroupParent`
+- `key`：唯一的程序字段名
+- `name`：工作表中显示的列表头
+- `width`：导出列宽
+- `note`：附加在表头单元格上的备注 / 注释
+- `dataType`：标量单元格类型
+- `allowedValues`：单元格允许值的校验列表
+- `parent`：多级表头时的父级表头 key
+- `format`：列的基础单元格格式
+- `valueFormat`：导出值的直接或条件格式覆盖
+- `dataGroup`：嵌套导出数据使用的逻辑分组标识
+- `dataGroupParent`：嵌套导出数据使用的父级分组标识
 
 ### 支持的 `dataType`
 
