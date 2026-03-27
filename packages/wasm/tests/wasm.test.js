@@ -1,10 +1,14 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 test.describe('import-export-wasm', () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto('/');
+        await page.goto('/examples/direct-browser.html');
     });
 
     test('download template should work correctly', async ({ page }) => {
@@ -53,5 +57,20 @@ test.describe('import-export-wasm', () => {
         // Assert - Import
         const importOutput = await page.textContent('#importOutput');
         expect(importOutput).toBe('[{"name":"Tom","age":"12","category":"Cat"},{"name":"Jerry","age":"13","category":"Mouse"}]');
+    });
+
+    test('reports header mismatch errors in the direct wasm example', async ({ page }) => {
+        const invalidFilePath = path.resolve(
+            __dirname,
+            '../src/tests/snapshots/imexport_wasm__tests__tests__export_pokemon_success.snap.xlsx'
+        );
+
+        const [chooseFile] = await Promise.all([
+            page.waitForEvent('filechooser'),
+            page.click('#btnImport')
+        ]);
+        await chooseFile.setFiles(invalidFilePath);
+
+        await expect(page.locator('#errorOutput')).toContainText('Header mismatch');
     });
 });

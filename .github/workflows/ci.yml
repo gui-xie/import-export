@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+
+      - name: Install Playwright browsers
+        run: corepack pnpm exec playwright install --with-deps chromium
+
+      - name: Build wasm package
+        run: corepack pnpm --filter @senlinz/import-export-wasm build
+
+      - name: Run wasm unit tests
+        run: cargo test --manifest-path packages/wasm/Cargo.toml --lib
+
+      - name: Run wasm browser tests
+        run: corepack pnpm --filter @senlinz/import-export-wasm e2e-test
+
+      - name: Build core package
+        run: corepack pnpm --filter @senlinz/import-export build
+
+      - name: Run core browser tests
+        run: corepack pnpm --filter @senlinz/import-export test

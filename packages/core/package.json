@@ -19,7 +19,7 @@
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
-    "test": "jest",
+    "test": "playwright test -c playwright.config.ts",
     "e2e-serve": "serve -l 8080 ."
   },
   "devDependencies": {

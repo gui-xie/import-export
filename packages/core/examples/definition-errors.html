@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Definition Validation Example</title>
+</head>
+<button id="btnExport">Export invalid definition</button>
+<div id="errorOutput"></div>
+
+<body>
+  <script type="module">
+    import { exportExcel } from '../dist/index.js';
+
+    const invalidDefinition = {
+      name: 'BrokenDefinition',
+      columns: [
+        { key: 'name', name: 'Name', dataType: 'text' },
+        { key: 'alias', name: 'Alias', dataType: 'unsupported' }
+      ]
+    };
+
+    btnExport.addEventListener('click', async () => {
+      errorOutput.innerText = '';
+      try {
+        await exportExcel(invalidDefinition, [{ name: 'Tom' }]);
+      } catch (error) {
+        errorOutput.innerText = error?.message ?? String(error);
+      }
+    });
+  </script>
+</body>
+
+</html>

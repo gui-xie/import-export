@@ -452,6 +452,7 @@ async fn write_single_cell(
     info: &ExcelInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let data_type = &column.data_type;
+    let trimmed_value = value.trim();
     let mut is_date_type = false;
     if data_type.eq_ignore_ascii_case("image") {
         if let Some(fetcher) = &info.image_fetcher {
@@ -482,11 +483,30 @@ async fn write_single_cell(
             return Err("Image fetcher is not defined".into());
         }
     } else if data_type.eq_ignore_ascii_case("number") {
-        worksheet.write_number(y, x, value.parse::<f64>()?)?;
+        if trimmed_value.is_empty() {
+            worksheet.write_string(y, x, "")?;
+        } else {
+            let parsed_number = trimmed_value.parse::<f64>().map_err(|error| {
+                format!(
+                    "Invalid number value '{}' for column '{}': {}",
+                    value, column.key, error
+                )
+            })?;
+            worksheet.write_number(y, x, parsed_number)?;
+        }
     } else if data_type.eq_ignore_ascii_case("date") {
-        let date_time = ExcelDateTime::parse_from_str(value)?;
-        worksheet.write_datetime(y, x, date_time)?;
-        is_date_type = true;
+        if trimmed_value.is_empty() {
+            worksheet.write_string(y, x, "")?;
+        } else {
+            let date_time = ExcelDateTime::parse_from_str(trimmed_value).map_err(|error| {
+                format!(
+                    "Invalid date value '{}' for column '{}': {}",
+                    value, column.key, error
+                )
+            })?;
+            worksheet.write_datetime(y, x, date_time)?;
+            is_date_type = true;
+        }
     } else {
         worksheet.write_string(y, x, value)?;
     }

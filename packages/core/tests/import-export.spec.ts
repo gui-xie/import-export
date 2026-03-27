@@ -8,15 +8,12 @@ const __dirname = path.dirname(__filename);
 const downloadPath = path.join(__dirname, 'test-download');
 
 test.describe('import-export core', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/tests/index.html');
-  });
-
   test.afterEach(() => {
     fs.rmSync(downloadPath, { recursive: true, force: true });
   });
 
   test('can retry import after a failed import', async ({ page }) => {
+    await page.goto('/examples/basic-browser.html');
     fs.mkdirSync(downloadPath, { recursive: true });
     const validFilePath = path.join(downloadPath, 'TomAndJerry.xlsx');
     const invalidFilePath = path.resolve(
@@ -43,8 +40,48 @@ test.describe('import-export core', () => {
     ]);
     await validChooser.setFiles(validFilePath);
     await expect(page.locator('#importOutput')).toHaveText(
-      '[{"name":"Tom","age":12,"category":"Cat","image":""},{"name":"Jerry","age":13,"category":"Mouse","image":""}]'
+      '[{"name":"Tom","age":12,"birthday":"2024-11-01 00:00:00","category":"Cat","image":""},{"name":"Jerry","age":null,"birthday":null,"category":"Mouse","image":""}]'
     );
     await expect(page.locator('#importError')).toHaveText('');
+  });
+
+  test('validates malformed definitions in the browser API', async ({ page }) => {
+    await page.goto('/examples/definition-errors.html');
+
+    await page.click('#btnExport');
+    await expect(page.locator('#errorOutput')).toContainText("Invalid dataType 'unsupported'");
+
+    const duplicateKeyError = await page.evaluate(async () => {
+      const { generateExcelTemplate } = await import('../dist/index.js');
+      try {
+        await generateExcelTemplate({
+          name: 'DuplicateKeys',
+          columns: [
+            { key: 'name', name: 'Name', dataType: 'text' },
+            { key: 'name', name: 'Alias', dataType: 'text' }
+          ]
+        });
+        return '';
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
+    });
+
+    expect(duplicateKeyError).toContain("Duplicate column key 'name'");
+  });
+
+  test('exports the grouped example without browser-side errors', async ({ page }) => {
+    await page.goto('/examples/grouped-export.html');
+    fs.mkdirSync(downloadPath, { recursive: true });
+    const filePath = path.join(downloadPath, 'Pokemon.xlsx');
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#btnExport')
+    ]);
+    await download.saveAs(filePath);
+
+    expect(fs.existsSync(filePath)).toBeTruthy();
+    await expect(page.locator('#exportError')).toHaveText('');
   });
 });

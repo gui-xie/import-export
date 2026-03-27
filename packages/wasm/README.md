@@ -1,13 +1,85 @@
 # @senlinz/import-export-wasm
-**@senlinz/import-export-wasm** is the Rust WebAssembly core library for the **@senlinz/import-export** library. It provides the core logic for handling Excel data in browser environments.
 
-> **Note:** This library is currently in beta. Features and APIs may change.
+Direct Rust/WebAssembly bindings for importing, exporting, and templating Excel workbooks.
 
-## Features
-- Rust WebAssembly core for efficient Excel data handling.
-- Read using [calamine](https://docs.rs/calamine/).
-- Write using [rust_xlsxwriter](https://docs.rs/rust_xlsxwriter/).
+## Install
 
-## Usage
-Directly use WebAssembly in browser environments. 
-[Example](./tests/index.html)
+```bash
+pnpm add @senlinz/import-export-wasm
+```
+
+## Initialization
+
+Build the package and load the generated module in the browser:
+
+```ts
+import init, {
+  createTemplate,
+  exportData,
+  importData,
+  ExcelInfo,
+  ExcelColumnInfo,
+  ExcelData,
+  ExcelRowData,
+  ExcelColumnData,
+} from '@senlinz/import-export-wasm';
+
+await init();
+```
+
+## Direct WASM usage
+
+```ts
+const info = new ExcelInfo(
+  'TomAndJerry',
+  'sheet1',
+  [
+    new ExcelColumnInfo('name', 'Name'),
+    new ExcelColumnInfo('age', 'Age').withDataType('number'),
+    new ExcelColumnInfo('category', 'Category').withAllowedValues(['Cat', 'Mouse']),
+  ],
+  'senlinz',
+  '2024-11-01T08:00:00',
+);
+
+const template = createTemplate(info);
+
+const data = new ExcelData([
+  new ExcelRowData([
+    new ExcelColumnData('name', 'Tom'),
+    new ExcelColumnData('age', '12'),
+    new ExcelColumnData('category', 'Cat'),
+  ]),
+]);
+
+const workbook = await exportData(info, data);
+const imported = importData(info, workbook);
+```
+
+## Supported schema rules
+
+- Column keys must be unique.
+- Header names must be non-empty.
+- Supported `dataType` values are `text`, `string`, `number`, `date`, and `image`.
+- Parent columns must be declared before child columns.
+- `dataGroupParent` values must refer to a previously declared `dataGroup`.
+
+## Direct WASM examples
+
+- [Browser example](./examples/direct-browser.html)
+
+The browser example is covered by Playwright tests in [`./tests/wasm.test.js`](./tests/wasm.test.js).
+
+## Runtime notes
+
+- Browser usage requires the generated JS/WASM assets from `wasm-pack build`.
+- Image export requires `.withImageFetcher(...)`.
+- Invalid schemas and invalid exported number/date values now fail with explicit errors.
+
+## Development
+
+```bash
+cargo test --lib
+wasm-pack build --release --target web
+pnpm e2e-test
+```

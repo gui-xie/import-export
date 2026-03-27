@@ -12,9 +12,22 @@ import {
 } from '@senlinz/import-export-wasm';
 import imexportWasm from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm';
 import { gunzipSync } from 'fflate';
-import { ExcelColumnDefinition, ExcelDefinition, ExcelCellFormatDefinition } from './ExcelDefinition';
+import {
+  ExcelColumnDefinition,
+  ExcelDefinition,
+  ExcelCellFormatDefinition,
+  ExcelColumnDataType
+} from './ExcelDefinition';
 
 let wasmInitialized = false;
+const SUPPORTED_DATA_TYPES = ['text', 'number', 'date', 'image'] as const;
+type NormalizedDataType = typeof SUPPORTED_DATA_TYPES[number];
+type NormalizedExcelColumnDefinition = Omit<ExcelColumnDefinition, 'dataType'> & {
+  dataType?: NormalizedDataType;
+};
+type NormalizedExcelDefinition = Omit<ExcelDefinition, 'columns'> & {
+  columns: NormalizedExcelColumnDefinition[];
+};
 
 function initializeWasm() {
   if (!wasmInitialized) {
@@ -24,21 +37,167 @@ function initializeWasm() {
   }
 }
 
-async function getItems(data: ExcelData, columns: ExcelColumnDefinition[]) {
+function normalizeDataType(dataType: ExcelColumnDataType | undefined, columnKey: string): NormalizedDataType {
+  const rawDataType = dataType ?? 'text';
+  if (typeof rawDataType !== 'string') {
+    throw new Error(`Invalid dataType '${String(rawDataType)}' for column '${columnKey}'. dataType values must be strings.`);
+  }
+  const normalized = rawDataType.trim().toLowerCase();
+  const canonical = normalized === 'string' ? 'text' : normalized;
+  if (!SUPPORTED_DATA_TYPES.includes(canonical as NormalizedDataType)) {
+    throw new Error(
+      `Invalid dataType '${dataType}' for column '${columnKey}'. Supported values are: ${SUPPORTED_DATA_TYPES.join(', ')}.`
+    );
+  }
+  return canonical as NormalizedDataType;
+}
+
+function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefinition {
+  if (!definition.name?.trim()) {
+    throw new Error('Excel definition must include a non-empty name.');
+  }
+  if (!Array.isArray(definition.columns) || definition.columns.length === 0) {
+    throw new Error(`Excel definition '${definition.name}' must include at least one column.`);
+  }
+
+  const knownColumnKeys = new Set<string>();
+  const knownGroups = new Set<string>();
+  const columns = definition.columns.map((column) => {
+    const key = column.key?.trim();
+    const name = column.name?.trim();
+    if (!key) {
+      throw new Error(`Excel definition '${definition.name}' contains a column with an empty key.`);
+    }
+    if (!name) {
+      throw new Error(`Column '${key}' in definition '${definition.name}' must include a non-empty name.`);
+    }
+    if (knownColumnKeys.has(key)) {
+      throw new Error(`Duplicate column key '${key}' found in definition '${definition.name}'.`);
+    }
+
+    const normalizedColumn: NormalizedExcelColumnDefinition = {
+      ...column,
+      key,
+      name,
+      dataType: normalizeDataType(column.dataType, key),
+    };
+
+    if (normalizedColumn.parent) {
+      const parent = normalizedColumn.parent.trim();
+      if (!parent) {
+        throw new Error(`Column '${key}' has an empty parent reference.`);
+      }
+      if (parent === key) {
+        throw new Error(`Column '${key}' cannot reference itself as a parent.`);
+      }
+      if (!knownColumnKeys.has(parent)) {
+        throw new Error(`Column '${key}' references parent '${parent}', but parent columns must be declared before their children.`);
+      }
+      normalizedColumn.parent = parent;
+    }
+
+    if (normalizedColumn.dataGroup) {
+      const dataGroup = normalizedColumn.dataGroup.trim();
+      if (!dataGroup) {
+        throw new Error(`Column '${key}' has an empty dataGroup value.`);
+      }
+      if (knownGroups.has(dataGroup)) {
+        throw new Error(`Duplicate dataGroup '${dataGroup}' found in definition '${definition.name}'.`);
+      }
+      knownGroups.add(dataGroup);
+      normalizedColumn.dataGroup = dataGroup;
+    }
+
+    if (normalizedColumn.dataGroupParent) {
+      const dataGroupParent = normalizedColumn.dataGroupParent.trim();
+      if (!dataGroupParent) {
+        throw new Error(`Column '${key}' has an empty dataGroupParent value.`);
+      }
+      if (normalizedColumn.dataGroup === dataGroupParent) {
+        throw new Error(`Column '${key}' cannot reference its own dataGroup '${dataGroupParent}' as dataGroupParent.`);
+      }
+      if (!knownGroups.has(dataGroupParent)) {
+        throw new Error(
+          `Column '${key}' references dataGroupParent '${dataGroupParent}', but grouped parents must be declared before dependent columns.`
+        );
+      }
+      normalizedColumn.dataGroupParent = dataGroupParent;
+    }
+
+    knownColumnKeys.add(key);
+    return normalizedColumn;
+  });
+
+  return {
+    ...definition,
+    name: definition.name.trim(),
+    sheetName: definition.sheetName?.trim() || definition.sheetName,
+    columns,
+  };
+}
+
+function parseImportedValue(column: NormalizedExcelColumnDefinition, value: string): number | string | null {
+  if (value === '') {
+    return column.dataType === 'number' || column.dataType === 'date' ? null : value;
+  }
+  if (column.dataType === 'number') {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      throw new Error(`Failed to parse imported number '${value}' for column '${column.key}'.`);
+    }
+    return parsed;
+  }
+  return value;
+}
+
+function serializeCellValue(column: ExcelColumnInfo, value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  const dataType = column.data_type.toLowerCase();
+
+  if (dataType === 'number') {
+    const numericValue = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(numericValue)) {
+      throw new Error(`Column '${column.key}' expects a finite number value.`);
+    }
+    return numericValue.toString();
+  }
+
+  if (dataType === 'date') {
+    if (value instanceof Date) {
+      return toDatetimeString(value);
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return '';
+      }
+      if (Number.isNaN(Date.parse(trimmed))) {
+        throw new Error(`Column '${column.key}' expects a valid date string or Date instance.`);
+      }
+      return trimmed;
+    }
+    throw new Error(`Column '${column.key}' expects a date string or Date instance.`);
+  }
+
+  return value.toString();
+}
+
+async function getItems(data: ExcelData, columns: NormalizedExcelColumnDefinition[]) {
   const result = [] as any;
-  const columnTypes = {} as any;
+  const columnMap = {} as Record<string, NormalizedExcelColumnDefinition>;
   for (const column of columns) {
-    columnTypes[column.key] = column.dataType;
+    columnMap[column.key] = column;
   }
   for (const row of data.rows) {
     const item = {} as any;
     for (const column of row.columns) {
-      const columnType = columnTypes[column.key];
-      if (columnType == "number") {
-        item[column.key] = parseFloat(column.value);
+      const definition = columnMap[column.key];
+      if (!definition) {
         continue;
       }
-      item[column.key] = column.value;
+      item[column.key] = parseImportedValue(definition, column.value);
     }
     result.push(item);
   }
@@ -49,9 +208,10 @@ async function _fromExcel<T>(
   definition: ExcelDefinition,
   buffer: Uint8Array,
 ): Promise<T[]> {
-  const info = getInfo(definition);
+  const normalizedDefinition = normalizeDefinition(definition);
+  const info = getInfo(normalizedDefinition);
   const data = importData(info, buffer);
-  const items = getItems(data, definition.columns);
+  const items = getItems(data, normalizedDefinition.columns);
   return items;
 }
 
@@ -64,15 +224,21 @@ function mapExcelData(items: any[], columnMap: any, parentKey: string = ''): Exc
       let v = item[columnKey];
       if (!column || v === undefined) continue;
       if (!column.data_group) {
-        columnData.push(new ExcelColumnData(columnKey, v === null ? '' : v.toString()));
+        columnData.push(new ExcelColumnData(columnKey, serializeCellValue(column, v)));
         continue;
       }
-      if (v.children && v.children.length) {
+      if (v === null) {
+        continue;
+      }
+      if (typeof v !== 'object' || !Array.isArray(v.children)) {
+        throw new Error(`Grouped column '${columnKey}' must be an object with a children array.`);
+      }
+      if (v.children.length) {
         let children = mapExcelData(v.children, columnMap, columnKey);
         if (!parentKey) {
           columnData.push(ExcelColumnData.newRootGroup(columnKey, children));
         } else {
-          columnData.push(ExcelColumnData.newGroup(columnKey, v.value === null ? '' : v.value.toString(), children));
+          columnData.push(ExcelColumnData.newGroup(columnKey, serializeCellValue(column, v.value), children));
         }
       }
     }
@@ -85,7 +251,8 @@ async function _toExcel<T>(
   definition: ExcelDefinition,
   data: T[]
 ) {
-  const info = getInfo(definition);
+  const normalizedDefinition = normalizeDefinition(definition);
+  const info = getInfo(normalizedDefinition);
   let columnMap = {} as any;
   for (const column of info.columns) {
     columnMap[column.key] = column;
@@ -96,7 +263,7 @@ async function _toExcel<T>(
 }
 
 async function generateExcelTemplate(definition: ExcelDefinition) {
-  return createTemplate(getInfo(definition));
+  return createTemplate(getInfo(normalizeDefinition(definition)));
 }
 
 async function downloadExcelTemplate(definition: ExcelDefinition) {
@@ -137,7 +304,7 @@ function mapFormat(vf: ExcelCellFormatDefinition) {
   return result;
 }
 
-function getInfo(definition: ExcelDefinition): ExcelInfo {
+function getInfo(definition: NormalizedExcelDefinition): ExcelInfo {
   var columns = definition.columns.map(c => {
     let column = new ExcelColumnInfo(c.key, c.name);
     if (c.width) column = column.withWidth(c.width);
