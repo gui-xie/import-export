@@ -1,5 +1,58 @@
 # @senlinz/import-export
 
+## 0.1.0
+
+### Minor Changes
+
+- 99a7dea: update readme
+- 03ea0a8: upgrade beta 6
+
+### Patch Changes
+
+- eb9a824: fix
+- 8ce71cb: add image export support
+- 4bbf04d: Fall back to the first worksheet during import when the configured sheet name is missing.
+- c4eef9c: add wrapper function in index.js, fix definition datetime undefined
+- 91bda5b: remove stencil components
+- 779a9ee: remove custom component
+- e90f077: update to beta.21
+- 10e9550: change column definiton with optional property
+- c1ae36a: add image datatype
+- a87266d: update beta version
+- d550649: add complex data export
+- a44e82a: update to beta.20
+- 56a4e1a: fix package.json entry
+- 551d097: fix null string data
+- cb23daf: update types
+- 73f89ef: update to beta.4
+- 48a7aae: fix note, add header row height support
+- 8348abc: fix import function
+- 74f4058: fix note, add header row height support
+- Prepare the first stable release by removing the legacy `string` dataType alias in favor of `text` only, adding Chinese documentation, and tightening the release metadata for stable publication.
+- Updated dependencies [eb9a824]
+- Updated dependencies [8ce71cb]
+- Updated dependencies [4bbf04d]
+- Updated dependencies [c4eef9c]
+- Updated dependencies [91bda5b]
+- Updated dependencies [779a9ee]
+- Updated dependencies [e90f077]
+- Updated dependencies [10e9550]
+- Updated dependencies [c1ae36a]
+- Updated dependencies [a87266d]
+- Updated dependencies [99a7dea]
+- Updated dependencies [d550649]
+- Updated dependencies [a44e82a]
+- Updated dependencies [56a4e1a]
+- Updated dependencies [551d097]
+- Updated dependencies [03ea0a8]
+- Updated dependencies [cb23daf]
+- Updated dependencies [73f89ef]
+- Updated dependencies [48a7aae]
+- Updated dependencies [8348abc]
+- Updated dependencies [74f4058]
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.0
+
 ## 0.1.0-beta.23
 
 ### Patch Changes
