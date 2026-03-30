@@ -1,5 +1,17 @@
 # @senlinz/import-export-wasm
 
+## 0.1.0
+
+First stable release of the WebAssembly workbook package.
+
+### Highlights
+
+- Stabilized the WebAssembly workbook layer used by the browser wrapper package.
+- Standardized supported scalar cell types on `text`, `number`, `date`, and `image`, rejecting the old `string` alias.
+- Added stronger validation for invalid schemas, grouped export configuration, and malformed numeric/date values.
+- Improved workbook generation and import behavior with image export support, header formatting updates, and worksheet fallback when the configured sheet is missing.
+- Refreshed English and Chinese documentation for direct WASM usage.
+
 ## 0.1.0-beta.24
 
 Continue the beta release line before the first stable publish.

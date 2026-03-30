@@ -1,5 +1,18 @@
 # @senlinz/import-export
 
+## 0.1.0
+
+First stable release of the browser-first Excel import/export package.
+
+### Highlights
+
+- Stabilized the public browser API for template generation, import, and export.
+- Standardized `columns[].dataType` on `text`, `number`, `date`, and `image`; `string` is no longer accepted as a text alias.
+- Added stronger schema validation and clearer runtime errors for malformed definitions, grouped data, numbers, and dates.
+- Expanded supported features around grouped export data, image export, notes, header sizing, and worksheet fallback on import.
+- Refreshed English and Chinese package documentation and example coverage.
+- Updated the bundled WASM dependency to `@senlinz/import-export-wasm@0.1.0`.
+
 ## 0.1.0-beta.24
 
 Continue the beta release line before the first stable publish.
