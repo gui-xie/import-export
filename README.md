@@ -101,7 +101,7 @@ Manual initialization accepts `source`, `bytes`, or `module` and throws a clear 
 
 ## Release preparation
 
-- `0.1.0-beta.24` is the prepared beta release line and should publish to npm with the `beta` tag.
+- `0.1.0` is prepared for the first stable release and should publish to npm with the default `latest` tag through GitHub Actions.
 - Verify packed artifacts before publishing:
 
 ```bash
