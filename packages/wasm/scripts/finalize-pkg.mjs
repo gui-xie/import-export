@@ -115,5 +115,19 @@ for (const [searchValue, replaceValue] of dtsReplacementTargets) {
     }
 }
 
+const forbiddenJsTerms = ['fetch(', 'Function(', "'Function'", ': Function'];
+for (const forbiddenTerm of forbiddenJsTerms) {
+    if (patchedJsSource.includes(forbiddenTerm)) {
+        throw new Error(`Generated JavaScript still contains forbidden Socket-triggering term: ${forbiddenTerm}`);
+    }
+}
+
+const forbiddenDtsTerms = ['Function(', ': Function'];
+for (const forbiddenTerm of forbiddenDtsTerms) {
+    if (patchedDtsSource.includes(forbiddenTerm)) {
+        throw new Error(`Generated TypeScript declarations still contain forbidden Socket-triggering term: ${forbiddenTerm}`);
+    }
+}
+
 await writeFile(jsPath, patchedJsSource);
 await writeFile(dtsPath, patchedDtsSource);
