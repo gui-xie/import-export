@@ -8,8 +8,8 @@
     "build": "wasm-pack build --release --target web",
     "publish-dry-run": "pnpm publish --dry-run --no-git-checks",
     "cargo-test": "cargo test --lib",
-    "e2e-serve": "wasm-pack build --release --target web -d tests/dist && serve -l 8080 .",
-    "e2e-test": "playwright test"
+    "e2e-serve": "wasm-pack build --release --target web -d tests/dist && corepack pnpm exec serve -l 8080 .",
+    "e2e-test": "corepack pnpm exec playwright test"
   },
   "files": [
     "pkg/imexport_wasm_bg.wasm",

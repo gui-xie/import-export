@@ -83,5 +83,7 @@ const imported = importData(info, workbook);
 ```bash
 cargo test --lib
 wasm-pack build --release --target web
-pnpm e2e-test
+corepack pnpm install
+corepack pnpm exec playwright install chromium
+npm run e2e-test
 ```
