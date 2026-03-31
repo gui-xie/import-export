@@ -43,7 +43,7 @@ jobs:
         run: cargo test --manifest-path packages/wasm/Cargo.toml --lib
 
       - name: Run wasm browser tests
-        run: corepack pnpm --filter @senlinz/import-export-wasm e2e-test
+        run: corepack pnpm --dir packages/wasm exec playwright test
 
       - name: Build core package
         run: corepack pnpm --filter @senlinz/import-export build

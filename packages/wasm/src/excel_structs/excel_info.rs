@@ -1,4 +1,3 @@
-use js_sys::Function;
 use std::collections::{HashMap, HashSet};
 use wasm_bindgen::prelude::*;
 
@@ -18,9 +17,9 @@ pub struct ExcelInfo {
     pub dy: u32,
     pub is_header_freeze: bool,
     #[wasm_bindgen(skip)]
-    pub progress_callback: Option<Function>,
+    pub progress_callback: Option<JsValue>,
     #[wasm_bindgen(skip)]
-    pub image_fetcher: Option<Function>,
+    pub image_fetcher: Option<JsValue>,
 }
 
 impl ExcelInfo {
@@ -51,12 +50,12 @@ impl ExcelInfo {
         }
     }
 
-    pub fn with_progress_callback(mut self, callback: Function) -> Self {
+    pub fn with_progress_callback(mut self, callback: JsValue) -> Self {
         self.progress_callback = Some(callback);
         self
     }
 
-    pub fn with_image_fetcher(mut self, fetcher: Function) -> Self {
+    pub fn with_image_fetcher(mut self, fetcher: JsValue) -> Self {
         self.image_fetcher = Some(fetcher);
         self
     }
@@ -223,12 +222,12 @@ impl ExcelInfo {
     }
 
     #[wasm_bindgen(js_name = withProgressCallback)]
-    pub fn bind_with_progress_callback(self, callback: Function) -> Self {
+    pub fn bind_with_progress_callback(self, callback: JsValue) -> Self {
         self.with_progress_callback(callback)
     }
 
     #[wasm_bindgen(js_name = withImageFetcher)]
-    pub fn bind_with_image_fetcher(self, fetcher: Function) -> Self {
+    pub fn bind_with_image_fetcher(self, fetcher: JsValue) -> Self {
         self.with_image_fetcher(fetcher)
     }
 }

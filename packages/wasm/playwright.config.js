@@ -6,7 +6,7 @@ export default {
     testDir: 'tests',
     snapshotDir: 'tests/snapshots',
     webServer: {
-        command: 'npm run e2e-serve',
+        command: 'wasm-pack build --release --target web -d tests/dist && node ./scripts/finalize-pkg.mjs && npx serve -l 8080 .',
         port: 8080,
         timeout: 120 * 1000
     },

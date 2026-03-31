@@ -42,6 +42,19 @@ static DEFAULT_HEADER_FORMAT: LazyLock<Format> = LazyLock::new(|| {
         .set_text_wrap()
 });
 
+#[wasm_bindgen(inline_js = "
+export function callCallback(callback, arg) {
+  if (typeof callback !== 'function') {
+    throw new TypeError('Expected callback to be a function.');
+  }
+  return callback(arg);
+}
+")]
+extern "C" {
+    #[wasm_bindgen(js_name = callCallback)]
+    fn call_callback(callback: &JsValue, arg: &JsValue) -> Result<JsValue, JsValue>;
+}
+
 #[wasm_bindgen(js_name= createTemplate)]
 pub fn create_template(info: ExcelInfo) -> Result<Vec<u8>, JsError> {
     create_template_buffer(&info).map_err(|e| JsError::new(&e.to_string()))
@@ -320,10 +333,7 @@ async fn export_data_buffer(
     for (row_index, row) in data.rows.iter().enumerate() {
         if let Some(callback) = &info.progress_callback {
             let progress = (row_index as f64) / (total_rows as f64);
-            let _ = callback.call1(
-                &wasm_bindgen::JsValue::NULL,
-                &wasm_bindgen::JsValue::from_f64(progress),
-            );
+            let _ = call_callback(callback, &wasm_bindgen::JsValue::from_f64(progress));
         }
 
         let mut data_with_children = Vec::new();
@@ -369,10 +379,7 @@ async fn export_data_buffer(
     }
 
     if let Some(callback) = &info.progress_callback {
-        let _ = callback.call1(
-            &wasm_bindgen::JsValue::NULL,
-            &wasm_bindgen::JsValue::from_f64(1.0),
-        );
+        let _ = call_callback(callback, &wasm_bindgen::JsValue::from_f64(1.0));
     }
 
     for (_, (pos, info)) in &column_positions_map {
@@ -442,8 +449,7 @@ async fn write_single_cell(
             let values: Vec<&str> = value.split(",").collect();
             for v in values.iter() {
                 let url_value = JsValue::from_str(v);
-                let result = fetcher
-                    .call1(&JsValue::NULL, &url_value)
+                let result = call_callback(fetcher, &url_value)
                     .map_err(|e| format!("Error calling image fetcher: {:?}", e))?;
                 let promise = js_sys::Promise::resolve(&result);
                 let result = JsFuture::from(promise)
