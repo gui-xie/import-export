@@ -1,14 +1,28 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-const pkgDir = resolve(process.cwd(), 'pkg');
+const targetDir = process.argv[2] ?? 'pkg';
+const pkgDir = resolve(process.cwd(), targetDir);
 const jsPath = resolve(pkgDir, 'imexport_wasm.js');
 const dtsPath = resolve(pkgDir, 'imexport_wasm.d.ts');
 const wasmPath = resolve(pkgDir, 'imexport_wasm_bg.wasm');
 
-const embeddedWasmBase64 = (await readFile(wasmPath)).toString('base64');
-const jsSource = await readFile(jsPath, 'utf8');
-const dtsSource = await readFile(dtsPath, 'utf8');
+async function readRequiredFile(path, description) {
+    try {
+        return await readFile(path, description === 'WASM binary' ? undefined : 'utf8');
+    } catch (error) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+            throw new Error(
+                `Missing ${description} at ${path}. Run wasm-pack build first and pass the correct output directory to finalize-pkg.mjs.`
+            );
+        }
+        throw error;
+    }
+}
+
+const embeddedWasmBase64 = (await readRequiredFile(wasmPath, 'WASM binary')).toString('base64');
+const jsSource = await readRequiredFile(jsPath, 'generated JavaScript wrapper');
+const dtsSource = await readRequiredFile(dtsPath, 'generated TypeScript declarations');
 
 const patchedInitBlock = `
 const embeddedWasmBase64 = '${embeddedWasmBase64}';
@@ -53,9 +67,9 @@ export { initSync, __wbg_init as default };`;
 const patchedJsSource = jsSource.replace(
     /async function __wbg_init\(module_or_path\) \{[\s\S]*?export \{ initSync, __wbg_init as default \};/,
     patchedInitBlock.trim()
-).replace(/Function\(/g, 'Callable(')
- .replace(/Function \{/g, 'Callable {')
- .replace(/'Function'/g, "'Callable'");
+).replace(/return `Function\(\$\{name\}\)`;/g, 'return `Callable(${name})`;')
+ .replace(/return 'Function';/g, "return 'Callable';")
+ .replace(/function: Function \{/g, 'function: Callable {');
 
 if (patchedJsSource === jsSource) {
     throw new Error('Failed to patch generated imexport_wasm.js init block.');
