@@ -82,12 +82,13 @@ Manual initialization accepts `source`, `bytes`, or `module` and throws a clear 
 
 - Primary target: browser ESM runtimes.
 - Required browser APIs: `Blob`, `FileReader`, `URL.createObjectURL`, and `atob`.
-- `fromExcel`, `toExcel`, and `generateExcelTemplate` can also be used in non-DOM runtimes when those browser-compatible globals are available.
+- `fromExcel`, `fromExcelDynamic`, `toExcel`, and `generateExcelTemplate` can also be used in non-DOM runtimes when those browser-compatible globals are available.
 - `initializeWasm` lets advanced users provide their own WASM source, bytes, or compiled module.
 
 ## Known limitations
 
 - Import validates worksheet headers strictly against the configured column names and order.
+- Use `fromExcelDynamic(...)` when you need schema-less import that returns `{ sheetName, headers, rows }`.
 - Date imports are returned as strings in `YYYY-MM-DD HH:mm:ss` form.
 - Empty imported `number` and `date` cells are normalized to `null`.
 - Grouped export data must match the configured parent/group hierarchy.

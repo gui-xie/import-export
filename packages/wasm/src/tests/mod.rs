@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use crate::{create_template_buffer, excel_structs::*, export_data_buffer, import_data_buffer};
+    use crate::{
+        create_template_buffer, excel_structs::*, export_data_buffer, import_data_buffer,
+        import_dynamic_data_buffer,
+    };
 
     use excel_column_data::*;
     use excel_data::*;
@@ -129,6 +132,71 @@ mod tests {
         let error = result.err().unwrap().to_string();
         assert!(error.contains("Header mismatch"));
         assert!(error.contains("expected 'Region'"));
+    }
+
+    #[tokio::test]
+    async fn import_pokemon_dynamic_success() {
+        let info = create_excel_info();
+        let data = ExcelData::new(vec![ExcelRowData::new(vec![
+            ExcelColumnData::new("number", "#001"),
+            ExcelColumnData::new("name", "Bulbasaur"),
+            ExcelColumnData::new("first_type", "Grass"),
+            ExcelColumnData::new("second_type", "Poison"),
+            ExcelColumnData::new("abilities", "Overgrow/Chlorophyll"),
+            ExcelColumnData::new("hp", "45"),
+            ExcelColumnData::new("attack", "49"),
+            ExcelColumnData::new("defense", "49"),
+            ExcelColumnData::new("sp_attack", "65"),
+            ExcelColumnData::new("sp_defense", "65"),
+            ExcelColumnData::new("speed", "45"),
+            ExcelColumnData::new("total", "318"),
+        ])]);
+        let excel_bytes = export_data_buffer(&info, &data).await.unwrap();
+
+        let result = import_dynamic_data_buffer(None, None, &excel_bytes);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(result.sheet_name, "FireRed Pokédex");
+        assert_eq!(
+            result.headers,
+            vec![
+                "Number", "Name", "First", "Second", "Abilities", "HP", "Attack", "Defense",
+                "Sp. Atk", "Sp. Def", "Speed", "Total"
+            ]
+        );
+        assert_eq!(result.rows.len(), 1);
+        assert_eq!(result.rows[0].columns[0].key, "Number");
+        assert_eq!(result.rows[0].columns[0].value, "#001");
+        assert_eq!(result.rows[0].columns[1].key, "Name");
+        assert_eq!(result.rows[0].columns[1].value, "Bulbasaur");
+    }
+
+    #[tokio::test]
+    async fn import_pokemon_dynamic_with_explicit_header_row_success() {
+        let info = create_excel_info().with_offset(2, 1).with_title("Pokemon");
+        let data = ExcelData::new(vec![ExcelRowData::new(vec![
+            ExcelColumnData::new("number", "#001"),
+            ExcelColumnData::new("name", "Bulbasaur"),
+            ExcelColumnData::new("first_type", "Grass"),
+            ExcelColumnData::new("second_type", "Poison"),
+            ExcelColumnData::new("abilities", "Overgrow/Chlorophyll"),
+            ExcelColumnData::new("hp", "45"),
+            ExcelColumnData::new("attack", "49"),
+            ExcelColumnData::new("defense", "49"),
+            ExcelColumnData::new("sp_attack", "65"),
+            ExcelColumnData::new("sp_defense", "65"),
+            ExcelColumnData::new("speed", "45"),
+            ExcelColumnData::new("total", "318"),
+        ])]);
+        let excel_bytes = export_data_buffer(&info, &data).await.unwrap();
+
+        let result = import_dynamic_data_buffer(None, Some(3), &excel_bytes);
+
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert_eq!(result.headers[0], "Number");
+        assert_eq!(result.rows[0].columns[0].value, "#001");
     }
 
     #[test]

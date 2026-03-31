@@ -128,6 +128,36 @@ test.describe('import-export core', () => {
     await expect(page.locator('#importError')).toHaveText('');
   });
 
+  test('supports dynamic import without a predefined schema', async ({ page }) => {
+    await page.goto('/examples/basic-browser.html');
+
+    const result = await page.evaluate(async () => {
+      const mod = await import('../dist/index.js');
+      const workbook = await mod.toExcel({
+        name: 'DynamicImport',
+        columns: [
+          { key: 'name', name: 'Name', dataType: 'text' },
+          { key: 'age', name: 'Age', dataType: 'number' },
+          { key: 'category', name: 'Category', dataType: 'text' }
+        ]
+      }, [
+        { name: 'Tom', age: 12, category: 'Cat' },
+        { name: 'Jerry', age: null, category: 'Mouse' }
+      ]);
+
+      return mod.fromExcelDynamic(workbook);
+    });
+
+    expect(result).toEqual({
+      sheetName: 'sheet1',
+      headers: ['Name', 'Age', 'Category'],
+      rows: [
+        { Name: 'Tom', Age: '12', Category: 'Cat' },
+        { Name: 'Jerry', Age: '', Category: 'Mouse' }
+      ]
+    });
+  });
+
   test('keeps existing exports stable and reports invalid manual initialization input clearly', async ({ page }) => {
     await page.goto('/examples/basic-browser.html');
 
@@ -137,6 +167,7 @@ test.describe('import-export core', () => {
         'importExcel',
         'exportExcel',
         'fromExcel',
+        'fromExcelDynamic',
         'toExcel',
         'downloadExcelTemplate',
         'generateExcelTemplate',
@@ -171,6 +202,7 @@ test.describe('import-export core', () => {
       ['importExcel', true],
       ['exportExcel', true],
       ['fromExcel', true],
+      ['fromExcelDynamic', true],
       ['toExcel', true],
       ['downloadExcelTemplate', true],
       ['generateExcelTemplate', true],

@@ -15,6 +15,7 @@ mod tests;
 
 pub use excel_structs::excel_column_data::ExcelColumnData;
 pub use excel_structs::excel_data::ExcelData;
+pub use excel_structs::dynamic_excel_data::DynamicExcelData;
 pub use excel_structs::excel_info::ExcelColumnInfo;
 pub use excel_structs::excel_info::ExcelInfo;
 pub use excel_structs::excel_row_data::ExcelRowData;
@@ -50,6 +51,16 @@ pub fn create_template(info: ExcelInfo) -> Result<Vec<u8>, JsError> {
 #[wasm_bindgen(js_name = importData)]
 pub fn import_data(info: ExcelInfo, excel_bytes: &[u8]) -> Result<ExcelData, JsError> {
     import_data_buffer(info, excel_bytes).map_err(|e| JsError::new(&e.to_string()))
+}
+
+#[wasm_bindgen(js_name = importDynamicData)]
+pub fn import_dynamic_data(
+    sheet_name: Option<String>,
+    header_row: Option<u32>,
+    excel_bytes: &[u8],
+) -> Result<DynamicExcelData, JsError> {
+    import_dynamic_data_buffer(sheet_name, header_row, excel_bytes)
+        .map_err(|e| JsError::new(&e.to_string()))
 }
 
 #[wasm_bindgen(js_name = exportData)]
@@ -217,6 +228,18 @@ fn format_value(data: &Data, data_type: &String) -> String {
     }
 }
 
+fn format_dynamic_value(data: &Data) -> String {
+    match data {
+        Data::Empty => "".to_string(),
+        Data::String(s) => s.clone(),
+        Data::Float(f) => f.to_string(),
+        Data::Int(i) => i.to_string(),
+        Data::Bool(b) => b.to_string(),
+        Data::DateTime(dt) => excel_to_date_string(dt.as_f64()),
+        _ => data.to_string(),
+    }
+}
+
 fn format_header_value(data: Option<&Data>) -> String {
     match data {
         Some(Data::Empty) => "".to_string(),
@@ -269,6 +292,152 @@ fn validate_headers(
     Ok(())
 }
 
+fn resolve_sheet_name(
+    workbook: &Xlsx<Cursor<&[u8]>>,
+    requested_sheet_name: Option<&str>,
+) -> Result<String, Box<dyn std::error::Error>> {
+    if let Some(sheet_name) = requested_sheet_name
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        if workbook
+            .sheet_names()
+            .iter()
+            .any(|candidate| candidate == sheet_name)
+        {
+            return Ok(sheet_name.to_string());
+        }
+    }
+
+    workbook.sheet_names().first().cloned().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, "Workbook contains no worksheets")
+            .into()
+    })
+}
+
+fn resolve_dynamic_header_row(
+    range: &calamine::Range<Data>,
+    header_row: Option<u32>,
+) -> Result<u32, Box<dyn std::error::Error>> {
+    let Some((range_start_y, range_start_x)) = range.start() else {
+        return Err(
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "Worksheet contains no cells")
+                .into(),
+        );
+    };
+    let Some((range_end_y, range_end_x)) = range.end() else {
+        return Err(
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "Worksheet contains no cells")
+                .into(),
+        );
+    };
+
+    if let Some(header_row) = header_row {
+        if header_row == 0 {
+            return Err("Dynamic import option 'headerRow' must be greater than or equal to 1".into());
+        }
+        let zero_based_row = header_row - 1;
+        if zero_based_row < range_start_y || zero_based_row > range_end_y {
+            return Err(format!(
+                "Dynamic import option 'headerRow' must point to a row within the used range. Received {}.",
+                header_row
+            )
+            .into());
+        }
+        return Ok(zero_based_row);
+    }
+
+    for row_index in range_start_y..=range_end_y {
+        let has_header = (range_start_x..=range_end_x).any(|column_index| {
+            !format_header_value(range.get_value((row_index, column_index))).is_empty()
+        });
+        if has_header {
+            return Ok(row_index);
+        }
+    }
+
+    Err("Dynamic import could not find a non-empty header row in the worksheet".into())
+}
+
+fn get_dynamic_headers(
+    range: &calamine::Range<Data>,
+    header_row: u32,
+) -> Result<Vec<(String, u32)>, Box<dyn std::error::Error>> {
+    let Some((_, range_start_x)) = range.start() else {
+        return Err(
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "Worksheet contains no cells")
+                .into(),
+        );
+    };
+    let Some((_, range_end_x)) = range.end() else {
+        return Err(
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "Worksheet contains no cells")
+                .into(),
+        );
+    };
+
+    let mut seen_headers = std::collections::HashSet::new();
+    let mut headers = Vec::new();
+
+    for column_index in range_start_x..=range_end_x {
+        let header = format_header_value(range.get_value((header_row, column_index)));
+        if header.is_empty() {
+            return Err(format!(
+                "Dynamic import requires non-empty header names. Found an empty header at {}.",
+                get_excel_cell_ref(column_index as u16, header_row)
+            )
+            .into());
+        }
+        if !seen_headers.insert(header.clone()) {
+            return Err(format!(
+                "Dynamic import requires unique header names. Duplicate header '{}' found at {}.",
+                header,
+                get_excel_cell_ref(column_index as u16, header_row)
+            )
+            .into());
+        }
+        headers.push((header, column_index));
+    }
+
+    Ok(headers)
+}
+
+fn get_dynamic_rows_data(
+    range: &calamine::Range<Data>,
+    header_row: u32,
+    headers: &[(String, u32)],
+) -> Vec<ExcelRowData> {
+    let Some((_, _)) = range.start() else {
+        return Vec::new();
+    };
+    let Some((range_end_y, _)) = range.end() else {
+        return Vec::new();
+    };
+    let first_data_row = header_row + 1;
+    if first_data_row > range_end_y {
+        return Vec::new();
+    }
+
+    (first_data_row..=range_end_y)
+        .map(|row_index| ExcelRowData {
+            columns: headers
+                .iter()
+                .map(|(header, column_index)| {
+                    let value = range
+                        .get_value((row_index, *column_index))
+                        .map(format_dynamic_value)
+                        .unwrap_or_default();
+                    ExcelColumnData {
+                        key: header.clone(),
+                        value,
+                        children: Vec::new(),
+                    }
+                })
+                .collect(),
+        })
+        .collect()
+}
+
 fn import_data_buffer(
     info: ExcelInfo,
     excel_bytes: &[u8],
@@ -276,22 +445,32 @@ fn import_data_buffer(
     let cursor = Cursor::new(excel_bytes);
     let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor)?;
     let mut excel_data = ExcelData { rows: Vec::new() };
-    let sheet_name = if workbook
-        .sheet_names()
-        .iter()
-        .any(|sheet_name| sheet_name == &info.sheet_name)
-    {
-        info.sheet_name.clone()
-    } else {
-        workbook.sheet_names().first().cloned().ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::InvalidData, "Workbook contains no worksheets")
-        })?
-    };
+    let sheet_name = resolve_sheet_name(&workbook, Some(info.sheet_name.as_str()))?;
     let range = workbook.worksheet_range(sheet_name.as_str())?;
     let column_positions = get_column_positions(&info);
     validate_headers(&info, &range, &column_positions, sheet_name.as_str())?;
     excel_data.rows = get_rows_data(&column_positions, &range);
     Ok(excel_data)
+}
+
+fn import_dynamic_data_buffer(
+    sheet_name: Option<String>,
+    header_row: Option<u32>,
+    excel_bytes: &[u8],
+) -> Result<DynamicExcelData, Box<dyn std::error::Error>> {
+    let cursor = Cursor::new(excel_bytes);
+    let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor)?;
+    let sheet_name = resolve_sheet_name(&workbook, sheet_name.as_deref())?;
+    let range = workbook.worksheet_range(sheet_name.as_str())?;
+    let header_row = resolve_dynamic_header_row(&range, header_row)?;
+    let headers = get_dynamic_headers(&range, header_row)?;
+    let rows = get_dynamic_rows_data(&range, header_row, &headers);
+
+    Ok(DynamicExcelData {
+        sheet_name,
+        headers: headers.into_iter().map(|(header, _)| header).collect(),
+        rows,
+    })
 }
 
 async fn export_data_buffer(
