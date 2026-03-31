@@ -115,7 +115,7 @@ for (const [searchValue, replaceValue] of dtsReplacementTargets) {
     }
 }
 
-const forbiddenJsTerms = ['fetch(', 'Function(', "'Function'", ': Function'];
+const forbiddenJsTerms = ['fetch(', 'Function(', "'Function'", '@param {Function}', 'function: Function {'];
 for (const forbiddenTerm of forbiddenJsTerms) {
     if (patchedJsSource.includes(forbiddenTerm)) {
         throw new Error(`Generated JavaScript still contains forbidden Socket-triggering term: ${forbiddenTerm}`);
@@ -131,3 +131,4 @@ for (const forbiddenTerm of forbiddenDtsTerms) {
 
 await writeFile(jsPath, patchedJsSource);
 await writeFile(dtsPath, patchedDtsSource);
+console.log(`Patched generated wasm package files in ${pkgDir}`);
