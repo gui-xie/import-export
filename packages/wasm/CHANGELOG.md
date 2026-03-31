@@ -4,8 +4,9 @@
 
 ### Patch Changes
 
-- Align the WASM package metadata for the `0.1.1` npm publish through GitHub Actions.
-- Update the Rust crate version and release-preparation documentation to match the published npm package version.
+- Add schema-less workbook import support through `importDynamicData`, returning detected headers and row records without requiring a predefined schema.
+- Support optional sheet selection and configurable header row resolution for dynamic imports, including fallback to the first matching worksheet/header row.
+- Normalize dynamic import cell values through the simplified formatter used by the new schema-less import flow.
 
 ## 0.1.0
 

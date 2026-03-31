@@ -4,8 +4,9 @@
 
 ### Patch Changes
 
-- Align the core package metadata and release notes for the `0.1.1` npm publish through GitHub Actions.
-- Update the release-preparation documentation to mark `0.1.1` as the next published version.
+- Add schema-less dynamic import APIs: `fromExcelDynamic(buffer, options?)` for caller-provided workbook bytes and `importExcelDynamic(options?)` for browser file uploads.
+- Return `{ sheetName, headers, rows }` from dynamic imports so workbooks can be read without defining `columns` ahead of time.
+- Support optional sheet selection and configurable header row handling for dynamic imports.
 - Updated dependencies
   - @senlinz/import-export-wasm@0.1.1
 
