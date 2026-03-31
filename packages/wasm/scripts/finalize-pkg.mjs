@@ -6,6 +6,8 @@ const pkgDir = resolve(process.cwd(), targetDir);
 const jsPath = resolve(pkgDir, 'imexport_wasm.js');
 const dtsPath = resolve(pkgDir, 'imexport_wasm.d.ts');
 const wasmPath = resolve(pkgDir, 'imexport_wasm_bg.wasm');
+const generatedPackageJsonPath = resolve(pkgDir, 'package.json');
+const sourcePackageJsonPath = resolve(process.cwd(), 'package.json');
 
 async function readRequiredFile(path, description) {
     try {
@@ -26,6 +28,12 @@ async function readRequiredFile(path, description) {
 const embeddedWasmBase64 = (await readRequiredFile(wasmPath, 'WASM binary')).toString('base64');
 const jsSource = await readRequiredFile(jsPath, 'generated JavaScript wrapper');
 const dtsSource = await readRequiredFile(dtsPath, 'generated TypeScript declarations');
+const generatedPackageJson = JSON.parse(
+    await readRequiredFile(generatedPackageJsonPath, 'generated package metadata')
+);
+const sourcePackageJson = JSON.parse(
+    await readRequiredFile(sourcePackageJsonPath, 'source package metadata')
+);
 
 const patchedInitBlock = `
 const embeddedWasmBase64 = '${embeddedWasmBase64}';
@@ -131,4 +139,15 @@ for (const forbiddenTerm of forbiddenDtsTerms) {
 
 await writeFile(jsPath, patchedJsSource);
 await writeFile(dtsPath, patchedDtsSource);
+await writeFile(
+    generatedPackageJsonPath,
+    `${JSON.stringify(
+        {
+            ...generatedPackageJson,
+            version: sourcePackageJson.version,
+        },
+        null,
+        2
+    )}\n`
+);
 console.log(`Patched generated wasm package files in ${pkgDir}`);
