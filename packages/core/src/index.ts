@@ -4,6 +4,7 @@ import { ExcelDefinition } from './ExcelDefinition';
 import type { DynamicExcelImportOptions, DynamicExcelImportResult } from './ExcelDefinition';
 import {
   importExcel,
+  importExcelDynamic,
   exportExcel,
   downloadExcelTemplate,
   fromExcel,
@@ -21,6 +22,7 @@ function getUtils() {
   ensureWasmInitialized();
   return {
     importExcel,
+    importExcelDynamic,
     exportExcel,
     downloadExcelTemplate,
     fromExcel,
@@ -33,6 +35,11 @@ function getUtils() {
 function _importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
   ensureWasmInitialized();
   return importExcel(definition);
+}
+
+function _importExcelDynamic(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult> {
+  ensureWasmInitialized();
+  return importExcelDynamic(options);
 }
 
 function _exportExcel<T>(definition: ExcelDefinition, data: T[]): Promise<void> {
@@ -70,6 +77,7 @@ export {
   getUtils,
   initializeWasm,
   _importExcel as importExcel,
+  _importExcelDynamic as importExcelDynamic,
   _exportExcel as exportExcel,
   _fromExcel as fromExcel,
   _fromExcelDynamic as fromExcelDynamic,

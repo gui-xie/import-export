@@ -250,6 +250,57 @@ async function _fromExcelDynamic(
   };
 }
 
+function readFileFromUpload<T>(load: (buffer: Uint8Array) => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    document.querySelector('#senlinzImportExportInput')?.remove();
+    const fileInput = document.createElement('input');
+    fileInput.id = 'senlinzImportExportInput';
+    fileInput.style.display = 'none';
+    fileInput.type = 'file';
+    fileInput.accept = '.xlsx,.xls,.xlsm,.xlsb,.xla,.xlam,.ods';
+    document.body.appendChild(fileInput);
+
+    const cleanup = () => {
+      fileInput.removeEventListener('change', fileHandler);
+      fileInput.remove();
+    };
+
+    const rejectWithError = (error: unknown) => {
+      cleanup();
+      reject(error instanceof Error ? error : new Error(String(error)));
+    };
+
+    fileInput.addEventListener('change', fileHandler);
+    fileInput.click();
+
+    function fileHandler(event: Event) {
+      const target = event.target as HTMLInputElement;
+      if (!target || !target.files || target.files.length === 0) {
+        return;
+      }
+      const file = target.files[0];
+      const reader = new FileReader();
+      reader.onerror = () => {
+        rejectWithError(reader.error ?? new Error('Failed to read import file.'));
+      };
+      reader.onabort = () => {
+        rejectWithError(new Error('Import file read was aborted.'));
+      };
+      reader.onload = async () => {
+        try {
+          const buffer = new Uint8Array(reader.result as ArrayBuffer);
+          const result = await load(buffer);
+          cleanup();
+          resolve(result);
+        } catch (error) {
+          rejectWithError(error);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  });
+}
+
 function isGroupedCellValue(value: unknown): value is GroupedCellValue {
   return typeof value === 'object' && value !== null && Array.isArray((value as GroupedCellValue).children);
 }
@@ -401,54 +452,11 @@ function toDatetimeString(date: Date | string) {
 }
 
 function importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
-  return new Promise<T[]>((resolve, reject) => {
-    document.querySelector('#senlinzImportExportInput')?.remove();
-    const fileInput = document.createElement('input');
-    fileInput.id = 'senlinzImportExportInput';
-    fileInput.style.display = 'none';
-    fileInput.type = 'file';
-    fileInput.accept = '.xlsx,.xls,.xlsm,.xlsb,.xla,.xlam,.ods';
-    document.body.appendChild(fileInput);
+  return readFileFromUpload((buffer) => _fromExcel<T>(definition, buffer));
+}
 
-    const cleanup = () => {
-      fileInput.removeEventListener('change', fileHandler);
-      fileInput.remove();
-    };
-
-    const rejectWithError = (error: unknown) => {
-      cleanup();
-      reject(error instanceof Error ? error : new Error(String(error)));
-    };
-
-    fileInput.addEventListener('change', fileHandler);
-    fileInput.click();
-
-    function fileHandler(event: Event) {
-      const target = event.target as HTMLInputElement;
-      if (!target || !target.files || target.files.length === 0) {
-        return;
-      }
-      const file = target.files[0];
-      const reader = new FileReader();
-      reader.onerror = () => {
-        rejectWithError(reader.error ?? new Error('Failed to read import file.'));
-      };
-      reader.onabort = () => {
-        rejectWithError(new Error('Import file read was aborted.'));
-      };
-      reader.onload = async () => {
-        try {
-          const buffer = new Uint8Array(reader.result as ArrayBuffer);
-          const items = await _fromExcel<T>(definition, buffer);
-          cleanup();
-          resolve(items);
-        } catch (error) {
-          rejectWithError(error);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
-  });
+function importExcelDynamic(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult> {
+  return readFileFromUpload((buffer) => _fromExcelDynamic(buffer, options));
 }
 
 async function exportExcel<T>(definition: ExcelDefinition, data: T[]) {
@@ -458,6 +466,7 @@ async function exportExcel<T>(definition: ExcelDefinition, data: T[]) {
 
 export {
   importExcel,
+  importExcelDynamic,
   exportExcel,
   downloadExcelTemplate,
   _fromExcel as fromExcel,

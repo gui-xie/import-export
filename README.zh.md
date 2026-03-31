@@ -82,12 +82,14 @@ await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:
 
 - 主要面向浏览器 ESM 运行时。
 - 依赖的浏览器 API：`Blob`、`FileReader`、`URL.createObjectURL`、`atob`。
-- 当运行时提供兼容的浏览器全局对象时，也可以在非 DOM 环境下使用 `fromExcel`、`toExcel`、`generateExcelTemplate`。
+- 当运行时提供兼容的浏览器全局对象时，也可以在非 DOM 环境下使用 `fromExcel`、`fromExcelDynamic`、`toExcel`、`generateExcelTemplate`。
+- `importExcelDynamic` 提供与 `fromExcelDynamic` 对应的浏览器文件选择导入能力。
 - `initializeWasm` 允许高级用户提供自己的 WASM source、bytes 或编译后的 module。
 
 ## 已知限制
 
 - 导入时会严格按照配置的列名和顺序校验表头。
+- 无 schema 导入时，可使用 `importExcelDynamic(...)`（浏览器上传）或 `fromExcelDynamic(...)`（已有字节数据）。
 - `date` 类型导入结果会返回 `YYYY-MM-DD HH:mm:ss` 格式的字符串。
 - 空的 `number` / `date` 单元格在导入后会被规范化为 `null`。
 - 分组导出数据必须与配置的父子层级保持一致。
