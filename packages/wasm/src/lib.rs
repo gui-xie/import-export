@@ -210,12 +210,12 @@ fn excel_to_date_string(excel_date: f64) -> String {
     }
 }
 
-fn format_value(data: &Data, data_type: &String) -> String {
+fn format_cell_value(data: &Data, treat_float_as_date: bool) -> String {
     match data {
         Data::Empty => "".to_string(),
         Data::String(s) => s.clone(),
         Data::Float(f) => {
-            if data_type.eq_ignore_ascii_case("date") {
+            if treat_float_as_date {
                 excel_to_date_string(*f)
             } else {
                 f.to_string()
@@ -228,16 +228,12 @@ fn format_value(data: &Data, data_type: &String) -> String {
     }
 }
 
+fn format_value(data: &Data, data_type: &String) -> String {
+    format_cell_value(data, data_type.eq_ignore_ascii_case("date"))
+}
+
 fn format_dynamic_value(data: &Data) -> String {
-    match data {
-        Data::Empty => "".to_string(),
-        Data::String(s) => s.clone(),
-        Data::Float(f) => f.to_string(),
-        Data::Int(i) => i.to_string(),
-        Data::Bool(b) => b.to_string(),
-        Data::DateTime(dt) => excel_to_date_string(dt.as_f64()),
-        _ => data.to_string(),
-    }
+    format_cell_value(data, false)
 }
 
 fn format_header_value(data: Option<&Data>) -> String {
@@ -416,9 +412,9 @@ fn get_dynamic_rows_data(
     header_row: u32,
     headers: &[(String, u32)],
 ) -> Vec<ExcelRowData> {
-    let Some((_, _)) = range.start() else {
+    if range.start().is_none() {
         return Vec::new();
-    };
+    }
     let Some((range_end_y, _)) = range.end() else {
         return Vec::new();
     };
