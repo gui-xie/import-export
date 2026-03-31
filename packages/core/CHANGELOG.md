@@ -1,5 +1,15 @@
 # @senlinz/import-export
 
+## 0.1.1
+
+### Patch Changes
+
+- Add schema-less dynamic import APIs: `fromExcelDynamic(buffer, options?)` for caller-provided workbook bytes and `importExcelDynamic(options?)` for browser file uploads.
+- Return `{ sheetName, headers, rows }` from dynamic imports so workbooks can be read without defining `columns` ahead of time.
+- Support optional sheet selection and configurable header row handling for dynamic imports.
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.1
+
 ## 0.1.0
 
 First stable release of the browser-first Excel import/export package.

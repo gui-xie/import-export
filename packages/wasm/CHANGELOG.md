@@ -1,5 +1,13 @@
 # @senlinz/import-export-wasm
 
+## 0.1.1
+
+### Patch Changes
+
+- Add schema-less workbook import support through `importDynamicData`, returning detected headers and row records without requiring a predefined schema.
+- Support optional sheet selection and configurable header row resolution for dynamic imports, including fallback to the first matching worksheet/header row.
+- Normalize dynamic import cell values through the simplified formatter used by the new schema-less import flow.
+
 ## 0.1.0
 
 First stable release of the WebAssembly workbook package.
