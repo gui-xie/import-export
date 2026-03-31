@@ -103,7 +103,7 @@ Manual initialization accepts `source`, `bytes`, or `module` and throws a clear 
 
 ## Release preparation
 
-- `0.1.0` is prepared for the first stable release and should publish to npm with the default `latest` tag through GitHub Actions.
+- `0.1.1` is prepared as the next npm release and should publish to npm with the default `latest` tag through GitHub Actions.
 - Verify packed artifacts before publishing:
 
 ```bash

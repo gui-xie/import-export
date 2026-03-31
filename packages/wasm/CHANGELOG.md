@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 0.1.1
+
+### Patch Changes
+
+- Prepare the next npm release for GitHub Actions publishing.
+
 ## 0.1.0
 
 First stable release of the WebAssembly workbook package.

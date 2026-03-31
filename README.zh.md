@@ -103,7 +103,7 @@ await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:
 
 ## 发布准备
 
-- `0.1.0` 已准备好作为首个稳定版本发布，通过 GitHub Actions 发布到 npm 时应使用默认的 `latest` 标签。
+- `0.1.1` 已准备好作为下一个 npm 版本发布，通过 GitHub Actions 发布到 npm 时应使用默认的 `latest` 标签。
 - 发布前请先验证打包产物：
 
 ```bash

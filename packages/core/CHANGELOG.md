@@ -1,5 +1,13 @@
 # @senlinz/import-export
 
+## 0.1.1
+
+### Patch Changes
+
+- Prepare the next npm release for GitHub Actions publishing.
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.1
+
 ## 0.1.0
 
 First stable release of the browser-first Excel import/export package.
