@@ -9,7 +9,10 @@ const wasmPath = resolve(pkgDir, 'imexport_wasm_bg.wasm');
 
 async function readRequiredFile(path, description) {
     try {
-        return await readFile(path, description === 'WASM binary' ? undefined : 'utf8');
+        return await readFile(
+            path,
+            description === 'WASM binary' ? undefined : { encoding: 'utf8' }
+        );
     } catch (error) {
         if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
             throw new Error(
@@ -73,10 +76,12 @@ if (initStartIndex === -1 || initExportIndex === -1) {
     throw new Error('Failed to find the generated init block in imexport_wasm.js. Check the wasm-bindgen output before publishing.');
 }
 
-let patchedJsSource =
+const initPatchedJsSource =
     jsSource.slice(0, initStartIndex) +
     patchedInitBlock.trim() +
     jsSource.slice(initExportIndex + initExport.length);
+
+let patchedJsSource = initPatchedJsSource;
 
 const jsReplacementTargets = [
     ['return `Function(${name})`;', 'return `Callable(${name})`;'],
@@ -90,7 +95,7 @@ for (const [searchValue, replaceValue] of jsReplacementTargets) {
     }
 }
 
-if (patchedJsSource === jsSource) {
+if (initPatchedJsSource === jsSource) {
     throw new Error('Failed to patch generated imexport_wasm.js init block.');
 }
 
