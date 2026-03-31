@@ -51,7 +51,7 @@ export function callCallback(callback, arg) {
 }
 ")]
 extern "C" {
-    #[wasm_bindgen(js_name = callCallback)]
+    #[wasm_bindgen(catch, js_name = callCallback)]
     fn call_callback(callback: &JsValue, arg: &JsValue) -> Result<JsValue, JsValue>;
 }
 
