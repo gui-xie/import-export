@@ -13,9 +13,9 @@ use wasm_bindgen_futures::JsFuture;
 mod excel_structs;
 mod tests;
 
+pub use excel_structs::dynamic_excel_data::DynamicExcelData;
 pub use excel_structs::excel_column_data::ExcelColumnData;
 pub use excel_structs::excel_data::ExcelData;
-pub use excel_structs::dynamic_excel_data::DynamicExcelData;
 pub use excel_structs::excel_info::ExcelColumnInfo;
 pub use excel_structs::excel_info::ExcelInfo;
 pub use excel_structs::excel_row_data::ExcelRowData;
@@ -310,8 +310,11 @@ fn resolve_sheet_name(
     }
 
     workbook.sheet_names().first().cloned().ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::InvalidData, "Workbook contains no worksheets")
-            .into()
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Workbook contains no worksheets",
+        )
+        .into()
     })
 }
 
@@ -320,21 +323,25 @@ fn resolve_dynamic_header_row(
     header_row: Option<u32>,
 ) -> Result<u32, Box<dyn std::error::Error>> {
     let Some((range_start_y, range_start_x)) = range.start() else {
-        return Err(
-            std::io::Error::new(std::io::ErrorKind::InvalidData, "Worksheet contains no cells")
-                .into(),
-        );
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Worksheet contains no cells",
+        )
+        .into());
     };
     let Some((range_end_y, range_end_x)) = range.end() else {
-        return Err(
-            std::io::Error::new(std::io::ErrorKind::InvalidData, "Worksheet contains no cells")
-                .into(),
-        );
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Worksheet contains no cells",
+        )
+        .into());
     };
 
     if let Some(header_row) = header_row {
         if header_row == 0 {
-            return Err("Dynamic import option 'headerRow' must be greater than or equal to 1".into());
+            return Err(
+                "Dynamic import option 'headerRow' must be greater than or equal to 1".into(),
+            );
         }
         let zero_based_row = header_row - 1;
         if zero_based_row < range_start_y || zero_based_row > range_end_y {
@@ -364,16 +371,18 @@ fn get_dynamic_headers(
     header_row: u32,
 ) -> Result<Vec<(String, u32)>, Box<dyn std::error::Error>> {
     let Some((_, range_start_x)) = range.start() else {
-        return Err(
-            std::io::Error::new(std::io::ErrorKind::InvalidData, "Worksheet contains no cells")
-                .into(),
-        );
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Worksheet contains no cells",
+        )
+        .into());
     };
     let Some((_, range_end_x)) = range.end() else {
-        return Err(
-            std::io::Error::new(std::io::ErrorKind::InvalidData, "Worksheet contains no cells")
-                .into(),
-        );
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Worksheet contains no cells",
+        )
+        .into());
     };
 
     let mut seen_headers = std::collections::HashSet::new();
@@ -897,11 +906,14 @@ fn find_column<'a>(
     info: &'a ExcelInfo,
     key: &str,
 ) -> Result<&'a ExcelColumnInfo, Box<dyn std::error::Error>> {
-    info.columns.iter().find(|column| column.key == key).ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            format!("Column key '{}' is missing in definition", key),
-        )
-        .into()
-    })
+    info.columns
+        .iter()
+        .find(|column| column.key == key)
+        .ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Column key '{}' is missing in definition", key),
+            )
+            .into()
+        })
 }

@@ -161,8 +161,18 @@ mod tests {
         assert_eq!(
             result.headers,
             vec![
-                "Number", "Name", "First", "Second", "Abilities", "HP", "Attack", "Defense",
-                "Sp. Atk", "Sp. Def", "Speed", "Total"
+                "Number",
+                "Name",
+                "First",
+                "Second",
+                "Abilities",
+                "HP",
+                "Attack",
+                "Defense",
+                "Sp. Atk",
+                "Sp. Def",
+                "Speed",
+                "Total"
             ]
         );
         assert_eq!(result.rows.len(), 1);
@@ -322,7 +332,9 @@ mod tests {
             "senlinz",
             "2024-11-01T08:00:00",
         );
-        let data = ExcelData::new(vec![ExcelRowData::new(vec![ExcelColumnData::new("hp", "abc")])]);
+        let data = ExcelData::new(vec![ExcelRowData::new(vec![ExcelColumnData::new(
+            "hp", "abc",
+        )])]);
 
         let result = export_data_buffer(&info, &data).await;
 

@@ -145,7 +145,8 @@ impl ExcelInfo {
                         column.data_group
                     );
                 }
-                if !column.data_group_parent.is_empty() && column.data_group == column.data_group_parent
+                if !column.data_group_parent.is_empty()
+                    && column.data_group == column.data_group_parent
                 {
                     panic!(
                         "Invalid definition: column '{}' cannot reference its own dataGroup '{}' as dataGroupParent.",

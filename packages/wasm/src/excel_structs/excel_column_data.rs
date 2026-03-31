@@ -1,6 +1,6 @@
+use super::excel_row_data::ExcelRowData;
 use std::fmt;
 use wasm_bindgen::prelude::*;
-use super::excel_row_data::ExcelRowData;
 
 #[wasm_bindgen(getter_with_clone)]
 #[derive(Clone)]
