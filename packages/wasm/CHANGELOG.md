@@ -4,7 +4,8 @@
 
 ### Patch Changes
 
-- Prepare the next npm release for GitHub Actions publishing.
+- Align the WASM package metadata for the `0.1.1` npm publish through GitHub Actions.
+- Update the Rust crate version and release-preparation documentation to match the published npm package version.
 
 ## 0.1.0
 

@@ -4,7 +4,8 @@
 
 ### Patch Changes
 
-- Prepare the next npm release for GitHub Actions publishing.
+- Align the core package metadata and release notes for the `0.1.1` npm publish through GitHub Actions.
+- Update the release-preparation documentation to mark `0.1.1` as the next published version.
 - Updated dependencies
   - @senlinz/import-export-wasm@0.1.1
 
