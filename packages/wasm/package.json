@@ -2,8 +2,16 @@
   "name": "@senlinz/import-export-wasm",
   "version": "0.1.0",
   "description": "Rust WebAssembly for import/export excel files",
-  "main": "pkg/imexport_wasm.js",
+  "type": "module",
   "types": "pkg/imexport_wasm.d.ts",
+  "exports": {
+    ".": {
+      "types": "./pkg/imexport_wasm.d.ts",
+      "import": "./pkg/imexport_wasm.js",
+      "default": "./pkg/imexport_wasm.js"
+    },
+    "./pkg/imexport_wasm_bg.wasm": "./pkg/imexport_wasm_bg.wasm"
+  },
   "scripts": {
     "build": "wasm-pack build --release --target web",
     "publish-dry-run": "pnpm publish --dry-run --no-git-checks",
