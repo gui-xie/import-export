@@ -64,24 +64,51 @@ async function __wbg_init(module_or_path) {
 
 export { initSync, __wbg_init as default };`;
 
-const patchedJsSource = jsSource.replace(
-    /async function __wbg_init\(module_or_path\) \{[\s\S]*?export \{ initSync, __wbg_init as default \};/,
-    patchedInitBlock.trim()
-).replace(/return `Function\(\$\{name\}\)`;/g, 'return `Callable(${name})`;')
- .replace(/return 'Function';/g, "return 'Callable';")
- .replace(/function: Function \{/g, 'function: Callable {');
+const initStart = 'async function __wbg_init(module_or_path) {';
+const initExport = 'export { initSync, __wbg_init as default };';
+const initStartIndex = jsSource.indexOf(initStart);
+const initExportIndex = jsSource.indexOf(initExport, initStartIndex);
+
+if (initStartIndex === -1 || initExportIndex === -1) {
+    throw new Error('Failed to find the generated init block in imexport_wasm.js. Check the wasm-bindgen output before publishing.');
+}
+
+let patchedJsSource =
+    jsSource.slice(0, initStartIndex) +
+    patchedInitBlock.trim() +
+    jsSource.slice(initExportIndex + initExport.length);
+
+const jsReplacementTargets = [
+    ['return `Function(${name})`;', 'return `Callable(${name})`;'],
+    ["return 'Function';", "return 'Callable';"],
+    ['function: Function {', 'function: Callable {'],
+];
+
+for (const [searchValue, replaceValue] of jsReplacementTargets) {
+    if (patchedJsSource.includes(searchValue)) {
+        patchedJsSource = patchedJsSource.replaceAll(searchValue, replaceValue);
+    }
+}
 
 if (patchedJsSource === jsSource) {
     throw new Error('Failed to patch generated imexport_wasm.js init block.');
 }
 
-const patchedDtsSource = dtsSource
-    .replace(/withImageFetcher\(fetcher: Function\): ExcelInfo;/g, 'withImageFetcher(fetcher: any): ExcelInfo;')
-    .replace(/withProgressCallback\(callback: Function\): ExcelInfo;/g, 'withProgressCallback(callback: any): ExcelInfo;')
-    .replace(
-        /export type InitInput = RequestInfo \| URL \| Response \| BufferSource \| WebAssembly\.Module;/g,
-        'export type InitInput = Response | BufferSource | WebAssembly.Module;'
-    );
+let patchedDtsSource = dtsSource;
+const dtsReplacementTargets = [
+    ['withImageFetcher(fetcher: Function): ExcelInfo;', 'withImageFetcher(fetcher: any): ExcelInfo;'],
+    ['withProgressCallback(callback: Function): ExcelInfo;', 'withProgressCallback(callback: any): ExcelInfo;'],
+    [
+        'export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;',
+        'export type InitInput = Response | BufferSource | WebAssembly.Module;',
+    ],
+];
+
+for (const [searchValue, replaceValue] of dtsReplacementTargets) {
+    if (patchedDtsSource.includes(searchValue)) {
+        patchedDtsSource = patchedDtsSource.replaceAll(searchValue, replaceValue);
+    }
+}
 
 await writeFile(jsPath, patchedJsSource);
 await writeFile(dtsPath, patchedDtsSource);
