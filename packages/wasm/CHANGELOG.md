@@ -1,5 +1,15 @@
 # @senlinz/import-export-wasm
 
+## 0.2.0
+
+### Minor Changes
+
+- Version the wasm package for the Socket hardening release.
+
+  The published package no longer allows network-based initialization inputs and now
+  uses sanitized generated bindings, so the release should not ship under the
+  previous version.
+
 ## 0.1.0
 
 First stable release of the WebAssembly workbook package.

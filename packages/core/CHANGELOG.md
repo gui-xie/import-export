@@ -1,5 +1,12 @@
 # @senlinz/import-export
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.2.0
+
 ## 0.1.0
 
 First stable release of the browser-first Excel import/export package.
