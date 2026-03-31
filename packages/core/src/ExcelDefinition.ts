@@ -9,7 +9,7 @@ type ExcelColumnDataType = "text" | "number" | "date" | "image";
  * - Node.js can use `fromExcel`, `toExcel`, and `generateExcelTemplate` when compatible browser globals are available.
  *
  * Known limitations:
- * - Import validates headers strictly against `columns[].name` order and position.
+ * - Schema-based import validates headers strictly against `columns[].name` order and position.
  * - Grouped export expects parent columns and data groups to be declared before children.
  * - Image export requires `imageFetcher`.
  */
@@ -103,4 +103,27 @@ interface ExcelCellFormatDefinition {
     borderColor?: string
 }
 
-export { ExcelDefinition, ExcelColumnDefinition, ExcelCellFormatDefinition, ExcelColumnDataType };
+interface DynamicExcelImportOptions {
+    /** Preferred worksheet name. Falls back to the first sheet when omitted or missing. */
+    sheetName?: string,
+    /** 1-based worksheet row number to use as the header row. Defaults to the first non-empty row. */
+    headerRow?: number
+}
+
+interface DynamicExcelImportResult {
+    /** Actual worksheet name that was imported. */
+    sheetName: string,
+    /** Header labels read from the worksheet in left-to-right order. */
+    headers: string[],
+    /** Row data keyed by the imported header labels. */
+    rows: Record<string, string>[]
+}
+
+export {
+    ExcelDefinition,
+    ExcelColumnDefinition,
+    ExcelCellFormatDefinition,
+    ExcelColumnDataType,
+    DynamicExcelImportOptions,
+    DynamicExcelImportResult
+};

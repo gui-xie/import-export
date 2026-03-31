@@ -15,7 +15,7 @@ pnpm add @senlinz/import-export
 ### Default mode (recommended)
 
 - No setup required.
-- `importExcel`, `exportExcel`, `fromExcel`, `toExcel`, `downloadExcelTemplate`, and `generateExcelTemplate` automatically initialize the bundled WASM runtime.
+- `importExcel`, `importExcelDynamic`, `exportExcel`, `fromExcel`, `fromExcelDynamic`, `toExcel`, `downloadExcelTemplate`, and `generateExcelTemplate` automatically initialize the bundled WASM runtime.
 - Best for most browser applications.
 
 ### Advanced mode
@@ -57,6 +57,42 @@ If you provide invalid manual input, `initializeWasm(...)` throws a clear error 
 - `isHeaderFreeze` - freezes the header area so column labels stay visible while scrolling
 - `progressCallback` - progress hook for long-running import/export work
 - `imageFetcher` - required resolver for `image` columns during export
+
+### Schema-less import
+
+Use `importExcelDynamic(options?)` when you want to open the browser file picker without defining `columns` ahead of time.
+
+```ts
+import { importExcelDynamic } from '@senlinz/import-export';
+
+const result = await importExcelDynamic({
+  sheetName: 'sheet1',
+  headerRow: 1,
+});
+
+console.log(result.headers);
+console.log(result.rows);
+```
+
+Use `fromExcelDynamic(buffer, options?)` when you want to read caller-provided workbook bytes without defining `columns` ahead of time.
+
+```ts
+import { fromExcelDynamic } from '@senlinz/import-export';
+
+const result = await fromExcelDynamic(fileBytes, {
+  sheetName: 'sheet1',
+  headerRow: 1,
+});
+
+console.log(result.headers);
+console.log(result.rows);
+```
+
+- `importExcelDynamic(...)` depends on DOM/browser file upload APIs.
+- `sheetName` is optional and falls back to the first worksheet when missing.
+- `headerRow` is optional, 1-based, and defaults to the first non-empty row in the selected sheet.
+- The result shape is `{ sheetName, headers, rows }`.
+- Dynamic import requires non-empty, unique header names in the selected header row.
 
 ### Stable column fields
 
@@ -114,6 +150,7 @@ const rows = await importExcel(definition);
 - Empty imported `number` and `date` cells are returned as `null`.
 - Imported `date` values are returned as formatted strings.
 - Unknown or malformed schemas fail fast before any workbook operation starts.
+- Use `importExcelDynamic(...)` for browser uploads without a schema, or `fromExcelDynamic(...)` when you already have workbook bytes.
 
 ## Export behavior
 
@@ -138,8 +175,9 @@ These advanced features are supported and considered part of the public API:
 ## Browser/runtime support
 
 - Browser ESM runtimes are the primary target.
-- `downloadExcelTemplate`, `exportExcel`, and `importExcel` require DOM/browser APIs.
+- `downloadExcelTemplate`, `exportExcel`, `importExcel`, and `importExcelDynamic` require DOM/browser APIs.
 - `fromExcel`, `toExcel`, and `generateExcelTemplate` can be used in other runtimes when browser-compatible globals are available.
+- `fromExcelDynamic` can also be used in other runtimes when browser-compatible globals are available.
 - `initializeWasm` can be used to pre-initialize the runtime with caller-managed `source`, `bytes`, or `module`.
 
 ## Examples

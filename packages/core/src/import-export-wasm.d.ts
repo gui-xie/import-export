@@ -68,9 +68,18 @@ declare module '@senlinz/import-export-wasm' {
     constructor(rows: ExcelRowData[]);
   }
 
+  export class DynamicExcelData {
+    sheet_name: string;
+    headers: string[];
+    rows: ExcelRowData[];
+
+    constructor(sheet_name: string, headers: string[], rows: ExcelRowData[]);
+  }
+
   export function initSync(input: { module: BufferSource | WebAssembly.Module }): void;
   export function createTemplate(info: ExcelInfo): Uint8Array;
   export function importData(info: ExcelInfo, buffer: Uint8Array): ExcelData;
+  export function importDynamicData(sheetName: string | undefined, headerRow: number | undefined, buffer: Uint8Array): DynamicExcelData;
   export function exportData(info: ExcelInfo, data: ExcelData): Uint8Array;
 }
 

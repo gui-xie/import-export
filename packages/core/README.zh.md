@@ -15,7 +15,7 @@ pnpm add @senlinz/import-export
 ### 默认模式（推荐）
 
 - 无需额外初始化。
-- `importExcel`、`exportExcel`、`fromExcel`、`toExcel`、`downloadExcelTemplate`、`generateExcelTemplate` 会自动初始化内置 WASM 运行时。
+- `importExcel`、`importExcelDynamic`、`exportExcel`、`fromExcel`、`fromExcelDynamic`、`toExcel`、`downloadExcelTemplate`、`generateExcelTemplate` 会自动初始化内置 WASM 运行时。
 - 适合绝大多数浏览器场景。
 
 ### 高级模式
@@ -107,6 +107,35 @@ await exportExcel(definition, [
 const rows = await importExcel(definition);
 ```
 
+## 动态导入
+
+当你不想预先定义 `columns`，并希望直接使用浏览器文件选择框时，可使用 `importExcelDynamic(options?)`。
+
+```ts
+import { importExcelDynamic } from '@senlinz/import-export';
+
+const result = await importExcelDynamic({
+  sheetName: 'sheet1',
+  headerRow: 1,
+});
+```
+
+当你已经拿到工作簿字节数据时，可继续使用 `fromExcelDynamic(buffer, options?)`。
+
+```ts
+import { fromExcelDynamic } from '@senlinz/import-export';
+
+const result = await fromExcelDynamic(fileBytes, {
+  sheetName: 'sheet1',
+  headerRow: 1,
+});
+```
+
+- `importExcelDynamic(...)` 依赖 DOM / 浏览器文件上传 API。
+- `sheetName` 可选，未提供或不存在时会回退到第一个工作表。
+- `headerRow` 可选，使用从 `1` 开始的行号，默认会自动选择首个非空行。
+- 返回值结构为 `{ sheetName, headers, rows }`。
+
 ## 导入行为
 
 - 表头必须与 `columns[].name` 完全一致。
@@ -114,6 +143,7 @@ const rows = await importExcel(definition);
 - 空的 `number` / `date` 单元格导入后返回 `null`。
 - `date` 列导入后返回格式化字符串。
 - 非法或不完整的 schema 会在读取工作簿前立即失败。
+- 无 schema 导入时，可使用 `importExcelDynamic(...)`（浏览器上传）或 `fromExcelDynamic(...)`（字节缓冲）。
 
 ## 导出行为
 
@@ -138,8 +168,8 @@ const rows = await importExcel(definition);
 ## 浏览器 / 运行时支持
 
 - 主要面向浏览器 ESM 运行时。
-- `downloadExcelTemplate`、`exportExcel`、`importExcel` 依赖 DOM / 浏览器 API。
-- 当运行时提供兼容的浏览器全局对象时，也可以使用 `fromExcel`、`toExcel`、`generateExcelTemplate`。
+- `downloadExcelTemplate`、`exportExcel`、`importExcel`、`importExcelDynamic` 依赖 DOM / 浏览器 API。
+- 当运行时提供兼容的浏览器全局对象时，也可以使用 `fromExcel`、`fromExcelDynamic`、`toExcel`、`generateExcelTemplate`。
 - `initializeWasm` 可用于使用调用方提供的 `source`、`bytes` 或 `module` 预初始化运行时。
 
 ## 示例

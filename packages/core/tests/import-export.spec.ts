@@ -128,6 +128,77 @@ test.describe('import-export core', () => {
     await expect(page.locator('#importError')).toHaveText('');
   });
 
+  test('supports dynamic import without a predefined schema', async ({ page }) => {
+    await page.goto('/examples/basic-browser.html');
+
+    const result = await page.evaluate(async () => {
+      const mod = await import('../dist/index.js');
+      const workbook = await mod.toExcel({
+        name: 'DynamicImport',
+        columns: [
+          { key: 'name', name: 'Name', dataType: 'text' },
+          { key: 'age', name: 'Age', dataType: 'number' },
+          { key: 'category', name: 'Category', dataType: 'text' }
+        ]
+      }, [
+        { name: 'Tom', age: 12, category: 'Cat' },
+        { name: 'Jerry', age: null, category: 'Mouse' }
+      ]);
+
+      return mod.fromExcelDynamic(workbook);
+    });
+
+    expect(result).toEqual({
+      sheetName: 'sheet1',
+      headers: ['Name', 'Age', 'Category'],
+      rows: [
+        { Name: 'Tom', Age: '12', Category: 'Cat' },
+        { Name: 'Jerry', Age: '', Category: 'Mouse' }
+      ]
+    });
+  });
+
+  test('supports browser-based dynamic import without a predefined schema', async ({ page }) => {
+    await page.goto('/examples/basic-browser.html');
+    fs.mkdirSync(downloadPath, { recursive: true });
+    const filePath = path.join(downloadPath, 'DynamicImportUpload.xlsx');
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#btnExport')
+    ]);
+    await download.saveAs(filePath);
+
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.evaluate(async () => {
+        const mod = await import('../dist/index.js');
+        (window as typeof window & { dynamicImportPromise?: Promise<unknown> }).dynamicImportPromise = mod.importExcelDynamic({
+          sheetName: 'sheet1',
+          headerRow: 1,
+        });
+      })
+    ]);
+    await chooser.setFiles(filePath);
+
+    const result = await page.evaluate(async () => {
+      const promise = (window as typeof window & { dynamicImportPromise?: Promise<unknown> }).dynamicImportPromise;
+      if (!promise) {
+        throw new Error('Dynamic import promise was not created.');
+      }
+      return promise;
+    });
+
+    expect(result).toEqual({
+      sheetName: 'sheet1',
+      headers: ['Name', 'Age', 'Birthday', 'Category', 'Image'],
+      rows: [
+        { Name: 'Tom', Age: '12', Birthday: '2024-11-01 00:00:00', Category: 'Cat', Image: '' },
+        { Name: 'Jerry', Age: '', Birthday: '', Category: 'Mouse', Image: '' }
+      ]
+    });
+  });
+
   test('keeps existing exports stable and reports invalid manual initialization input clearly', async ({ page }) => {
     await page.goto('/examples/basic-browser.html');
 
@@ -135,8 +206,10 @@ test.describe('import-export core', () => {
       const mod = await import('../dist/index.js');
       const exportNames = [
         'importExcel',
+        'importExcelDynamic',
         'exportExcel',
         'fromExcel',
+        'fromExcelDynamic',
         'toExcel',
         'downloadExcelTemplate',
         'generateExcelTemplate',
@@ -169,8 +242,10 @@ test.describe('import-export core', () => {
     expect(result.bundledWasmSourceType).toBe('string');
     expect(result.exportPresence).toEqual([
       ['importExcel', true],
+      ['importExcelDynamic', true],
       ['exportExcel', true],
       ['fromExcel', true],
+      ['fromExcelDynamic', true],
       ['toExcel', true],
       ['downloadExcelTemplate', true],
       ['generateExcelTemplate', true],
