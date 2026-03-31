@@ -23,6 +23,7 @@
     "pkg/imexport_wasm.bg.wasm.d.ts",
     "pkg/imexport_wasm.js",
     "pkg/imexport_wasm.d.ts",
+    "pkg/snippets/**",
     "README.md",
     "README.zh.md"
   ],

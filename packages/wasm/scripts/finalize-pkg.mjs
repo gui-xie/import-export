@@ -54,6 +54,7 @@ const patchedJsSource = jsSource.replace(
     /async function __wbg_init\(module_or_path\) \{[\s\S]*?export \{ initSync, __wbg_init as default \};/,
     patchedInitBlock.trim()
 ).replace(/Function\(/g, 'Callable(')
+ .replace(/Function \{/g, 'Callable {')
  .replace(/'Function'/g, "'Callable'");
 
 if (patchedJsSource === jsSource) {
