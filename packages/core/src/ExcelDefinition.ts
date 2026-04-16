@@ -103,11 +103,16 @@ interface ExcelCellFormatDefinition {
     borderColor?: string
 }
 
-interface DynamicExcelImportOptions {
+interface DynamicExcelImportOptions<TKey extends string = string> {
     /** Preferred worksheet name. Falls back to the first sheet when omitted or missing. */
     sheetName?: string,
     /** 1-based worksheet row number to use as the header row. Defaults to the first non-empty row. */
-    headerRow?: number
+    headerRow?: number,
+    /**
+     * Optional expected headers used to validate the imported worksheet and narrow the result type.
+     * When provided, the imported headers must match exactly and in order.
+     */
+    expectedHeaders?: readonly TKey[]
 }
 
 type DynamicExcelImportRow<TKey extends string = string> = Record<TKey, string>;

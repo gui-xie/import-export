@@ -219,17 +219,51 @@ function getDynamicItems<TKey extends string = string>(data: DynamicExcelData): 
   });
 }
 
-function normalizeDynamicImportOptions(options: DynamicExcelImportOptions = {}): DynamicExcelImportOptions {
+function normalizeDynamicImportOptions<TKey extends string = string>(options: DynamicExcelImportOptions<TKey> = {}): DynamicExcelImportOptions<TKey> {
   if (options.headerRow !== undefined) {
     if (!Number.isInteger(options.headerRow) || options.headerRow < 1) {
       throw new ValidationError("Dynamic import option 'headerRow' must be an integer greater than or equal to 1.");
+    }
+  }
+  if (options.expectedHeaders !== undefined) {
+    if (!Array.isArray(options.expectedHeaders) || options.expectedHeaders.length === 0) {
+      throw new ValidationError("Dynamic import option 'expectedHeaders' must be a non-empty string array when provided.");
+    }
+    const knownHeaders = new Set<string>();
+    for (const header of options.expectedHeaders) {
+      if (typeof header !== 'string' || !header.trim()) {
+        throw new ValidationError("Dynamic import option 'expectedHeaders' must only contain non-empty strings.");
+      }
+      if (knownHeaders.has(header)) {
+        throw new ValidationError(`Dynamic import option 'expectedHeaders' contains a duplicate header '${header}'.`);
+      }
+      knownHeaders.add(header);
     }
   }
 
   return {
     sheetName: options.sheetName?.trim() || undefined,
     headerRow: options.headerRow,
+    expectedHeaders: options.expectedHeaders,
   };
+}
+
+function getValidatedDynamicHeaders<TKey extends string>(actualHeaders: string[], expectedHeaders: readonly TKey[]): TKey[] {
+  if (actualHeaders.length !== expectedHeaders.length) {
+    throw new ImportError(
+      `Dynamic import headers did not match the expected schema. Expected [${expectedHeaders.join(', ')}], received [${actualHeaders.join(', ')}].`
+    );
+  }
+
+  for (let index = 0; index < expectedHeaders.length; index += 1) {
+    if (actualHeaders[index] !== expectedHeaders[index]) {
+      throw new ImportError(
+        `Dynamic import headers did not match the expected schema. Expected [${expectedHeaders.join(', ')}], received [${actualHeaders.join(', ')}].`
+      );
+    }
+  }
+
+  return [...expectedHeaders];
 }
 
 async function _fromExcel<T>(
@@ -250,17 +284,33 @@ async function _fromExcel<T>(
   }
 }
 
-async function _fromExcelDynamic<TKey extends string = string>(
+async function _fromExcelDynamic(
   buffer: Uint8Array,
   options?: DynamicExcelImportOptions,
-): Promise<DynamicExcelImportResult<TKey>> {
+): Promise<DynamicExcelImportResult>;
+async function _fromExcelDynamic<TKey extends string>(
+  buffer: Uint8Array,
+  options: DynamicExcelImportOptions<TKey> & { expectedHeaders: readonly TKey[] },
+): Promise<DynamicExcelImportResult<TKey>>;
+async function _fromExcelDynamic<TKey extends string = string>(
+  buffer: Uint8Array,
+  options?: DynamicExcelImportOptions<TKey>,
+): Promise<DynamicExcelImportResult | DynamicExcelImportResult<TKey>> {
   const normalizedOptions = normalizeDynamicImportOptions(options);
   try {
     const data = importDynamicData(normalizedOptions.sheetName, normalizedOptions.headerRow, buffer);
+    if (normalizedOptions.expectedHeaders) {
+      const headers = getValidatedDynamicHeaders(data.headers, normalizedOptions.expectedHeaders);
+      return {
+        sheetName: data.sheet_name,
+        headers,
+        rows: getDynamicItems<TKey>(data),
+      };
+    }
     return {
       sheetName: data.sheet_name,
-      headers: [...data.headers] as TKey[],
-      rows: getDynamicItems<TKey>(data),
+      headers: [...data.headers],
+      rows: getDynamicItems(data),
     };
   } catch (error) {
     if (error instanceof ValidationError || error instanceof ImportError) {
@@ -494,8 +544,10 @@ function importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
   return readFileFromUpload((buffer) => _fromExcel<T>(definition, buffer));
 }
 
-function importExcelDynamic<TKey extends string = string>(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult<TKey>> {
-  return readFileFromUpload((buffer) => _fromExcelDynamic<TKey>(buffer, options));
+function importExcelDynamic(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult>;
+function importExcelDynamic<TKey extends string>(options: DynamicExcelImportOptions<TKey> & { expectedHeaders: readonly TKey[] }): Promise<DynamicExcelImportResult<TKey>>;
+function importExcelDynamic<TKey extends string = string>(options?: DynamicExcelImportOptions<TKey>): Promise<DynamicExcelImportResult | DynamicExcelImportResult<TKey>> {
+  return readFileFromUpload((buffer) => _fromExcelDynamic(buffer, options));
 }
 
 async function exportExcel<T>(definition: ExcelDefinition, data: T[]) {
