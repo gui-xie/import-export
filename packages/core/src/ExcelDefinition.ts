@@ -103,7 +103,7 @@ interface ExcelCellFormatDefinition {
     borderColor?: string
 }
 
-interface DynamicExcelImportOptions<TKey extends string = string> {
+interface DynamicExcelImportOptions<THeader extends string = string> {
     /** Preferred worksheet name. Falls back to the first sheet when omitted or missing. */
     sheetName?: string,
     /** 1-based worksheet row number to use as the header row. Defaults to the first non-empty row. */
@@ -112,18 +112,18 @@ interface DynamicExcelImportOptions<TKey extends string = string> {
      * Optional expected headers used to validate the imported worksheet and narrow the result type.
      * When provided, the imported headers must match exactly and in order.
      */
-    expectedHeaders?: readonly TKey[]
+    expectedHeaders?: readonly THeader[]
 }
 
-type DynamicExcelImportRow<TKey extends string = string> = Record<TKey, string>;
+type DynamicExcelImportRow<THeader extends string = string> = Record<THeader, string>;
 
-interface DynamicExcelImportResult<TKey extends string = string> {
+interface DynamicExcelImportResult<THeader extends string = string> {
     /** Actual worksheet name that was imported. */
     sheetName: string,
     /** Header labels read from the worksheet in left-to-right order. */
-    headers: TKey[],
+    headers: THeader[],
     /** Row data keyed by the imported header labels. */
-    rows: DynamicExcelImportRow<TKey>[]
+    rows: DynamicExcelImportRow<THeader>[]
 }
 
 export {

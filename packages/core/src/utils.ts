@@ -209,17 +209,17 @@ function getItems(data: ExcelData, columns: NormalizedExcelColumnDefinition[]): 
   return result;
 }
 
-function getDynamicItems<TKey extends string = string>(data: DynamicExcelData): DynamicExcelImportRow<TKey>[] {
+function getDynamicItems<THeader extends string = string>(data: DynamicExcelData): DynamicExcelImportRow<THeader>[] {
   return data.rows.map((row) => {
     const item: Record<string, string> = {};
     for (const column of row.columns) {
       item[column.key] = column.value;
     }
-    return item as DynamicExcelImportRow<TKey>;
+    return item as DynamicExcelImportRow<THeader>;
   });
 }
 
-function normalizeDynamicImportOptions<TKey extends string = string>(options: DynamicExcelImportOptions<TKey> = {}): DynamicExcelImportOptions<TKey> {
+function normalizeDynamicImportOptions<THeader extends string = string>(options: DynamicExcelImportOptions<THeader> = {}): DynamicExcelImportOptions<THeader> {
   if (options.headerRow !== undefined) {
     if (!Number.isInteger(options.headerRow) || options.headerRow < 1) {
       throw new ValidationError("Dynamic import option 'headerRow' must be an integer greater than or equal to 1.");
@@ -248,7 +248,7 @@ function normalizeDynamicImportOptions<TKey extends string = string>(options: Dy
   };
 }
 
-function getValidatedDynamicHeaders<TKey extends string>(actualHeaders: string[], expectedHeaders: readonly TKey[]): TKey[] {
+function getValidatedDynamicHeaders<THeader extends string>(actualHeaders: string[], expectedHeaders: readonly THeader[]): THeader[] {
   if (actualHeaders.length !== expectedHeaders.length) {
     throw new ImportError(
       `Dynamic import headers did not match the expected schema. Expected [${expectedHeaders.join(', ')}], received [${actualHeaders.join(', ')}].`
@@ -288,14 +288,14 @@ async function _fromExcelDynamic(
   buffer: Uint8Array,
   options?: DynamicExcelImportOptions,
 ): Promise<DynamicExcelImportResult>;
-async function _fromExcelDynamic<TKey extends string>(
+async function _fromExcelDynamic<THeader extends string>(
   buffer: Uint8Array,
-  options: DynamicExcelImportOptions<TKey> & { expectedHeaders: readonly TKey[] },
-): Promise<DynamicExcelImportResult<TKey>>;
-async function _fromExcelDynamic<TKey extends string = string>(
+  options: DynamicExcelImportOptions<THeader> & { expectedHeaders: readonly THeader[] },
+): Promise<DynamicExcelImportResult<THeader>>;
+async function _fromExcelDynamic<THeader extends string = string>(
   buffer: Uint8Array,
-  options?: DynamicExcelImportOptions<TKey>,
-): Promise<DynamicExcelImportResult | DynamicExcelImportResult<TKey>> {
+  options?: DynamicExcelImportOptions<THeader>,
+): Promise<DynamicExcelImportResult | DynamicExcelImportResult<THeader>> {
   const normalizedOptions = normalizeDynamicImportOptions(options);
   try {
     const data = importDynamicData(normalizedOptions.sheetName, normalizedOptions.headerRow, buffer);
@@ -304,7 +304,7 @@ async function _fromExcelDynamic<TKey extends string = string>(
       return {
         sheetName: data.sheet_name,
         headers,
-        rows: getDynamicItems<TKey>(data),
+        rows: getDynamicItems<THeader>(data),
       };
     }
     return {
@@ -545,8 +545,8 @@ function importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
 }
 
 function importExcelDynamic(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult>;
-function importExcelDynamic<TKey extends string>(options: DynamicExcelImportOptions<TKey> & { expectedHeaders: readonly TKey[] }): Promise<DynamicExcelImportResult<TKey>>;
-function importExcelDynamic<TKey extends string = string>(options?: DynamicExcelImportOptions<TKey>): Promise<DynamicExcelImportResult | DynamicExcelImportResult<TKey>> {
+function importExcelDynamic<THeader extends string>(options: DynamicExcelImportOptions<THeader> & { expectedHeaders: readonly THeader[] }): Promise<DynamicExcelImportResult<THeader>>;
+function importExcelDynamic<THeader extends string = string>(options?: DynamicExcelImportOptions<THeader>): Promise<DynamicExcelImportResult | DynamicExcelImportResult<THeader>> {
   return readFileFromUpload((buffer) => _fromExcelDynamic(buffer, options));
 }
 

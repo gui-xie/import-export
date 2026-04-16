@@ -45,8 +45,8 @@ function _importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
 }
 
 function _importExcelDynamic(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult>;
-function _importExcelDynamic<TKey extends string>(options: DynamicExcelImportOptions<TKey> & { expectedHeaders: readonly TKey[] }): Promise<DynamicExcelImportResult<TKey>>;
-function _importExcelDynamic<TKey extends string = string>(options?: DynamicExcelImportOptions<TKey>): Promise<DynamicExcelImportResult | DynamicExcelImportResult<TKey>> {
+function _importExcelDynamic<THeader extends string>(options: DynamicExcelImportOptions<THeader> & { expectedHeaders: readonly THeader[] }): Promise<DynamicExcelImportResult<THeader>>;
+function _importExcelDynamic<THeader extends string = string>(options?: DynamicExcelImportOptions<THeader>): Promise<DynamicExcelImportResult | DynamicExcelImportResult<THeader>> {
   ensureWasmInitialized();
   return importExcelDynamic(options);
 }
@@ -62,8 +62,8 @@ function _fromExcel<T>(definition: ExcelDefinition, buffer: Uint8Array): Promise
 }
 
 function _fromExcelDynamic(buffer: Uint8Array, options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult>;
-function _fromExcelDynamic<TKey extends string>(buffer: Uint8Array, options: DynamicExcelImportOptions<TKey> & { expectedHeaders: readonly TKey[] }): Promise<DynamicExcelImportResult<TKey>>;
-function _fromExcelDynamic<TKey extends string = string>(buffer: Uint8Array, options?: DynamicExcelImportOptions<TKey>): Promise<DynamicExcelImportResult | DynamicExcelImportResult<TKey>> {
+function _fromExcelDynamic<THeader extends string>(buffer: Uint8Array, options: DynamicExcelImportOptions<THeader> & { expectedHeaders: readonly THeader[] }): Promise<DynamicExcelImportResult<THeader>>;
+function _fromExcelDynamic<THeader extends string = string>(buffer: Uint8Array, options?: DynamicExcelImportOptions<THeader>): Promise<DynamicExcelImportResult | DynamicExcelImportResult<THeader>> {
   ensureWasmInitialized();
   return fromExcelDynamic(buffer, options);
 }
