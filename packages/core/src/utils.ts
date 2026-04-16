@@ -209,13 +209,13 @@ function getItems(data: ExcelData, columns: NormalizedExcelColumnDefinition[]): 
   return result;
 }
 
-function getDynamicItems<THeader extends string = string>(data: DynamicExcelData): DynamicExcelImportRow<THeader>[] {
+function getDynamicItems(data: DynamicExcelData): DynamicExcelImportRow[] {
   return data.rows.map((row) => {
     const item: Record<string, string> = {};
     for (const column of row.columns) {
       item[column.key] = column.value;
     }
-    return item as DynamicExcelImportRow<THeader>;
+    return item;
   });
 }
 
@@ -249,21 +249,38 @@ function normalizeDynamicImportOptions<THeader extends string = string>(options:
 }
 
 function getValidatedDynamicHeaders<THeader extends string>(actualHeaders: string[], expectedHeaders: readonly THeader[]): THeader[] {
+  const mismatchMessage = `Dynamic import headers did not match the expected schema. Expected [${expectedHeaders.join(', ')}], received [${actualHeaders.join(', ')}].`;
+
   if (actualHeaders.length !== expectedHeaders.length) {
-    throw new ImportError(
-      `Dynamic import headers did not match the expected schema. Expected [${expectedHeaders.join(', ')}], received [${actualHeaders.join(', ')}].`
-    );
+    throw new ImportError(mismatchMessage);
   }
 
   for (let index = 0; index < expectedHeaders.length; index += 1) {
     if (actualHeaders[index] !== expectedHeaders[index]) {
-      throw new ImportError(
-        `Dynamic import headers did not match the expected schema. Expected [${expectedHeaders.join(', ')}], received [${actualHeaders.join(', ')}].`
-      );
+      throw new ImportError(mismatchMessage);
     }
   }
 
   return [...expectedHeaders];
+}
+
+/**
+ * Builds a typed row object after `getValidatedDynamicHeaders(...)` has confirmed that the
+ * worksheet headers match the caller-provided `expectedHeaders` exactly and in order.
+ */
+function getTypedDynamicItems<THeader extends string>(
+  data: DynamicExcelData,
+  expectedHeaders: readonly THeader[],
+): DynamicExcelImportRow<THeader>[] {
+  return data.rows.map((row) => {
+    const item = Object.fromEntries(expectedHeaders.map((header) => [header, ''])) as DynamicExcelImportRow<THeader>;
+    for (const column of row.columns) {
+      if (column.key in item) {
+        item[column.key as THeader] = column.value;
+      }
+    }
+    return item;
+  });
 }
 
 async function _fromExcel<T>(
@@ -304,7 +321,7 @@ async function _fromExcelDynamic<THeader extends string = string>(
       return {
         sheetName: data.sheet_name,
         headers,
-        rows: getDynamicItems<THeader>(data),
+        rows: getTypedDynamicItems(data, headers),
       };
     }
     return {
