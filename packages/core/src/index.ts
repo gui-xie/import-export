@@ -3,6 +3,13 @@ export type { InitializeWasmOptions } from './runtime.js';
 import { ExcelDefinition } from './ExcelDefinition';
 import type { DynamicExcelImportOptions, DynamicExcelImportResult } from './ExcelDefinition';
 import {
+  ExportError,
+  ImportError,
+  ImportExportError,
+  ValidationError,
+  WasmInitError,
+} from './errors.js';
+import {
   importExcel,
   importExcelDynamic,
   exportExcel,
@@ -37,9 +44,9 @@ function _importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
   return importExcel(definition);
 }
 
-function _importExcelDynamic(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult> {
+function _importExcelDynamic<TKey extends string = string>(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult<TKey>> {
   ensureWasmInitialized();
-  return importExcelDynamic(options);
+  return importExcelDynamic<TKey>(options);
 }
 
 function _exportExcel<T>(definition: ExcelDefinition, data: T[]): Promise<void> {
@@ -52,9 +59,9 @@ function _fromExcel<T>(definition: ExcelDefinition, buffer: Uint8Array): Promise
   return fromExcel(definition, buffer);
 }
 
-function _fromExcelDynamic(buffer: Uint8Array, options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult> {
+function _fromExcelDynamic<TKey extends string = string>(buffer: Uint8Array, options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult<TKey>> {
   ensureWasmInitialized();
-  return fromExcelDynamic(buffer, options);
+  return fromExcelDynamic<TKey>(buffer, options);
 }
 
 function _toExcel<T>(definition: ExcelDefinition, data: T[]): Promise<Uint8Array> {
@@ -74,7 +81,10 @@ function _generateExcelTemplate(definition: ExcelDefinition): Promise<Uint8Array
 
 export {
   bundledWasmSource,
+  ExportError,
   getUtils,
+  ImportError,
+  ImportExportError,
   initializeWasm,
   _importExcel as importExcel,
   _importExcelDynamic as importExcelDynamic,
@@ -84,4 +94,6 @@ export {
   _toExcel as toExcel,
   _downloadExcelTemplate as downloadExcelTemplate,
   _generateExcelTemplate as generateExcelTemplate,
+  ValidationError,
+  WasmInitError,
 };

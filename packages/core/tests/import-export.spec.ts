@@ -214,7 +214,12 @@ test.describe('import-export core', () => {
         'downloadExcelTemplate',
         'generateExcelTemplate',
         'initializeWasm',
-        'bundledWasmSource'
+        'bundledWasmSource',
+        'ImportExportError',
+        'ValidationError',
+        'WasmInitError',
+        'ImportError',
+        'ExportError'
       ];
       let invalidSourceError = '';
       try {
@@ -250,10 +255,73 @@ test.describe('import-export core', () => {
       ['downloadExcelTemplate', true],
       ['generateExcelTemplate', true],
       ['initializeWasm', true],
-      ['bundledWasmSource', true]
+      ['bundledWasmSource', true],
+      ['ImportExportError', true],
+      ['ValidationError', true],
+      ['WasmInitError', true],
+      ['ImportError', true],
+      ['ExportError', true]
     ]);
     expect(result.invalidSourceError).toContain('Invalid WASM source provided to initializeWasm({ source })');
     expect(result.templateHeader).toEqual([80, 75, 3, 4]);
     expect(result.templateLength).toBeGreaterThan(0);
+  });
+
+  test('exports structured error classes for validation and WASM initialization failures', async ({ page }) => {
+    await page.goto('/examples/basic-browser.html');
+
+    const result = await page.evaluate(async () => {
+      const mod = await import('../dist/index.js');
+      const details = {
+        validation: {
+          name: '',
+          instanceofValidationError: false,
+          instanceofImportExportError: false,
+        },
+        wasmInit: {
+          name: '',
+          instanceofWasmInitError: false,
+          instanceofImportExportError: false,
+        },
+      };
+
+      try {
+        await mod.toExcel({
+          name: 'InvalidDefinition',
+          columns: [
+            { key: 'name', name: 'Name', dataType: 'string' }
+          ]
+        }, [{ name: 'Tom' }]);
+      } catch (error) {
+        details.validation = {
+          name: error instanceof Error ? error.name : typeof error,
+          instanceofValidationError: error instanceof mod.ValidationError,
+          instanceofImportExportError: error instanceof mod.ImportExportError,
+        };
+      }
+
+      try {
+        mod.initializeWasm({ source: 'definitely-not-valid-gzip' });
+      } catch (error) {
+        details.wasmInit = {
+          name: error instanceof Error ? error.name : typeof error,
+          instanceofWasmInitError: error instanceof mod.WasmInitError,
+          instanceofImportExportError: error instanceof mod.ImportExportError,
+        };
+      }
+
+      return details;
+    });
+
+    expect(result.validation).toEqual({
+      name: 'ValidationError',
+      instanceofValidationError: true,
+      instanceofImportExportError: true,
+    });
+    expect(result.wasmInit).toEqual({
+      name: 'WasmInitError',
+      instanceofWasmInitError: true,
+      instanceofImportExportError: true,
+    });
   });
 });

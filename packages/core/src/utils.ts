@@ -17,8 +17,15 @@ import {
   ExcelCellFormatDefinition,
   ExcelColumnDataType,
   DynamicExcelImportOptions,
-  DynamicExcelImportResult
+  DynamicExcelImportResult,
+  DynamicExcelImportRow
 } from './ExcelDefinition';
+import {
+  ExportError,
+  ImportError,
+  ValidationError,
+  getErrorMessage
+} from './errors.js';
 const SUPPORTED_DATA_TYPES = ['text', 'number', 'date', 'image'] as const;
 const DOWNLOAD_URL_REVOKE_DELAY_MS = 200;
 type NormalizedDataType = typeof SUPPORTED_DATA_TYPES[number];
@@ -30,7 +37,6 @@ type NormalizedExcelDefinition = Omit<ExcelDefinition, 'columns'> & {
 };
 type ImportedCellValue = number | string | null;
 type ImportedRow = Record<string, ImportedCellValue>;
-type DynamicImportedRow = Record<string, string>;
 type ExportRow = Record<string, unknown>;
 type ColumnDefinitionMap = Record<string, NormalizedExcelColumnDefinition>;
 type ColumnInfoMap = Record<string, ExcelColumnInfo>;
@@ -42,12 +48,12 @@ type GroupedCellValue = {
 function normalizeDataType(dataType: ExcelColumnDataType | undefined, columnKey: string): NormalizedDataType {
   const rawDataType = dataType ?? 'text';
   if (typeof rawDataType !== 'string') {
-    throw new Error(`Invalid dataType '${String(rawDataType)}' for column '${columnKey}'. dataType values must be strings.`);
+    throw new ValidationError(`Invalid dataType '${String(rawDataType)}' for column '${columnKey}'. dataType values must be strings.`);
   }
   const normalized = rawDataType.trim().toLowerCase();
   const canonical = normalized;
   if (!SUPPORTED_DATA_TYPES.includes(canonical as NormalizedDataType)) {
-    throw new Error(
+    throw new ValidationError(
       `Invalid dataType '${dataType}' for column '${columnKey}'. Supported values are: ${SUPPORTED_DATA_TYPES.join(', ')}.`
     );
   }
@@ -56,10 +62,10 @@ function normalizeDataType(dataType: ExcelColumnDataType | undefined, columnKey:
 
 function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefinition {
   if (!definition.name?.trim()) {
-    throw new Error('Excel definition must include a non-empty name.');
+    throw new ValidationError('Excel definition must include a non-empty name.');
   }
   if (!Array.isArray(definition.columns) || definition.columns.length === 0) {
-    throw new Error(`Excel definition '${definition.name}' must include at least one column.`);
+    throw new ValidationError(`Excel definition '${definition.name}' must include at least one column.`);
   }
 
   const knownColumnKeys = new Set<string>();
@@ -68,13 +74,13 @@ function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefini
     const key = column.key?.trim();
     const name = column.name?.trim();
     if (!key) {
-      throw new Error(`Excel definition '${definition.name}' contains a column with an empty key.`);
+      throw new ValidationError(`Excel definition '${definition.name}' contains a column with an empty key.`);
     }
     if (!name) {
-      throw new Error(`Column '${key}' in definition '${definition.name}' must include a non-empty name.`);
+      throw new ValidationError(`Column '${key}' in definition '${definition.name}' must include a non-empty name.`);
     }
     if (knownColumnKeys.has(key)) {
-      throw new Error(`Duplicate column key '${key}' found in definition '${definition.name}'.`);
+      throw new ValidationError(`Duplicate column key '${key}' found in definition '${definition.name}'.`);
     }
 
     const normalizedColumn: NormalizedExcelColumnDefinition = {
@@ -87,13 +93,13 @@ function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefini
     if (normalizedColumn.parent) {
       const parent = normalizedColumn.parent.trim();
       if (!parent) {
-        throw new Error(`Column '${key}' has an empty parent reference.`);
+        throw new ValidationError(`Column '${key}' has an empty parent reference.`);
       }
       if (parent === key) {
-        throw new Error(`Column '${key}' cannot reference itself as a parent.`);
+        throw new ValidationError(`Column '${key}' cannot reference itself as a parent.`);
       }
       if (!knownColumnKeys.has(parent)) {
-        throw new Error(`Column '${key}' references parent '${parent}', but parent columns must be declared before their children.`);
+        throw new ValidationError(`Column '${key}' references parent '${parent}', but parent columns must be declared before their children.`);
       }
       normalizedColumn.parent = parent;
     }
@@ -101,10 +107,10 @@ function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefini
     if (normalizedColumn.dataGroup) {
       const dataGroup = normalizedColumn.dataGroup.trim();
       if (!dataGroup) {
-        throw new Error(`Column '${key}' has an empty dataGroup value.`);
+        throw new ValidationError(`Column '${key}' has an empty dataGroup value.`);
       }
       if (knownGroups.has(dataGroup)) {
-        throw new Error(`Duplicate dataGroup '${dataGroup}' found in definition '${definition.name}'.`);
+        throw new ValidationError(`Duplicate dataGroup '${dataGroup}' found in definition '${definition.name}'.`);
       }
       knownGroups.add(dataGroup);
       normalizedColumn.dataGroup = dataGroup;
@@ -113,13 +119,13 @@ function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefini
     if (normalizedColumn.dataGroupParent) {
       const dataGroupParent = normalizedColumn.dataGroupParent.trim();
       if (!dataGroupParent) {
-        throw new Error(`Column '${key}' has an empty dataGroupParent value.`);
+        throw new ValidationError(`Column '${key}' has an empty dataGroupParent value.`);
       }
       if (normalizedColumn.dataGroup === dataGroupParent) {
-        throw new Error(`Column '${key}' cannot reference its own dataGroup '${dataGroupParent}' as dataGroupParent.`);
+        throw new ValidationError(`Column '${key}' cannot reference its own dataGroup '${dataGroupParent}' as dataGroupParent.`);
       }
       if (!knownGroups.has(dataGroupParent)) {
-        throw new Error(
+        throw new ValidationError(
           `Column '${key}' references dataGroupParent '${dataGroupParent}', but grouped parents must be declared before dependent columns.`
         );
       }
@@ -145,7 +151,7 @@ function parseImportedValue(column: NormalizedExcelColumnDefinition, value: stri
   if (column.dataType === 'number') {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
-      throw new Error(`Failed to parse imported number '${value}' for column '${column.key}'.`);
+      throw new ImportError(`Failed to parse imported number '${value}' for column '${column.key}'.`);
     }
     return parsed;
   }
@@ -161,7 +167,7 @@ function serializeCellValue(column: ExcelColumnInfo, value: unknown): string {
   if (dataType === 'number') {
     const numericValue = typeof value === 'number' ? value : Number(value);
     if (!Number.isFinite(numericValue)) {
-      throw new Error(`Column '${column.key}' expects a finite number value.`);
+      throw new ExportError(`Column '${column.key}' expects a finite number value.`);
     }
     return numericValue.toString();
   }
@@ -177,7 +183,7 @@ function serializeCellValue(column: ExcelColumnInfo, value: unknown): string {
       }
       return trimmed;
     }
-    throw new Error(`Column '${column.key}' expects a date string or Date instance.`);
+    throw new ExportError(`Column '${column.key}' expects a date string or Date instance.`);
   }
 
   return value.toString();
@@ -203,20 +209,20 @@ function getItems(data: ExcelData, columns: NormalizedExcelColumnDefinition[]): 
   return result;
 }
 
-function getDynamicItems(data: DynamicExcelData): DynamicImportedRow[] {
+function getDynamicItems<TKey extends string = string>(data: DynamicExcelData): DynamicExcelImportRow<TKey>[] {
   return data.rows.map((row) => {
-    const item: DynamicImportedRow = {};
+    const item: Record<string, string> = {};
     for (const column of row.columns) {
       item[column.key] = column.value;
     }
-    return item;
+    return item as DynamicExcelImportRow<TKey>;
   });
 }
 
 function normalizeDynamicImportOptions(options: DynamicExcelImportOptions = {}): DynamicExcelImportOptions {
   if (options.headerRow !== undefined) {
     if (!Number.isInteger(options.headerRow) || options.headerRow < 1) {
-      throw new Error("Dynamic import option 'headerRow' must be an integer greater than or equal to 1.");
+      throw new ValidationError("Dynamic import option 'headerRow' must be an integer greater than or equal to 1.");
     }
   }
 
@@ -232,22 +238,36 @@ async function _fromExcel<T>(
 ): Promise<T[]> {
   const normalizedDefinition = normalizeDefinition(definition);
   const info = getInfo(normalizedDefinition);
-  const data = importData(info, buffer);
-  const items = getItems(data, normalizedDefinition.columns);
-  return items as T[];
+  try {
+    const data = importData(info, buffer);
+    const items = getItems(data, normalizedDefinition.columns);
+    return items as T[];
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof ImportError) {
+      throw error;
+    }
+    throw new ImportError(`Failed to import workbook '${normalizedDefinition.name}'. ${getErrorMessage(error)}`, { cause: error });
+  }
 }
 
-async function _fromExcelDynamic(
+async function _fromExcelDynamic<TKey extends string = string>(
   buffer: Uint8Array,
   options?: DynamicExcelImportOptions,
-): Promise<DynamicExcelImportResult> {
+): Promise<DynamicExcelImportResult<TKey>> {
   const normalizedOptions = normalizeDynamicImportOptions(options);
-  const data = importDynamicData(normalizedOptions.sheetName, normalizedOptions.headerRow, buffer);
-  return {
-    sheetName: data.sheet_name,
-    headers: [...data.headers],
-    rows: getDynamicItems(data),
-  };
+  try {
+    const data = importDynamicData(normalizedOptions.sheetName, normalizedOptions.headerRow, buffer);
+    return {
+      sheetName: data.sheet_name,
+      headers: [...data.headers] as TKey[],
+      rows: getDynamicItems<TKey>(data),
+    };
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof ImportError) {
+      throw error;
+    }
+    throw new ImportError(`Failed to dynamically import workbook. ${getErrorMessage(error)}`, { cause: error });
+  }
 }
 
 function readFileFromUpload<T>(load: (buffer: Uint8Array) => Promise<T>): Promise<T> {
@@ -267,7 +287,11 @@ function readFileFromUpload<T>(load: (buffer: Uint8Array) => Promise<T>): Promis
 
     const rejectWithError = (error: unknown) => {
       cleanup();
-      reject(error instanceof Error ? error : new Error(String(error)));
+      if (error instanceof Error) {
+        reject(error);
+        return;
+      }
+      reject(new ImportError(String(error), { cause: error }));
     };
 
     fileInput.addEventListener('change', fileHandler);
@@ -281,10 +305,10 @@ function readFileFromUpload<T>(load: (buffer: Uint8Array) => Promise<T>): Promis
       const file = target.files[0];
       const reader = new FileReader();
       reader.onerror = () => {
-        rejectWithError(reader.error ?? new Error('Failed to read import file.'));
+        rejectWithError(new ImportError(reader.error?.message ?? 'Failed to read import file.', { cause: reader.error }));
       };
       reader.onabort = () => {
-        rejectWithError(new Error('Import file read was aborted.'));
+        rejectWithError(new ImportError('Import file read was aborted.'));
       };
       reader.onload = async () => {
         try {
@@ -321,7 +345,7 @@ function mapExcelData(items: ExportRow[], columnMap: ColumnInfoMap, parentKey: s
         continue;
       }
       if (!isGroupedCellValue(v)) {
-        throw new Error(`Grouped column '${columnKey}' must be an object with a children array.`);
+        throw new ExportError(`Grouped column '${columnKey}' must be an object with a children array.`);
       }
       if (v.children.length) {
         const children = mapExcelData(v.children, columnMap, columnKey);
@@ -347,13 +371,28 @@ async function _toExcel<T>(
   for (const column of info.columns) {
     columnMap[column.key] = column;
   }
-  const rows = mapExcelData(data as ExportRow[], columnMap);
-  const excelData = new ExcelData(rows);
-  return exportData(info, excelData);
+  try {
+    const rows = mapExcelData(data as ExportRow[], columnMap);
+    const excelData = new ExcelData(rows);
+    return exportData(info, excelData);
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof ExportError) {
+      throw error;
+    }
+    throw new ExportError(`Failed to export workbook '${normalizedDefinition.name}'. ${getErrorMessage(error)}`, { cause: error });
+  }
 }
 
 async function generateExcelTemplate(definition: ExcelDefinition) {
-  return createTemplate(getInfo(normalizeDefinition(definition)));
+  const normalizedDefinition = normalizeDefinition(definition);
+  try {
+    return createTemplate(getInfo(normalizedDefinition));
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof ExportError) {
+      throw error;
+    }
+    throw new ExportError(`Failed to generate template '${normalizedDefinition.name}'. ${getErrorMessage(error)}`, { cause: error });
+  }
 }
 
 async function downloadExcelTemplate(definition: ExcelDefinition) {
@@ -455,8 +494,8 @@ function importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
   return readFileFromUpload((buffer) => _fromExcel<T>(definition, buffer));
 }
 
-function importExcelDynamic(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult> {
-  return readFileFromUpload((buffer) => _fromExcelDynamic(buffer, options));
+function importExcelDynamic<TKey extends string = string>(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult<TKey>> {
+  return readFileFromUpload((buffer) => _fromExcelDynamic<TKey>(buffer, options));
 }
 
 async function exportExcel<T>(definition: ExcelDefinition, data: T[]) {

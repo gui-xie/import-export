@@ -110,13 +110,15 @@ interface DynamicExcelImportOptions {
     headerRow?: number
 }
 
-interface DynamicExcelImportResult {
+type DynamicExcelImportRow<TKey extends string = string> = Record<TKey, string>;
+
+interface DynamicExcelImportResult<TKey extends string = string> {
     /** Actual worksheet name that was imported. */
     sheetName: string,
     /** Header labels read from the worksheet in left-to-right order. */
-    headers: string[],
+    headers: TKey[],
     /** Row data keyed by the imported header labels. */
-    rows: Record<string, string>[]
+    rows: DynamicExcelImportRow<TKey>[]
 }
 
 export {
@@ -125,5 +127,6 @@ export {
     ExcelCellFormatDefinition,
     ExcelColumnDataType,
     DynamicExcelImportOptions,
+    DynamicExcelImportRow,
     DynamicExcelImportResult
 };

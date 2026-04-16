@@ -1,6 +1,7 @@
 import { initSync } from '@senlinz/import-export-wasm';
 import imexportWasm from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm';
 import { gunzipSync } from 'fflate';
+import { WasmInitError, getErrorMessage } from './errors.js';
 
 type WasmInitializationInputKind = 'source' | 'bytes' | 'module';
 
@@ -39,19 +40,20 @@ function decodeBase64(value: string): Uint8Array {
   if (typeof Buffer !== 'undefined') {
     return Uint8Array.from(Buffer.from(value, 'base64'));
   }
-  throw new Error('WASM initialization requires a base64 decoder such as atob or Buffer.');
+  throw new WasmInitError('WASM initialization requires a base64 decoder such as atob or Buffer.');
 }
 
 function decodeEmbeddedWasm(wasmSource: string): Uint8Array {
   const normalizedSource = wasmSource.trim();
   if (!normalizedSource) {
-    throw new Error('Invalid WASM source provided to initializeWasm({ source }). Expected a non-empty gzipped base64 string.');
+    throw new WasmInitError('Invalid WASM source provided to initializeWasm({ source }). Expected a non-empty gzipped base64 string.');
   }
   try {
     return gunzipSync(decodeBase64(normalizedSource));
   } catch (error) {
-    throw new Error(
-      `Invalid WASM source provided to initializeWasm({ source }). Expected a gzipped base64 string. ${error instanceof Error ? error.message : String(error)}`
+    throw new WasmInitError(
+      `Invalid WASM source provided to initializeWasm({ source }). Expected a gzipped base64 string. ${getErrorMessage(error)}`,
+      { cause: error }
     );
   }
 }
@@ -81,10 +83,10 @@ function getProvidedInputKind(options: InitializeWasmOptions): WasmInitializatio
 function normalizeCustomInitialization(options: InitializeWasmOptions) {
   const provided = getProvidedInputKind(options);
   if (provided.length === 0) {
-    throw new Error('initializeWasm(options) requires exactly one of source, bytes, or module.');
+    throw new WasmInitError('initializeWasm(options) requires exactly one of source, bytes, or module.');
   }
   if (provided.length > 1) {
-    throw new Error(
+    throw new WasmInitError(
       `initializeWasm(options) accepts exactly one input source. Received: ${provided.join(', ')}.`
     );
   }
@@ -98,10 +100,10 @@ function normalizeCustomInitialization(options: InitializeWasmOptions) {
   if (provided[0] === 'bytes') {
     const bytes = options.bytes;
     if (!bytes || !isBufferSource(bytes)) {
-      throw new Error('Invalid WASM bytes provided to initializeWasm({ bytes }). Expected an ArrayBuffer or typed array.');
+      throw new WasmInitError('Invalid WASM bytes provided to initializeWasm({ bytes }). Expected an ArrayBuffer or typed array.');
     }
     if (getByteLength(bytes) === 0) {
-      throw new Error('Invalid WASM bytes provided to initializeWasm({ bytes }). Expected a non-empty ArrayBuffer or typed array.');
+      throw new WasmInitError('Invalid WASM bytes provided to initializeWasm({ bytes }). Expected a non-empty ArrayBuffer or typed array.');
     }
     return {
       inputKind: 'bytes' as const,
@@ -110,7 +112,7 @@ function normalizeCustomInitialization(options: InitializeWasmOptions) {
     };
   }
   if (!(options.module instanceof WebAssembly.Module)) {
-    throw new Error('Invalid WASM module provided to initializeWasm({ module }). Expected a WebAssembly.Module instance.');
+    throw new WasmInitError('Invalid WASM module provided to initializeWasm({ module }). Expected a WebAssembly.Module instance.');
   }
   return {
     inputKind: 'module' as const,
@@ -124,11 +126,12 @@ function initializeRuntime(module: BufferSource | WebAssembly.Module, nextState:
     initSync({ module });
   } catch (error) {
     if (nextState.kind === 'custom') {
-      throw new Error(
-        `Failed to initialize the Excel WASM runtime from custom ${nextState.inputKind}. ${error instanceof Error ? error.message : String(error)}`
+      throw new WasmInitError(
+        `Failed to initialize the Excel WASM runtime from custom ${nextState.inputKind}. ${getErrorMessage(error)}`,
+        { cause: error }
       );
     }
-    throw new Error(`Failed to initialize the Excel WASM runtime. ${error instanceof Error ? error.message : String(error)}`);
+    throw new WasmInitError(`Failed to initialize the Excel WASM runtime. ${getErrorMessage(error)}`, { cause: error });
   }
   runtimeState = nextState;
 }
@@ -157,14 +160,14 @@ function initializeWasm(options?: InitializeWasmOptions) {
   }
 
   if (runtimeState.kind === 'bundled') {
-    throw new Error('The Excel WASM runtime is already using the bundled module. Call initializeWasm(...) before using other APIs to provide custom WASM.');
+    throw new WasmInitError('The Excel WASM runtime is already using the bundled module. Call initializeWasm(...) before using other APIs to provide custom WASM.');
   }
 
   if (runtimeState.inputKind === normalized.inputKind && runtimeState.token === normalized.token) {
     return;
   }
 
-  throw new Error(
+  throw new WasmInitError(
     `The Excel WASM runtime is already initialized with custom ${runtimeState.inputKind} input and cannot be reinitialized with different ${normalized.inputKind} input in the same page/context. Refresh the page or create a new context to initialize with different WASM input.`
   );
 }
