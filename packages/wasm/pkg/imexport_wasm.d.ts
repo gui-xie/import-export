@@ -248,7 +248,7 @@ export interface InitOutput {
     readonly excelcolumninfo_withParent: (a: number, b: number, c: number) => number;
     readonly excelcolumninfo_withValueFormat: (a: number, b: number, c: number) => number;
     readonly excelcolumninfo_withWidth: (a: number, b: number) => number;
-    readonly excelinfo_bind_new: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => number;
+    readonly excelinfo_bind_new: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number, number];
     readonly excelinfo_withDefaultRowHeight: (a: number, b: number) => number;
     readonly excelinfo_withHeaderRowHeight: (a: number, b: number) => number;
     readonly excelinfo_withImageFetcher: (a: number, b: any) => number;
@@ -285,8 +285,8 @@ export interface InitOutput {
     readonly __wbg_get_exceldata_rows: (a: number) => [number, number];
     readonly __wbg_set_exceldata_rows: (a: number, b: number, c: number) => void;
     readonly exceldata_new: (a: number, b: number) => number;
-    readonly wasm_bindgen__convert__closures_____invoke__ha7d74a6bd6ac009d: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen__convert__closures_____invoke__h1f6390709e7a2f81: (a: number, b: number, c: any, d: any) => void;
+    readonly wasm_bindgen__convert__closures_____invoke__hb3e5d356ee2e5466: (a: number, b: number, c: any) => [number, number];
+    readonly wasm_bindgen__convert__closures_____invoke__h98029d2eb04d9334: (a: number, b: number, c: any, d: any) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

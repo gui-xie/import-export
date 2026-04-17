@@ -1,7 +1,7 @@
-use criterion::{BatchSize, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput};
 use imexport_wasm::{
-    ExcelColumnData, ExcelColumnInfo, ExcelData, ExcelInfo, ExcelRowData, benchmark_export_data,
-    benchmark_import_data,
+    benchmark_export_data, benchmark_import_data, ExcelColumnData, ExcelColumnInfo, ExcelData,
+    ExcelInfo, ExcelRowData,
 };
 
 fn create_excel_info() -> ExcelInfo {
@@ -25,15 +25,15 @@ fn create_excel_data(row_count: usize) -> ExcelData {
     let rows = (0..row_count)
         .map(|index| {
             ExcelRowData::new(vec![
-                ExcelColumnData::new("id", index.to_string()),
-                ExcelColumnData::new("name", format!("Row {index}")),
-                ExcelColumnData::new("score", ((index % 100) + 1).to_string()),
+                ExcelColumnData::new("id".to_owned(), index.to_string()),
+                ExcelColumnData::new("name".to_owned(), format!("Row {index}")),
+                ExcelColumnData::new("score".to_owned(), ((index % 100) + 1).to_string()),
                 ExcelColumnData::new(
-                    "created_at",
+                    "created_at".to_owned(),
                     format!("2024-11-{:02}", (index % 28) + 1),
                 ),
                 ExcelColumnData::new(
-                    "notes",
+                    "notes".to_owned(),
                     format!("Benchmark row {index} for import/export throughput measurement."),
                 ),
             ])
@@ -52,21 +52,28 @@ fn benchmark_large_dataset(c: &mut Criterion) {
     for row_count in [1_000usize, 5_000usize] {
         let seed_data = create_excel_data(row_count);
         let import_bytes = runtime
-            .block_on(benchmark_export_data(create_excel_info(), seed_data.clone()))
+            .block_on(benchmark_export_data(
+                create_excel_info(),
+                seed_data.clone(),
+            ))
             .expect("benchmark workbook should be generated");
 
         group.throughput(Throughput::Elements(row_count as u64));
-        group.bench_with_input(BenchmarkId::new("export", row_count), &seed_data, |b, data| {
-            b.to_async(&runtime).iter_batched(
-                || (create_excel_info(), data.clone()),
-                |(info, data)| async move {
-                    benchmark_export_data(info, data)
-                        .await
-                        .expect("benchmark export should succeed");
-                },
-                BatchSize::LargeInput,
-            );
-        });
+        group.bench_with_input(
+            BenchmarkId::new("export", row_count),
+            &seed_data,
+            |b, data| {
+                b.to_async(&runtime).iter_batched(
+                    || (create_excel_info(), data.clone()),
+                    |(info, data)| async move {
+                        benchmark_export_data(info, data)
+                            .await
+                            .expect("benchmark export should succeed");
+                    },
+                    BatchSize::LargeInput,
+                );
+            },
+        );
 
         group.bench_function(BenchmarkId::new("import", row_count), |b| {
             b.iter_batched(
