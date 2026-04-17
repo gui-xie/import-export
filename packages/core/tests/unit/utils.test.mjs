@@ -1,4 +1,4 @@
-import { __testing__ } from '../../dist/utils.js';
+import { __testing__ } from '../../dist/index.js';
 
 const { normalizeDefinition, normalizeDynamicImportOptions } = __testing__;
 
