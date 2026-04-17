@@ -20,6 +20,7 @@
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
+    "test:unit": "npm run build && node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config jest.config.mjs --runInBand",
     "test": "playwright test -c playwright.config.ts",
     "e2e-serve": "serve -l 8080 ."
   },

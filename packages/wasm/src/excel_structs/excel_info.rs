@@ -30,9 +30,9 @@ impl ExcelInfo {
         columns: Vec<ExcelColumnInfo>,
         author: T,
         create_time: T,
-    ) -> Self {
-        ExcelInfo::check_columns(&columns);
-        ExcelInfo {
+    ) -> Result<Self, String> {
+        ExcelInfo::check_columns(&columns)?;
+        Ok(ExcelInfo {
             name: name.into(),
             sheet_name: sheet_name.into(),
             columns,
@@ -48,7 +48,7 @@ impl ExcelInfo {
             is_header_freeze: false,
             progress_callback: None,
             image_fetcher: None,
-        }
+        })
     }
 
     pub fn with_progress_callback(mut self, callback: Function) -> Self {
@@ -99,72 +99,73 @@ impl ExcelInfo {
             .any(|candidate| data_type.eq_ignore_ascii_case(candidate))
     }
 
-    fn check_columns(columns: &Vec<ExcelColumnInfo>) {
+    fn check_columns(columns: &[ExcelColumnInfo]) -> Result<(), String> {
         let mut processed_columns = HashSet::new();
         let mut processed_groups = HashSet::new();
         for column in columns.iter() {
             if column.key.trim().is_empty() {
-                panic!("Invalid definition: column keys must be non-empty.");
+                return Err("Invalid definition: column keys must be non-empty.".into());
             }
             if column.name.trim().is_empty() {
-                panic!(
+                return Err(format!(
                     "Invalid definition: column '{}' must define a non-empty header name.",
                     column.key
-                );
+                ));
             }
             if processed_columns.contains(&column.key) {
-                panic!(
+                return Err(format!(
                     "Invalid definition: duplicate column key '{}' found in schema.",
                     column.key
-                );
+                ));
             }
             if !ExcelInfo::is_supported_data_type(&column.data_type) {
-                panic!(
+                return Err(format!(
                     "Invalid definition: column '{}' uses unsupported dataType '{}'. Supported values are text, number, date, image.",
                     column.key, column.data_type
-                );
+                ));
             }
             if column.has_parent() {
                 if column.parent == column.key {
-                    panic!(
+                    return Err(format!(
                         "Invalid definition: column '{}' cannot reference itself as a parent.",
                         column.key
-                    );
+                    ));
                 }
                 if !processed_columns.contains(&column.parent) {
-                    panic!(
+                    return Err(format!(
                         "Invalid definition: parent column '{}' for '{}' must exist and be declared before the child column.",
                         column.parent, column.key
-                    );
+                    ));
                 }
             }
             if !column.data_group.is_empty() {
                 if processed_groups.contains(&column.data_group) {
-                    panic!(
+                    return Err(format!(
                         "Invalid definition: duplicate dataGroup '{}' found in schema.",
                         column.data_group
-                    );
+                    ));
                 }
                 if !column.data_group_parent.is_empty()
                     && column.data_group == column.data_group_parent
                 {
-                    panic!(
+                    return Err(format!(
                         "Invalid definition: column '{}' cannot reference its own dataGroup '{}' as dataGroupParent.",
                         column.key, column.data_group
-                    );
+                    ));
                 }
                 processed_groups.insert(column.data_group.clone());
             }
             if !column.data_group_parent.is_empty()
                 && !processed_groups.contains(&column.data_group_parent)
             {
-                panic!(
+                return Err(format!(
                     "Invalid definition: dataGroupParent '{}' for column '{}' must exist and be declared before the dependent column.",
                     column.data_group_parent, column.key
-                );
+                ));
             }
             processed_columns.insert(column.key.clone());
         }
+        Ok(())
     }
 }
 
@@ -177,8 +178,9 @@ impl ExcelInfo {
         columns: Vec<ExcelColumnInfo>,
         author: String,
         create_time: String,
-    ) -> Self {
+    ) -> Result<ExcelInfo, JsValue> {
         ExcelInfo::new(name, sheet_name, columns, author, create_time)
+            .map_err(|error| JsValue::from_str(&error))
     }
 
     #[wasm_bindgen(js_name = withTitle)]

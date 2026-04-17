@@ -10,17 +10,6 @@ mod tests {
     use excel_info::*;
     use excel_row_data::*;
     use insta::{assert_binary_snapshot, assert_snapshot};
-    use std::panic;
-
-    fn panic_message(error: Box<dyn std::any::Any + Send>) -> String {
-        if let Some(message) = error.downcast_ref::<String>() {
-            return message.clone();
-        }
-        if let Some(message) = error.downcast_ref::<&str>() {
-            return message.to_string();
-        }
-        format!("{:?}", error)
-    }
 
     fn create_excel_info() -> ExcelInfo {
         let name = "Pokemon";
@@ -54,6 +43,7 @@ mod tests {
             ExcelColumnInfo::new("total", "Total").with_data_type("number"),
         ];
         excel_info::ExcelInfo::new(name, sheet_name, columns, author, create_time)
+            .expect("test schema should be valid")
     }
 
     #[test]
@@ -101,7 +91,8 @@ mod tests {
             create_excel_info().columns,
             "senlinz",
             "2024-11-01T08:00:00",
-        );
+        )
+        .expect("test schema should be valid");
         let excel_bytes = create_template_buffer(&source_info).unwrap();
         let import_info = create_excel_info();
 
@@ -210,62 +201,56 @@ mod tests {
     }
 
     #[test]
-    fn invalid_schema_duplicate_key_panics() {
-        let result = panic::catch_unwind(|| {
-            ExcelInfo::new(
-                "Broken",
-                "sheet1",
-                vec![
-                    ExcelColumnInfo::new("name", "Name"),
-                    ExcelColumnInfo::new("name", "Alias"),
-                ],
-                "senlinz",
-                "2024-11-01T08:00:00",
-            )
-        });
+    fn invalid_schema_duplicate_key_returns_error() {
+        let result = ExcelInfo::new(
+            "Broken",
+            "sheet1",
+            vec![
+                ExcelColumnInfo::new("name", "Name"),
+                ExcelColumnInfo::new("name", "Alias"),
+            ],
+            "senlinz",
+            "2024-11-01T08:00:00",
+        );
 
         assert!(result.is_err());
-        let message = panic_message(result.err().unwrap());
-        assert!(message.contains("duplicate column key"));
+        assert!(result.err().unwrap().contains("duplicate column key"));
     }
 
     #[test]
-    fn invalid_schema_unknown_group_parent_panics() {
-        let result = panic::catch_unwind(|| {
-            ExcelInfo::new(
-                "Broken",
-                "sheet1",
-                vec![
-                    ExcelColumnInfo::new("moves", "Moves"),
-                    ExcelColumnInfo::new("move_name", "Move")
-                        .with_parent("moves")
-                        .with_data_group_parent("missing_group"),
-                ],
-                "senlinz",
-                "2024-11-01T08:00:00",
-            )
-        });
+    fn invalid_schema_unknown_group_parent_returns_error() {
+        let result = ExcelInfo::new(
+            "Broken",
+            "sheet1",
+            vec![
+                ExcelColumnInfo::new("moves", "Moves"),
+                ExcelColumnInfo::new("move_name", "Move")
+                    .with_parent("moves")
+                    .with_data_group_parent("missing_group"),
+            ],
+            "senlinz",
+            "2024-11-01T08:00:00",
+        );
 
         assert!(result.is_err());
-        let message = panic_message(result.err().unwrap());
-        assert!(message.contains("dataGroupParent"));
+        assert!(result.err().unwrap().contains("dataGroupParent"));
     }
 
     #[test]
-    fn invalid_schema_string_data_type_panics() {
-        let result = panic::catch_unwind(|| {
-            ExcelInfo::new(
-                "Broken",
-                "sheet1",
-                vec![ExcelColumnInfo::new("name", "Name").with_data_type("string")],
-                "senlinz",
-                "2024-11-01T08:00:00",
-            )
-        });
+    fn invalid_schema_string_data_type_returns_error() {
+        let result = ExcelInfo::new(
+            "Broken",
+            "sheet1",
+            vec![ExcelColumnInfo::new("name", "Name").with_data_type("string")],
+            "senlinz",
+            "2024-11-01T08:00:00",
+        );
 
         assert!(result.is_err());
-        let message = panic_message(result.err().unwrap());
-        assert!(message.contains("unsupported dataType 'string'"));
+        assert!(result
+            .err()
+            .unwrap()
+            .contains("unsupported dataType 'string'"));
     }
 
     #[test]
@@ -285,6 +270,7 @@ mod tests {
     #[test]
     fn create_template_with_no_columns_and_freeze_success() {
         let info = ExcelInfo::new("Empty", "sheet1", vec![], "senlinz", "2024-11-01T08:00:00")
+            .expect("empty test schema should be valid")
             .with_is_header_freeze(true);
 
         let result = create_template_buffer(&info);
@@ -331,7 +317,8 @@ mod tests {
             vec![ExcelColumnInfo::new("hp", "HP").with_data_type("number")],
             "senlinz",
             "2024-11-01T08:00:00",
-        );
+        )
+        .expect("test schema should be valid");
         let data = ExcelData::new(vec![ExcelRowData::new(vec![ExcelColumnData::new(
             "hp", "abc",
         )])]);
@@ -354,7 +341,8 @@ mod tests {
             vec![ExcelColumnInfo::new("caught_on", "Caught On").with_data_type("date")],
             "senlinz",
             "2024-11-01T08:00:00",
-        );
+        )
+        .expect("test schema should be valid");
         let data = ExcelData::new(vec![ExcelRowData::new(vec![ExcelColumnData::new(
             "caught_on",
             "not-a-date",
@@ -443,7 +431,8 @@ mod tests {
             ],
             "senlinz",
             "2024-11-01T08:00:00",
-        );
+        )
+        .expect("test schema should be valid");
 
         let data = ExcelData::new(vec![ExcelRowData::new(vec![
             ExcelColumnData::new("number", "#001"),

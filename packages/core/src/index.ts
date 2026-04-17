@@ -11,6 +11,7 @@ import {
   fromExcelDynamic,
   toExcel,
   generateExcelTemplate,
+  testUtils,
 } from './utils.js';
 import {
   bundledWasmSource,
@@ -84,4 +85,5 @@ export {
   _toExcel as toExcel,
   _downloadExcelTemplate as downloadExcelTemplate,
   _generateExcelTemplate as generateExcelTemplate,
+  testUtils,
 };

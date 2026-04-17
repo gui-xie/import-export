@@ -138,6 +138,16 @@ function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefini
   };
 }
 
+type TestingUtils = {
+  normalizeDefinition(definition: ExcelDefinition): ExcelDefinition;
+  normalizeDynamicImportOptions(options?: DynamicExcelImportOptions): DynamicExcelImportOptions;
+};
+
+const testUtils: TestingUtils = {
+  normalizeDefinition,
+  normalizeDynamicImportOptions,
+};
+
 function parseImportedValue(column: NormalizedExcelColumnDefinition, value: string): number | string | null {
   if (value === '') {
     return column.dataType === 'number' || column.dataType === 'date' ? null : value;
@@ -473,5 +483,6 @@ export {
   _fromExcelDynamic as fromExcelDynamic,
   _toExcel as toExcel,
   generateExcelTemplate,
-  download
+  download,
+  testUtils
 };
