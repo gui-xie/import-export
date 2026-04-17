@@ -119,6 +119,7 @@ corepack pnpm --dir packages/core pack --pack-destination /tmp/import-export-rel
 ```bash
 corepack pnpm install --frozen-lockfile
 cargo test --manifest-path packages/wasm/Cargo.toml --lib
+cargo bench --manifest-path packages/wasm/Cargo.toml --features benchmarks
 corepack pnpm --filter @senlinz/import-export-wasm build
 corepack pnpm --filter @senlinz/import-export build
 corepack pnpm --filter @senlinz/import-export test

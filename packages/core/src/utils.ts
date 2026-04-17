@@ -20,7 +20,9 @@ import {
   DynamicExcelImportResult
 } from './ExcelDefinition';
 const SUPPORTED_DATA_TYPES = ['text', 'number', 'date', 'image'] as const;
-const DOWNLOAD_URL_REVOKE_DELAY_MS = 200;
+const DOWNLOAD_LINK_ID = 'senlinzImportExportDownload';
+let pendingDownloadObjectUrl: string | null = null;
+let downloadCleanupListenersRegistered = false;
 type NormalizedDataType = typeof SUPPORTED_DATA_TYPES[number];
 type NormalizedExcelColumnDefinition = Omit<ExcelColumnDefinition, 'dataType'> & {
   dataType?: NormalizedDataType;
@@ -376,16 +378,40 @@ function download(
   data: Uint8Array | string,
   name: string,
   type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-  const id = 'senlinzImportExportDownload';
-  document.querySelector(`#${id}`)?.remove();
+  cleanupPendingDownloadObjectUrl();
+  document.querySelector(`#${DOWNLOAD_LINK_ID}`)?.remove();
   const linkInput = document.createElement('a');
-  linkInput.id = id;
+  linkInput.id = DOWNLOAD_LINK_ID;
   linkInput.download = name;
   const blob = new Blob([data], { type });
   const objectUrl = URL.createObjectURL(blob);
   linkInput.href = objectUrl;
+  registerDownloadCleanupListeners();
+  pendingDownloadObjectUrl = objectUrl;
   linkInput.click();
-  setTimeout(() => URL.revokeObjectURL(objectUrl), DOWNLOAD_URL_REVOKE_DELAY_MS);
+}
+
+function cleanupPendingDownloadObjectUrl() {
+  if (!pendingDownloadObjectUrl) {
+    return;
+  }
+  URL.revokeObjectURL(pendingDownloadObjectUrl);
+  pendingDownloadObjectUrl = null;
+}
+
+function registerDownloadCleanupListeners() {
+  if (downloadCleanupListenersRegistered || typeof window === 'undefined') {
+    return;
+  }
+  const cleanup = () => cleanupPendingDownloadObjectUrl();
+  window.addEventListener('focus', cleanup);
+  window.addEventListener('pagehide', cleanup);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      cleanup();
+    }
+  });
+  downloadCleanupListenersRegistered = true;
 }
 
 function mapFormat(vf: ExcelCellFormatDefinition) {

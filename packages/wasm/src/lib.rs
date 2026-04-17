@@ -11,6 +11,7 @@ use wasm_bindgen_futures::future_to_promise;
 use wasm_bindgen_futures::JsFuture;
 
 mod excel_structs;
+#[cfg(test)]
 mod tests;
 
 pub use excel_structs::dynamic_excel_data::DynamicExcelData;
@@ -75,6 +76,24 @@ pub fn export_data(info: ExcelInfo, data: ExcelData) -> js_sys::Promise {
         }
     };
     future_to_promise(future)
+}
+
+#[cfg(feature = "benchmarks")]
+#[doc(hidden)]
+pub fn benchmark_import_data(
+    info: ExcelInfo,
+    excel_bytes: &[u8],
+) -> Result<ExcelData, Box<dyn std::error::Error>> {
+    import_data_buffer(info, excel_bytes)
+}
+
+#[cfg(feature = "benchmarks")]
+#[doc(hidden)]
+pub async fn benchmark_export_data(
+    info: ExcelInfo,
+    data: ExcelData,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    export_data_buffer(&info, &data).await
 }
 
 fn create_template_workbook(
