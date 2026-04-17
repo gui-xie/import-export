@@ -489,11 +489,11 @@ impl ExcelColumnInfo {
         !self.parent.is_empty()
     }
 
-    pub fn get_value_format<'a>(&'a self, value: &'a String) -> Option<&'a ExcelCellFormat> {
+    pub fn get_value_format<'a>(&'a self, value: &str) -> Option<&'a ExcelCellFormat> {
         let mut result = None;
         for vf in self.value_format.iter() {
             if vf.rule == "eq" {
-                if vf.value == *value {
+                if vf.value == value {
                     result = Some(vf);
                     break;
                 }

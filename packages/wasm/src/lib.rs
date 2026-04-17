@@ -228,7 +228,7 @@ fn format_cell_value(data: &Data, treat_float_as_date: bool) -> String {
     }
 }
 
-fn format_value(data: &Data, data_type: &String) -> String {
+fn format_value(data: &Data, data_type: &str) -> String {
     format_cell_value(data, data_type.eq_ignore_ascii_case("date"))
 }
 
@@ -614,7 +614,7 @@ async fn write_single_cell(
     worksheet: &mut Worksheet,
     x: u16,
     y: u32,
-    value: &String,
+    value: &str,
     column: &ExcelColumnInfo,
     info: &ExcelInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -762,13 +762,13 @@ fn write_range_cell(
     x2: u16,
     y1: u32,
     y2: u32,
-    value: &String,
+    value: &str,
     column: &ExcelColumnInfo,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if let Some(f) = get_column_value_format(&value, column) {
-        worksheet.merge_range(y1, x1, y2, x2, &value.as_str(), &f)?;
+    if let Some(f) = get_column_value_format(value, column) {
+        worksheet.merge_range(y1, x1, y2, x2, value, &f)?;
     } else {
-        worksheet.merge_range(y1, x1, y2, x2, &value.as_str(), &DEFAULT_FORMAT)?;
+        worksheet.merge_range(y1, x1, y2, x2, value, &DEFAULT_FORMAT)?;
     }
     Ok(())
 }
@@ -819,12 +819,12 @@ fn get_cell_format(value_format: &ExcelCellFormat) -> Format {
     result
 }
 
-fn get_column_value_format(value: &String, column: &ExcelColumnInfo) -> Option<Format> {
+fn get_column_value_format(value: &str, column: &ExcelColumnInfo) -> Option<Format> {
     column.get_value_format(value).map(get_cell_format)
 }
 
 fn get_parent_times(
-    leaf_columns: &Vec<&ExcelColumnInfo>,
+    leaf_columns: &[&ExcelColumnInfo],
     parent_map: &HashMap<String, String>,
 ) -> HashMap<String, u16> {
     let mut parent_times: HashMap<String, u16> = HashMap::new();
@@ -877,7 +877,7 @@ fn get_column_positions(info: &ExcelInfo) -> Vec<ExcelColumnPosition> {
 }
 
 fn get_levels<'a>(
-    leaf_columns: &'a Vec<&ExcelColumnInfo>,
+    leaf_columns: &'a [&'a ExcelColumnInfo],
     parent_map: &'a HashMap<String, String>,
 ) -> HashMap<&'a String, u32> {
     let mut result = HashMap::new();
