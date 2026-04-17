@@ -38,6 +38,7 @@
     btnImport.addEventListener('click', importClick);
     btnExport.addEventListener('click', exportClick);
     btnDownloadTemplate.addEventListener('click', downloadTemplateClick);
+    document.body.dataset.ready = 'true';
 
     function exportClick() {
       exportExcel(excelInfo, [
