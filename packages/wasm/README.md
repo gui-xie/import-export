@@ -82,6 +82,7 @@ The browser example is covered by Playwright tests in [`./tests/wasm.test.js`](.
 
 ```bash
 cargo test --lib
+cargo bench --features benchmarks
 wasm-pack build --release --target web
 corepack pnpm install
 corepack pnpm exec playwright install chromium

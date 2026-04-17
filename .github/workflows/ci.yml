@@ -44,6 +44,9 @@ jobs:
       - name: Run wasm unit tests
         run: cargo test --manifest-path packages/wasm/Cargo.toml --lib
 
+      - name: Compile wasm benchmarks
+        run: cargo bench --manifest-path packages/wasm/Cargo.toml --features benchmarks --no-run
+
       - name: Run wasm browser tests
         run: corepack pnpm --filter @senlinz/import-export-wasm e2e-test
 

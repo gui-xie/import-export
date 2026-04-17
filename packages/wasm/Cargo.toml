@@ -11,6 +11,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["console_error_panic_hook"]
+benchmarks = []
 
 [profile.release]
 lto = true
@@ -19,7 +20,7 @@ opt-level = 's'
 [dependencies]
 wasm-bindgen = "0.2"
 console_error_panic_hook = {version = "0.1.7", optional = true }
-rust_xlsxwriter = {version="0.77", features = ["wasm", "default"] }
+rust_xlsxwriter = {version="=0.77.0", features = ["wasm", "default"] }
 chrono = "0.4.39"
 js-sys = "0.3.77"
 futures = "0.3.31"
@@ -28,8 +29,13 @@ calamine = {version = "0.26.1", features = ["picture"] }
 indexmap = "=2.7.0"
 
 [dev-dependencies]
+criterion = { version = "=0.5.1", features = ["async_tokio"] }
 insta = "=1.42.2"
 tokio = { version = "1", features = ["rt", "macros"] }
+
+[[bench]]
+name = "large_dataset"
+harness = false
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 debug-js-glue = true
