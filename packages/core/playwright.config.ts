@@ -6,6 +6,7 @@ const config: PlaywrightTestConfig = {
         baseURL: 'http://localhost:8080',
     },
     testDir: 'tests',
+    testMatch: ['**/*.spec.ts'],
     snapshotDir: 'tests/snapshots',
     webServer: {
         command: 'npm run e2e-serve',
