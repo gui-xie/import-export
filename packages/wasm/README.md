@@ -75,6 +75,7 @@ The browser example is covered by Playwright tests in [`./tests/wasm.test.js`](.
 ## Runtime notes
 
 - Browser usage requires the generated JS/WASM assets from `wasm-pack build`.
+- The generated `pkg/` directory is a build artifact and is not tracked in git.
 - Image export requires `.withImageFetcher(...)`.
 - Invalid schemas and invalid exported number/date values now fail with explicit errors.
 
