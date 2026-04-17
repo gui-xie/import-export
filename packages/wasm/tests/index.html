@@ -13,7 +13,7 @@
     <button id="btnDownloadTemplate">Download Template</button>
     <div id="importOutput"></div>
     <script type="module">
-        import init, { importData, createTemplate, exportData, ExcelInfo, ExcelColumnInfo, ExcelData, ExcelRowData, ExcelColumnData } from './dist/imexport_wasm.js';
+        import init, { importData, createTemplate, exportData, ExcelInfo, ExcelColumnInfo, ExcelData, ExcelRowData, ExcelColumnData } from '../pkg/imexport_wasm.js';
         await init();
 
         const btnImport = document.getElementById('btnImport');

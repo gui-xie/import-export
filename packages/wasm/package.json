@@ -8,7 +8,7 @@
     "build": "wasm-pack build --release --target web",
     "publish-dry-run": "pnpm publish --dry-run --no-git-checks",
     "cargo-test": "cargo test --lib",
-    "e2e-serve": "wasm-pack build --release --target web -d tests/dist && serve -l 8080 .",
+    "e2e-serve": "serve -l 8080 .",
     "e2e-test": "playwright test -c playwright.config.js"
   },
   "devDependencies": {

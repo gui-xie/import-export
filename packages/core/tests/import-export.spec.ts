@@ -14,6 +14,7 @@ test.describe('import-export core', () => {
 
   test('can retry import after a failed import', async ({ page }) => {
     await page.goto('/examples/basic-browser.html');
+    await page.waitForFunction(() => document.body.dataset.ready === 'true');
     fs.mkdirSync(downloadPath, { recursive: true });
     const validFilePath = path.join(downloadPath, 'TomAndJerry.xlsx');
     const invalidFilePath = path.resolve(
