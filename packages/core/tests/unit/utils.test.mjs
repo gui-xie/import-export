@@ -1,6 +1,6 @@
-import { __testing__ } from '../../dist/index.js';
+import { testUtils } from '../../dist/index.js';
 
-const { normalizeDefinition, normalizeDynamicImportOptions } = __testing__;
+const { normalizeDefinition, normalizeDynamicImportOptions } = testUtils;
 
 describe('core normalization helpers', () => {
   test('normalizes schema strings for pure definition logic', () => {

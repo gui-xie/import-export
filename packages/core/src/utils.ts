@@ -143,7 +143,7 @@ type TestingUtils = {
   normalizeDynamicImportOptions(options?: DynamicExcelImportOptions): DynamicExcelImportOptions;
 };
 
-const __testing__: TestingUtils = {
+const testUtils: TestingUtils = {
   normalizeDefinition,
   normalizeDynamicImportOptions,
 };
@@ -484,5 +484,5 @@ export {
   _toExcel as toExcel,
   generateExcelTemplate,
   download,
-  __testing__
+  testUtils
 };
