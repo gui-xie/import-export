@@ -34,5 +34,6 @@ tests/dist/
 coverage/
 test-download/
 target/
+packages/wasm/pkg/
 *.snap.new.xlsx
 *.snap.new

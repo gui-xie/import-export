@@ -75,6 +75,7 @@ const imported = importData(info, workbook);
 ## 运行时说明
 
 - 浏览器使用前需要通过 `wasm-pack build` 生成 JS / WASM 产物。
+- 生成的 `pkg/` 目录属于构建产物，不会提交到 git。
 - 图片导出需要 `.withImageFetcher(...)`。
 - 非法 schema、非法数字值、非法日期值都会返回明确错误。
 
