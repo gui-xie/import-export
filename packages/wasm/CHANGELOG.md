@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 0.1.2
+
+### Patch Changes
+
+- bc02e5d: Republish the coordinated workspace release at `0.1.2` so the WASM package stays aligned with `@senlinz/import-export`.
+
 ## 0.1.1
 
 ### Patch Changes

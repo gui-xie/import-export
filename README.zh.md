@@ -103,16 +103,18 @@ await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:
 
 ## 发布准备
 
-- `0.1.1` 主要补充了无 schema 导入能力，包括 `fromExcelDynamic(buffer, options?)`、`importExcelDynamic(options?)`，以及可配置的工作表 / 表头行选择。
-- 发布前请先验证打包产物：
+- `0.1.2` 主要聚焦更安全的浏览器导入导出流程，包括 `maxFileSizeBytes` 上传大小限制，以及默认开启的文本公式转义。
+- 协同版本发布前，先执行：
 
 ```bash
-corepack pnpm --filter @senlinz/import-export-wasm build
-corepack pnpm --filter @senlinz/import-export build
-mkdir -p /tmp/import-export-release
-corepack pnpm --dir packages/wasm pack --pack-destination /tmp/import-export-release
-corepack pnpm --dir packages/core pack --pack-destination /tmp/import-export-release
+corepack pnpm changeset
+corepack pnpm run release:version
+corepack pnpm run release:check
 ```
+
+- 然后在 GitHub Actions 的 **Publish packages** 工作流里手动发布，并填写：
+  - `confirm=publish`
+  - `version=0.1.2`
 
 ## 开发
 
