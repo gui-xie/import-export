@@ -1,5 +1,13 @@
 # @senlinz/import-export
 
+## 0.1.2
+
+### Patch Changes
+
+- bc02e5d: Add `maxFileSizeBytes` limits for browser picker imports and escape formula-like text values by default during export/template generation.
+- Updated dependencies [bc02e5d]
+  - @senlinz/import-export-wasm@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
