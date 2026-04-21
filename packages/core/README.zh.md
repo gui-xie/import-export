@@ -51,12 +51,14 @@ const workbook = await toExcel({
 - `columns`：表头、校验和行映射使用的稳定列定义
 - `author`：可选的工作簿作者元数据
 - `createTime`：可选的工作簿创建时间，支持 `Date` 或日期字符串
+- `maxFileSizeBytes`：浏览器上传的字节大小上限（默认 25 MiB），在读取前先校验
 - `title`、`titleHeight`、`titleFormat`：可选的合并标题行及其高度、样式
 - `defaultRowHeight`、`headerRowHeight`：导出时数据行和表头行的行高
 - `dx`、`dy`：表头写入前的横向、纵向偏移量
 - `isHeaderFreeze`：冻结表头区域，滚动时仍保持列标题可见
 - `progressCallback`：长时间导入 / 导出过程中的进度回调
 - `imageFetcher`：导出 `image` 列时必需的图片数据解析回调
+- `escapeFormulas`：导出时自动转义类似公式的文本，默认开启，可显式关闭以允许公式
 
 ### 稳定的列字段
 
@@ -134,6 +136,7 @@ const result = await fromExcelDynamic(fileBytes, {
 - `importExcelDynamic(...)` 依赖 DOM / 浏览器文件上传 API。
 - `sheetName` 可选，未提供或不存在时会回退到第一个工作表。
 - `headerRow` 可选，使用从 `1` 开始的行号，默认会自动选择首个非空行。
+- `maxFileSizeBytes` 可选，与 schema 导入相同，默认 25 MiB。
 - 返回值结构为 `{ sheetName, headers, rows }`。
 
 ## 导入行为
@@ -143,6 +146,7 @@ const result = await fromExcelDynamic(fileBytes, {
 - 空的 `number` / `date` 单元格导入后返回 `null`。
 - `date` 列导入后返回格式化字符串。
 - 非法或不完整的 schema 会在读取工作簿前立即失败。
+- 浏览器上传会在读取前按 `maxFileSizeBytes` 校验文件大小（默认 25 MiB）。
 - 无 schema 导入时，可使用 `importExcelDynamic(...)`（浏览器上传）或 `fromExcelDynamic(...)`（字节缓冲）。
 
 ## 导出行为
@@ -150,6 +154,7 @@ const result = await fromExcelDynamic(fileBytes, {
 - `null` 和 `undefined` 会导出为空单元格。
 - 数字列会拒绝非有限值。
 - 日期列支持 `Date` 实例或日期字符串。
+- 文本列默认会转义看起来像公式的值；如需导出公式，可设置 `escapeFormulas: false`。
 - 分组导出对象必须使用 `{ value?, children: [...] }` 结构。
 - 图片列必须提供 `imageFetcher`。
 

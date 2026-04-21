@@ -30,6 +30,8 @@ interface ExcelDefinition {
     titleHeight?: number,
     /** Format applied to the optional merged title row. */
     titleFormat?: ExcelCellFormatDefinition,
+    /** Maximum upload size (in bytes) enforced for browser-based imports. Defaults to 25 MiB when omitted. */
+    maxFileSizeBytes?: number,
     /** Default height used for data rows when exporting a worksheet. */
     defaultRowHeight?: number,
     /** Height applied to header rows during template/export generation. */
@@ -47,6 +49,8 @@ interface ExcelDefinition {
      * The callback must resolve to image bytes for the provided URL or identifier.
      */
     imageFetcher?: (url: string) => Promise<Uint8Array>,
+    /** Escapes text cells that look like formulas to prevent Excel formula injection. Enabled by default. */
+    escapeFormulas?: boolean,
 }
 
 interface ExcelColumnDefinition {
@@ -108,6 +112,8 @@ interface DynamicExcelImportOptions {
     sheetName?: string,
     /** 1-based worksheet row number to use as the header row. Defaults to the first non-empty row. */
     headerRow?: number
+    /** Maximum upload size (in bytes) enforced for browser-based dynamic imports. Defaults to 25 MiB when omitted. */
+    maxFileSizeBytes?: number
 }
 
 interface DynamicExcelImportResult {

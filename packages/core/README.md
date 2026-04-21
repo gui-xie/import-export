@@ -51,12 +51,14 @@ If you provide invalid manual input, `initializeWasm(...)` throws a clear error 
 - `columns` - stable schema for headers, validation, and row mapping
 - `author` - optional workbook author metadata
 - `createTime` - optional workbook creation time as a `Date` or date string
+- `maxFileSizeBytes` - browser upload limit in bytes (default 25 MiB) enforced before reading a file
 - `title`, `titleHeight`, `titleFormat` - optional merged title row and its layout/format
 - `defaultRowHeight`, `headerRowHeight` - row heights for exported data rows and header rows
 - `dx`, `dy` - horizontal and vertical offsets before the header starts
 - `isHeaderFreeze` - freezes the header area so column labels stay visible while scrolling
 - `progressCallback` - progress hook for long-running import/export work
 - `imageFetcher` - required resolver for `image` columns during export
+- `escapeFormulas` - escapes formula-like text during export to block Excel formula injection (default: enabled)
 
 ### Schema-less import
 
@@ -91,6 +93,7 @@ console.log(result.rows);
 - `importExcelDynamic(...)` depends on DOM/browser file upload APIs.
 - `sheetName` is optional and falls back to the first worksheet when missing.
 - `headerRow` is optional, 1-based, and defaults to the first non-empty row in the selected sheet.
+- `maxFileSizeBytes` is optional and uses the same default 25 MiB browser upload limit as schema-based import.
 - The result shape is `{ sheetName, headers, rows }`.
 - Dynamic import requires non-empty, unique header names in the selected header row.
 
@@ -150,6 +153,7 @@ const rows = await importExcel(definition);
 - Empty imported `number` and `date` cells are returned as `null`.
 - Imported `date` values are returned as formatted strings.
 - Unknown or malformed schemas fail fast before any workbook operation starts.
+- Browser uploads enforce `maxFileSizeBytes` before reading the file (default 25 MiB).
 - Use `importExcelDynamic(...)` for browser uploads without a schema, or `fromExcelDynamic(...)` when you already have workbook bytes.
 
 ## Export behavior
@@ -157,6 +161,7 @@ const rows = await importExcel(definition);
 - `null` and `undefined` values are exported as blank cells.
 - Number columns reject non-finite values.
 - Date columns accept `Date` instances or parseable date strings.
+- Text columns escape values that look like formulas by default; set `escapeFormulas: false` to allow formulas intentionally.
 - Grouped export objects must use `{ value?, children: [...] }` for configured `dataGroup` columns.
 - Image columns require `imageFetcher`.
 
