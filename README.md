@@ -103,16 +103,18 @@ Manual initialization accepts `source`, `bytes`, or `module` and throws a clear 
 
 ## Release preparation
 
-- `0.1.1` focuses on the new schema-less import flow, including `fromExcelDynamic(buffer, options?)`, `importExcelDynamic(options?)`, and configurable sheet/header-row selection.
-- Verify packed artifacts before publishing:
+- `0.1.2` focuses on safer browser uploads and exports, including `maxFileSizeBytes` upload limits and default formula escaping for text cells.
+- Prepare the coordinated release:
 
 ```bash
-corepack pnpm --filter @senlinz/import-export-wasm build
-corepack pnpm --filter @senlinz/import-export build
-mkdir -p /tmp/import-export-release
-corepack pnpm --dir packages/wasm pack --pack-destination /tmp/import-export-release
-corepack pnpm --dir packages/core pack --pack-destination /tmp/import-export-release
+corepack pnpm changeset
+corepack pnpm run release:version
+corepack pnpm run release:check
 ```
+
+- Publish from GitHub Actions with **Actions → Publish packages → Run workflow**, then enter:
+  - `confirm=publish`
+  - `version=0.1.2`
 
 ## Development
 
