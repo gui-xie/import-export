@@ -8,9 +8,9 @@
   "scripts": {
     "changeset": "changeset",
     "release:version": "changeset version",
-    "release:build": "pnpm --filter @senlinz/import-export-wasm build && pnpm --filter @senlinz/import-export build",
-    "release:pack": "rm -rf /tmp/import-export-release && mkdir -p /tmp/import-export-release && pnpm --dir packages/wasm pack --pack-destination /tmp/import-export-release && pnpm --dir packages/core pack --pack-destination /tmp/import-export-release",
-    "release:check": "pnpm run release:build && pnpm run release:pack"
+    "release:build": "corepack pnpm --filter @senlinz/import-export-wasm build && corepack pnpm --filter @senlinz/import-export build",
+    "release:pack": "rm -rf /tmp/import-export-release && mkdir -p /tmp/import-export-release && corepack pnpm --dir packages/wasm pack --pack-destination /tmp/import-export-release && corepack pnpm --dir packages/core pack --pack-destination /tmp/import-export-release",
+    "release:check": "corepack pnpm run release:build && corepack pnpm run release:pack"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.9",
