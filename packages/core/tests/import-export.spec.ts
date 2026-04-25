@@ -46,6 +46,37 @@ test.describe('import-export core', () => {
     await expect(page.locator('#importError')).toHaveText('');
   });
 
+  test('reports cancelled browser imports and allows retry', async ({ page }) => {
+    await page.goto('/examples/basic-browser.html');
+    await page.waitForFunction(() => document.body.dataset.ready === 'true');
+    fs.mkdirSync(downloadPath, { recursive: true });
+    const validFilePath = path.join(downloadPath, 'TomAndJerry.xlsx');
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('#btnExport')
+    ]);
+    await download.saveAs(validFilePath);
+
+    const [cancelChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.click('#btnImport')
+    ]);
+    await cancelChooser.setFiles([]);
+    await expect(page.locator('#importError')).toHaveText('File selection cancelled.');
+    await expect(page.locator('#importOutput')).toHaveText('');
+
+    const [validChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.click('#btnImport')
+    ]);
+    await validChooser.setFiles(validFilePath);
+    await expect(page.locator('#importOutput')).toHaveText(
+      '[{"name":"Tom","age":12,"birthday":"2024-11-01 00:00:00","category":"Cat","image":""},{"name":"Jerry","age":null,"birthday":null,"category":"Mouse","image":""}]'
+    );
+    await expect(page.locator('#importError')).toHaveText('');
+  });
+
   test('validates malformed definitions in the browser API', async ({ page }) => {
     await page.goto('/examples/definition-errors.html');
 

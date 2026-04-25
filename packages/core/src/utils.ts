@@ -358,23 +358,44 @@ function readFileFromUpload<T>(
     fileInput.type = 'file';
     fileInput.accept = '.xlsx,.xls,.xlsm,.xlsb,.xla,.xlam,.ods';
     document.body.appendChild(fileInput);
+    let settled = false;
 
     const cleanup = () => {
       fileInput.removeEventListener('change', fileHandler);
+      fileInput.removeEventListener('cancel', cancelHandler);
       fileInput.remove();
     };
 
     const rejectWithError = (error: unknown) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
       cleanup();
       reject(error instanceof Error ? error : new Error(String(error)));
     };
 
+    const resolveWithValue = (value: T) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+
+    const cancelHandler = () => {
+      rejectWithError(new Error('File selection cancelled.'));
+    };
+
     fileInput.addEventListener('change', fileHandler);
+    fileInput.addEventListener('cancel', cancelHandler);
     fileInput.click();
 
     function fileHandler(event: Event) {
       const target = event.target as HTMLInputElement;
       if (!target || !target.files || target.files.length === 0) {
+        rejectWithError(new Error('File selection cancelled.'));
         return;
       }
       const file = target.files[0];
@@ -395,8 +416,7 @@ function readFileFromUpload<T>(
         try {
           const buffer = new Uint8Array(reader.result as ArrayBuffer);
           const result = await load(buffer);
-          cleanup();
-          resolve(result);
+          resolveWithValue(result);
         } catch (error) {
           rejectWithError(error);
         }
