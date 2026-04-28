@@ -179,6 +179,9 @@ function isSameRuntimeState(left: RuntimeState, right: RuntimeState): boolean {
   if (left.kind === 'bundled') {
     return true;
   }
+  if (right.kind === 'bundled') {
+    return false;
+  }
   return left.inputKind === right.inputKind && left.token === right.token;
 }
 
