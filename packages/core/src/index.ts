@@ -88,7 +88,7 @@ function getByteLength(value: BufferSource): number {
   try {
     return value.byteLength;
   } catch {
-    throw new Error('Invalid WASM bytes provided to initializeWasm({ bytes }). Expected a readable ArrayBuffer or typed array.');
+    throw new Error('Invalid WASM bytes provided to initializeWasm({ bytes }). Expected an ArrayBuffer or typed array with a valid byteLength property.');
   }
 }
 
@@ -259,7 +259,7 @@ function initializeWasm(options: InitializeWasmOptions): Promise<void> | void {
   if (pendingRuntimeState) {
     if (isSameRuntimeState(pendingRuntimeState, nextState)) {
       if (!initializePromise) {
-        throw new Error('Internal WASM initialization state error: initializePromise was unexpectedly cleared during pending initialization. Please retry the initialization.');
+        throw new Error('Internal WASM initialization state error: initializePromise was unexpectedly null during pending initialization. This indicates a bug in the library.');
       }
       return initializePromise;
     }
