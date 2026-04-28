@@ -84,6 +84,14 @@ function isBufferSource(value: unknown): value is BufferSource {
   return value instanceof ArrayBuffer || ArrayBuffer.isView(value);
 }
 
+function getByteLength(value: BufferSource): number {
+  try {
+    return value.byteLength;
+  } catch {
+    throw new Error('Invalid WASM bytes provided to initializeWasm({ bytes }). Expected a readable ArrayBuffer or typed array.');
+  }
+}
+
 function resolveFetch(fetcher?: WasmFetchFn): WasmFetchFn {
   if (fetcher) {
     return fetcher;
@@ -142,7 +150,7 @@ function normalizeCustomInitialization(options: InitializeWasmOptions): Normaliz
     if (!isBufferSource(options.bytes)) {
       throw new Error('Invalid WASM bytes provided to initializeWasm({ bytes }). Expected an ArrayBuffer or typed array.');
     }
-    if (options.bytes.byteLength === 0) {
+    if (getByteLength(options.bytes) === 0) {
       throw new Error('Invalid WASM bytes provided to initializeWasm({ bytes }). Expected a non-empty ArrayBuffer or typed array.');
     }
     return {
@@ -162,7 +170,7 @@ function normalizeCustomInitialization(options: InitializeWasmOptions): Normaliz
     };
   }
   if (!options.url?.trim()) {
-    throw new Error('Invalid WASM URL provided to initializeWasm({ url }). Expected a non-empty URL string.');
+    throw new Error('Invalid WASM URL provided to initializeWasm({ url }). Expected a non-empty, non-whitespace URL string.');
   }
   return {
     inputKind: 'url',
@@ -250,7 +258,10 @@ function initializeWasm(options: InitializeWasmOptions): Promise<void> | void {
 
   if (pendingRuntimeState) {
     if (isSameRuntimeState(pendingRuntimeState, nextState)) {
-      return initializePromise ?? Promise.resolve();
+      if (!initializePromise) {
+        throw new Error('The Excel WASM runtime entered an invalid pending initialization state. Please retry the initialization.');
+      }
+      return initializePromise;
     }
     throw new Error(getAlreadyInitializedError(nextState));
   }
