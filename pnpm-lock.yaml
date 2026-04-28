@@ -29,9 +29,6 @@ importers:
       '@senlinz/import-export-wasm':
         specifier: workspace:*
         version: link:../wasm
-      fflate:
-        specifier: ^0.8.2
-        version: 0.8.2
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^28.0.3
@@ -51,6 +48,9 @@ importers:
       '@types/node':
         specifier: ^16.18.108
         version: 16.18.108
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.2
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@16.18.108)(ts-node@10.9.1(@types/node@16.18.108)(typescript@5.8.2))

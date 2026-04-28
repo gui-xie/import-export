@@ -5,7 +5,7 @@ type ExcelColumnDataType = "text" | "number" | "date" | "image";
 
 /**
  * Runtime support:
- * - Browser ESM environments with `Blob`, `FileReader`, `atob`, and `URL.createObjectURL`.
+ * - Browser ESM environments with `Blob`, `FileReader`, `fetch`, and `URL.createObjectURL`.
  * - Node.js can use `fromExcel`, `toExcel`, and `generateExcelTemplate` when compatible browser globals are available.
  *
  * Known limitations:

@@ -10,11 +10,11 @@ High-level browser API for Excel template generation, export, and import.
 pnpm add @senlinz/import-export
 ```
 
-## Choose your mode
+## WASM loading
 
-### Default mode
-
-- `importExcel`, `importExcelDynamic`, `exportExcel`, `fromExcel`, `fromExcelDynamic`, `toExcel`, `downloadExcelTemplate`, and `generateExcelTemplate` auto-load and initialize WASM on first use.
+- `importExcel`, `importExcelDynamic`, `exportExcel`, `fromExcel`, `fromExcelDynamic`, `toExcel`, `downloadExcelTemplate`, and `generateExcelTemplate` auto-load and initialize the bundled WASM asset on first use.
+- In Vite and other browser ESM bundlers, no manual `initializeWasm(...)` call or `?url` import is required when using the high-level core package.
+- If you need to manage the WASM module yourself, use `@senlinz/import-export-wasm` directly instead of this package.
 
 ```ts
 import { toExcel } from '@senlinz/import-export';
@@ -24,18 +24,6 @@ const workbook = await toExcel({
   columns: [{ key: 'name', name: 'Name', dataType: 'text' }],
 }, [{ name: 'Tom' }]);
 ```
-
-### Optional customization
-
-```ts
-import { configureWasm } from '@senlinz/import-export';
-
-configureWasm({ url: '/assets/imexport_wasm_bg.wasm' });
-```
-
-- `configureWasm(...)` also accepts `{ bytes }`, `{ module }`, or `{ source }`.
-- `configureViteWasm(...)` is kept as an alias of `configureWasm(...)` for compatibility.
-
 
 ## Supported API
 
@@ -178,12 +166,11 @@ These advanced features are supported and considered part of the public API:
 - `downloadExcelTemplate`, `exportExcel`, `importExcel`, and `importExcelDynamic` require DOM/browser APIs.
 - `fromExcel`, `toExcel`, and `generateExcelTemplate` can be used in other runtimes when browser-compatible globals are available.
 - `fromExcelDynamic` can also be used in other runtimes when browser-compatible globals are available.
-- `initializeWasm` can be used to pre-initialize the runtime with caller-managed `source`, `bytes`, or `module`.
+- The core package initializes its emitted bundled WASM asset asynchronously before the first workbook operation.
 
 ## Examples
 
 - [Basic browser example](./examples/basic-browser.html)
-- [Manual WASM browser example](./examples/manual-wasm-browser.html)
 - [Grouped export example](./examples/grouped-export.html)
 - [Definition validation example](./examples/definition-errors.html)
 

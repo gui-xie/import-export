@@ -10,11 +10,11 @@
 pnpm add @senlinz/import-export
 ```
 
-## 选择使用模式
+## WASM 加载
 
-### 默认模式
-
-- `importExcel`、`importExcelDynamic`、`exportExcel`、`fromExcel`、`fromExcelDynamic`、`toExcel`、`downloadExcelTemplate`、`generateExcelTemplate` 首次调用时会自动加载并初始化 WASM。
+- `importExcel`、`importExcelDynamic`、`exportExcel`、`fromExcel`、`fromExcelDynamic`、`toExcel`、`downloadExcelTemplate`、`generateExcelTemplate` 会在首次调用时自动加载并初始化内置 WASM 资源。
+- 在 Vite 和其他浏览器 ESM bundler 中，使用高阶 core 包时不再需要手动调用 `initializeWasm(...)` 或自己处理 `?url`。
+- 如果你需要自行管理 WASM 模块，请直接使用 `@senlinz/import-export-wasm`，而不是这个高阶包。
 
 ```ts
 import { toExcel } from '@senlinz/import-export';
@@ -24,18 +24,6 @@ const workbook = await toExcel({
   columns: [{ key: 'name', name: 'Name', dataType: 'text' }],
 }, [{ name: 'Tom' }]);
 ```
-
-### 可选自定义
-
-```ts
-import { configureWasm } from '@senlinz/import-export';
-
-configureWasm({ url: '/assets/imexport_wasm_bg.wasm' });
-```
-
-- `configureWasm(...)` 也支持 `{ bytes }`、`{ module }`、`{ source }`。
-- 为兼容已有代码，保留 `configureViteWasm(...)` 作为 `configureWasm(...)` 的别名。
-
 
 ## 支持的 API
 
@@ -170,12 +158,11 @@ const result = await fromExcelDynamic(fileBytes, {
 - 主要面向浏览器 ESM 运行时。
 - `downloadExcelTemplate`、`exportExcel`、`importExcel`、`importExcelDynamic` 依赖 DOM / 浏览器 API。
 - 当运行时提供兼容的浏览器全局对象时，也可以使用 `fromExcel`、`fromExcelDynamic`、`toExcel`、`generateExcelTemplate`。
-- `initializeWasm` 可用于使用调用方提供的 `source`、`bytes` 或 `module` 预初始化运行时。
+- core 包会在首次执行工作簿操作前，异步初始化构建产物中的内置 WASM 资源。
 
 ## 示例
 
 - [基础浏览器示例](./examples/basic-browser.html)
-- [手动初始化 WASM 的浏览器示例](./examples/manual-wasm-browser.html)
 - [分组导出示例](./examples/grouped-export.html)
 - [Definition 校验示例](./examples/definition-errors.html)
 
