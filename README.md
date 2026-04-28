@@ -46,27 +46,11 @@ await exportExcel(definition, [
 const rows = await importExcel(definition);
 ```
 
-## Choose your mode
+## WASM loading
 
-### Default mode (recommended)
-
-- Keep using the existing top-level APIs with no setup.
-- The package auto-initializes its bundled WASM runtime when needed.
-
-### Advanced mode
-
-- Call `initializeWasm(...)` before using the same top-level APIs.
-- Use this when you want to control the WASM asset yourself for custom hosting, bundler integration, or performance-sensitive setups.
-
-```ts
-import { initializeWasm, exportExcel } from '@senlinz/import-export';
-import wasmUrl from './imexport_wasm_bg.wasm?url';
-
-await initializeWasm({ url: wasmUrl });
-await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:00:00', category: 'Cat' }]);
-```
-
-In Vite, prefer `?url`. Manual initialization also accepts `source`, `bytes`, or `module` and throws a clear error for invalid input.
+- `@senlinz/import-export` auto-loads its emitted bundled WASM asset on first use.
+- In Vite and other browser ESM bundlers, no separate `initializeWasm(...)` or `?url` wiring is needed in the core package.
+- If you need direct low-level WASM control, use `@senlinz/import-export-wasm` instead of the high-level wrapper.
 
 ## Stable supported schema
 
@@ -78,10 +62,10 @@ In Vite, prefer `?url`. Manual initialization also accepts `source`, `bytes`, or
 ## Browser/runtime support
 
 - Primary target: browser ESM runtimes.
-- Required browser APIs: `Blob`, `FileReader`, `URL.createObjectURL`, and `atob`.
+- Required browser APIs: `Blob`, `FileReader`, `URL.createObjectURL`, and `fetch`.
 - `fromExcel`, `fromExcelDynamic`, `toExcel`, and `generateExcelTemplate` can also be used in non-DOM runtimes when those browser-compatible globals are available.
 - `importExcelDynamic` provides the same schema-less import flow as `fromExcelDynamic`, but through the default browser file picker.
-- `initializeWasm` lets advanced users provide their own WASM URL, source, bytes, or compiled module.
+- The core package owns WASM loading internally and initializes the bundled asset asynchronously on first use.
 
 ## Known limitations
 
@@ -94,13 +78,12 @@ In Vite, prefer `?url`. Manual initialization also accepts `source`, `bytes`, or
 ## Examples
 
 - [Basic browser flow](./packages/core/examples/basic-browser.html)
-- [Manual WASM browser flow](./packages/core/examples/manual-wasm-browser.html)
 - [Grouped export flow](./packages/core/examples/grouped-export.html)
 - [Direct WASM browser flow](./packages/wasm/examples/direct-browser.html)
 
 ## Release preparation
 
-- `0.1.2` focuses on safer browser uploads and exports, including `maxFileSizeBytes` upload limits and default formula escaping for text cells.
+- `1.0.0` removes manual WASM initialization from the core package and standardizes auto-loading of the emitted bundled WASM asset.
 - Prepare the coordinated release:
 
 ```bash
@@ -111,7 +94,7 @@ corepack pnpm run release:check
 
 - Publish from GitHub Actions with **Actions → Publish packages → Run workflow**, then enter:
   - `confirm=publish`
-  - `version=0.1.2`
+  - `version=1.0.0`
 
 ## Development
 

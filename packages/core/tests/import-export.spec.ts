@@ -134,54 +134,6 @@ test.describe('import-export core', () => {
     await expect(page.locator('#exportError')).toHaveText('');
   });
 
-  test('supports manual WASM initialization before using the browser API', async ({ page }) => {
-    await page.goto('/examples/manual-wasm-browser.html');
-    await page.waitForFunction(() => document.body.dataset.ready === 'true');
-    await expect(page.locator('#statusOutput')).toHaveText('Manual WASM initialization completed.');
-
-    fs.mkdirSync(downloadPath, { recursive: true });
-    const validFilePath = path.join(downloadPath, 'TomAndJerry-manual.xlsx');
-
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.click('#btnExport')
-    ]);
-    await download.saveAs(validFilePath);
-
-    const [chooser] = await Promise.all([
-      page.waitForEvent('filechooser'),
-      page.click('#btnImport')
-    ]);
-    await chooser.setFiles(validFilePath);
-
-    await expect(page.locator('#importOutput')).toHaveText(
-      '[{"name":"Tom","age":12,"birthday":"2024-11-01 00:00:00","category":"Cat","image":""},{"name":"Jerry","age":null,"birthday":null,"category":"Mouse","image":""}]'
-    );
-    await expect(page.locator('#importError')).toHaveText('');
-  });
-
-  test('supports URL-based WASM initialization before using the browser API', async ({ page }) => {
-    await page.goto('/examples/basic-browser.html');
-
-    const wasmAssetName = fs.readdirSync(path.join(__dirname, '../dist/assets')).find(name => name.endsWith('.wasm'));
-    expect(wasmAssetName).toBeTruthy();
-
-    const result = await page.evaluate(async wasmUrl => {
-      const mod = await import('../dist/index.js');
-      await mod.initializeWasm({ url: wasmUrl });
-      const workbook = await mod.toExcel({
-        name: 'UrlInit',
-        columns: [
-          { key: 'name', name: 'Name', dataType: 'text' }
-        ]
-      }, [{ name: 'Tom' }]);
-
-      return Array.from(workbook.slice(0, 4));
-    }, `/dist/assets/${wasmAssetName}`);
-
-    expect(result).toEqual([80, 75, 3, 4]);
-  });
-
   test('supports dynamic import without a predefined schema', async ({ page }) => {
     await page.goto('/examples/basic-browser.html');
 
@@ -253,7 +205,7 @@ test.describe('import-export core', () => {
     });
   });
 
-  test('keeps existing exports stable and reports invalid manual initialization input clearly', async ({ page }) => {
+  test('keeps the browser API stable while hiding internal WASM initialization details', async ({ page }) => {
     await page.goto('/examples/basic-browser.html');
 
     const result = await page.evaluate(async () => {
@@ -266,17 +218,8 @@ test.describe('import-export core', () => {
         'fromExcelDynamic',
         'toExcel',
         'downloadExcelTemplate',
-        'generateExcelTemplate',
-        'initializeWasm',
-        'bundledWasmSource'
+        'generateExcelTemplate'
       ];
-      let invalidSourceError = '';
-      try {
-        mod.initializeWasm({ source: 'definitely-not-valid-gzip' });
-      } catch (error) {
-        invalidSourceError = error instanceof Error ? error.message : String(error);
-      }
-
       const template = await mod.generateExcelTemplate({
         name: 'CompatibilityCheck',
         columns: [
@@ -285,16 +228,19 @@ test.describe('import-export core', () => {
       });
 
       return {
-        bundledWasmSourceType: typeof mod.bundledWasmSource,
         exportPresence: exportNames.map(name => [name, typeof mod[name as keyof typeof mod] !== 'undefined']),
-        removedExports: [typeof mod.configureWasm === 'undefined', typeof mod.configureViteWasm === 'undefined'],
-        invalidSourceError,
+        removedExports: [
+          typeof mod.initializeWasm === 'undefined',
+          typeof mod.bundledWasmSource === 'undefined',
+          typeof mod.ensureWasmInitialized === 'undefined',
+          typeof mod.configureWasm === 'undefined',
+          typeof mod.configureViteWasm === 'undefined'
+        ],
         templateHeader: Array.from(template.slice(0, 4)),
         templateLength: template.length,
       };
     });
 
-    expect(result.bundledWasmSourceType).toBe('string');
     expect(result.exportPresence).toEqual([
       ['importExcel', true],
       ['importExcelDynamic', true],
@@ -303,12 +249,9 @@ test.describe('import-export core', () => {
       ['fromExcelDynamic', true],
       ['toExcel', true],
       ['downloadExcelTemplate', true],
-      ['generateExcelTemplate', true],
-      ['initializeWasm', true],
-      ['bundledWasmSource', true]
+      ['generateExcelTemplate', true]
     ]);
-    expect(result.removedExports).toEqual([true, true]);
-    expect(result.invalidSourceError).toContain('Invalid WASM source provided to initializeWasm({ source })');
+    expect(result.removedExports).toEqual([true, true, true, true, true]);
     expect(result.templateHeader).toEqual([80, 75, 3, 4]);
     expect(result.templateLength).toBeGreaterThan(0);
   });

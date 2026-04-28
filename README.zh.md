@@ -46,27 +46,11 @@ await exportExcel(definition, [
 const rows = await importExcel(definition);
 ```
 
-## 选择使用模式
+## WASM 加载
 
-### 默认模式（推荐）
-
-- 继续直接使用现有顶层 API，无需额外设置。
-- 包会在需要时自动初始化内置 WASM 运行时。
-
-### 高级模式
-
-- 在使用同一套顶层 API 之前先调用 `initializeWasm(...)`。
-- 适用于希望自己控制 WASM 资源的场景，例如自定义托管、bundler 集成或性能敏感初始化。
-
-```ts
-import { initializeWasm, exportExcel } from '@senlinz/import-export';
-import wasmUrl from './imexport_wasm_bg.wasm?url';
-
-await initializeWasm({ url: wasmUrl });
-await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:00:00', category: 'Cat' }]);
-```
-
-在 Vite 中，优先使用 `?url`。手动初始化也支持 `source`、`bytes`、`module`，并会在输入无效时返回明确的错误。
+- `@senlinz/import-export` 会在首次调用时自动异步加载并初始化内置 WASM 资源。
+- 在 Vite 和其他浏览器 ESM bundler 中，core 包不再需要单独的 `initializeWasm(...)` 或 `?url` 接线。
+- 如果你需要直接控制底层 WASM，请改用 `@senlinz/import-export-wasm`，而不是高阶封装。
 
 ## 稳定支持的 Schema
 
@@ -78,10 +62,10 @@ await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:
 ## 浏览器 / 运行时支持
 
 - 主要面向浏览器 ESM 运行时。
-- 依赖的浏览器 API：`Blob`、`FileReader`、`URL.createObjectURL`、`atob`。
+- 依赖的浏览器 API：`Blob`、`FileReader`、`URL.createObjectURL`、`fetch`。
 - 当运行时提供兼容的浏览器全局对象时，也可以在非 DOM 环境下使用 `fromExcel`、`fromExcelDynamic`、`toExcel`、`generateExcelTemplate`。
 - `importExcelDynamic` 提供与 `fromExcelDynamic` 对应的浏览器文件选择导入能力。
-- `initializeWasm` 允许高级用户提供自己的 WASM URL、source、bytes 或编译后的 module。
+- core 包会在内部负责 WASM 加载，并在首次使用时异步初始化内置资源。
 
 ## 已知限制
 
@@ -94,13 +78,12 @@ await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:
 ## 示例
 
 - [基础浏览器流程](./packages/core/examples/basic-browser.html)
-- [手动初始化 WASM 的浏览器流程](./packages/core/examples/manual-wasm-browser.html)
 - [分组导出流程](./packages/core/examples/grouped-export.html)
 - [直接使用 WASM 的浏览器流程](./packages/wasm/examples/direct-browser.html)
 
 ## 发布准备
 
-- `0.1.2` 主要聚焦更安全的浏览器导入导出流程，包括 `maxFileSizeBytes` 上传大小限制，以及默认开启的文本公式转义。
+- `1.0.0` 移除了 core 包中的手动 WASM 初始化能力，并统一为自动加载构建产物中的 WASM 资源。
 - 协同版本发布前，先执行：
 
 ```bash
@@ -111,7 +94,7 @@ corepack pnpm run release:check
 
 - 然后在 GitHub Actions 的 **Publish packages** 工作流里手动发布，并填写：
   - `confirm=publish`
-  - `version=0.1.2`
+  - `version=1.0.0`
 
 ## 开发
 
