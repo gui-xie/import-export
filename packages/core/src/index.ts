@@ -97,7 +97,7 @@ function resolveFetch(fetcher?: WasmFetchFn): WasmFetchFn {
     return fetcher;
   }
   if (typeof fetch !== 'function') {
-    throw new Error('WASM initialization requires fetch. Provide initializeWasm({ url, fetch }).');
+    throw new Error('WASM initialization requires fetch in environments without a global fetch. Provide initializeWasm({ url, fetch }).');
   }
   return fetch;
 }
@@ -170,7 +170,7 @@ function normalizeCustomInitialization(options: InitializeWasmOptions): Normaliz
     };
   }
   if (!options.url?.trim()) {
-    throw new Error('Invalid WASM URL provided to initializeWasm({ url }). Expected a non-empty URL string (whitespace-only strings are not allowed).');
+    throw new Error('Invalid WASM URL provided to initializeWasm({ url }). Expected a non-empty URL string.');
   }
   return {
     inputKind: 'url',
@@ -259,7 +259,7 @@ function initializeWasm(options: InitializeWasmOptions): Promise<void> | void {
   if (pendingRuntimeState) {
     if (isSameRuntimeState(pendingRuntimeState, nextState)) {
       if (!initializePromise) {
-        throw new Error('The Excel WASM runtime entered an invalid pending initialization state: initializePromise was unexpectedly cleared during pending initialization. Please retry the initialization.');
+        throw new Error('Internal WASM initialization state error: initializePromise was unexpectedly cleared during pending initialization. Please retry the initialization.');
       }
       return initializePromise;
     }
