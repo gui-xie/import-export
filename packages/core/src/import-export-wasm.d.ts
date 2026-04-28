@@ -87,3 +87,8 @@ declare module '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm' {
   const wasmSource: string;
   export default wasmSource;
 }
+
+declare module '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm?url' {
+  const wasmUrl: string;
+  export default wasmUrl;
+}

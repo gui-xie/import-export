@@ -12,27 +12,12 @@ pnpm add @senlinz/import-export
 
 ## 选择使用模式
 
-### 默认模式（推荐）
+### 默认模式
 
-- 无需额外初始化。
-- `importExcel`、`importExcelDynamic`、`exportExcel`、`fromExcel`、`fromExcelDynamic`、`toExcel`、`downloadExcelTemplate`、`generateExcelTemplate` 会自动初始化内置 WASM 运行时。
-- 适合绝大多数浏览器场景。
-
-### 高级模式
-
-- 在使用这些 Excel API 之前，先手动调用 `initializeWasm(...)`。
-- 适用于自定义 WASM 托管、需要自己控制 bundler 行为，或希望复用已加载 bytes / module 的场景。
-- 支持的手动输入：`source`、`bytes`、`module`。
-- 同时也导出了 `bundledWasmSource`，方便在自包含 demo / 测试中显式走手动初始化流程。
+- `importExcel`、`importExcelDynamic`、`exportExcel`、`fromExcel`、`fromExcelDynamic`、`toExcel`、`downloadExcelTemplate`、`generateExcelTemplate` 首次调用时会自动加载并初始化 WASM。
 
 ```ts
-import { initializeWasm, toExcel } from '@senlinz/import-export';
-
-const wasmBytes = new Uint8Array(
-  await (await fetch('/assets/imexport_wasm_bg.wasm')).arrayBuffer()
-);
-
-initializeWasm({ bytes: wasmBytes });
+import { toExcel } from '@senlinz/import-export';
 
 const workbook = await toExcel({
   name: 'TomAndJerry',
@@ -40,7 +25,17 @@ const workbook = await toExcel({
 }, [{ name: 'Tom' }]);
 ```
 
-如果手动传入的 WASM 输入无效，`initializeWasm(...)` 会立即抛出清晰的错误信息。
+### 可选自定义
+
+```ts
+import { configureWasm } from '@senlinz/import-export';
+
+configureWasm({ url: '/assets/imexport_wasm_bg.wasm' });
+```
+
+- `configureWasm(...)` 也支持 `{ bytes }`、`{ module }`、`{ source }`。
+- 为兼容已有代码，保留 `configureViteWasm(...)` 作为 `configureWasm(...)` 的别名。
+
 
 ## 支持的 API
 

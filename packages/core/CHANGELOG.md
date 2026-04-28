@@ -1,5 +1,12 @@
 # @senlinz/import-export
 
+## 0.1.3
+
+### Patch Changes
+
+- Simplify to a single main entrypoint (`@senlinz/import-export`) with runtime WASM auto-initialization and optional `configureWasm(...)` customization.
+- Remove separate `vite` / `lite` entry files and align docs to the consolidated API.
+
 ## 0.1.2
 
 ### Patch Changes
