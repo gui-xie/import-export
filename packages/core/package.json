@@ -1,6 +1,6 @@
 {
   "name": "@senlinz/import-export",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "import/export excel core",
   "files": [
     "dist/**/*.js",

@@ -1,4 +1,3 @@
-import imexportWasm from './rollup-plugin-imexport-wasm.js';
 import { terser } from 'rollup-plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import resolve from '@rollup/plugin-node-resolve';
@@ -14,7 +13,6 @@ export default {
     chunkFileNames: '[name]-[hash].js'
   },
   plugins: [
-    imexportWasm(),
     typescript({
       tsconfig: './tsconfig.json',
       declaration: true,

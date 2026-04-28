@@ -12,27 +12,12 @@ pnpm add @senlinz/import-export
 
 ## Choose your mode
 
-### Default mode (recommended)
+### Default mode
 
-- No setup required.
-- `importExcel`, `importExcelDynamic`, `exportExcel`, `fromExcel`, `fromExcelDynamic`, `toExcel`, `downloadExcelTemplate`, and `generateExcelTemplate` automatically initialize the bundled WASM runtime.
-- Best for most browser applications.
-
-### Advanced mode
-
-- Call `initializeWasm(...)` yourself before using the Excel APIs.
-- Use this when you want custom WASM hosting, bundler control, or to reuse bytes/modules that you loaded elsewhere.
-- Supported manual inputs: `source`, `bytes`, or `module`.
-- `bundledWasmSource` is also exported for self-contained demos/tests that still want explicit manual initialization.
+- `importExcel`, `importExcelDynamic`, `exportExcel`, `fromExcel`, `fromExcelDynamic`, `toExcel`, `downloadExcelTemplate`, and `generateExcelTemplate` auto-load and initialize WASM on first use.
 
 ```ts
-import { initializeWasm, toExcel } from '@senlinz/import-export';
-
-const wasmBytes = new Uint8Array(
-  await (await fetch('/assets/imexport_wasm_bg.wasm')).arrayBuffer()
-);
-
-initializeWasm({ bytes: wasmBytes });
+import { toExcel } from '@senlinz/import-export';
 
 const workbook = await toExcel({
   name: 'TomAndJerry',
@@ -40,7 +25,17 @@ const workbook = await toExcel({
 }, [{ name: 'Tom' }]);
 ```
 
-If you provide invalid manual input, `initializeWasm(...)` throws a clear error immediately.
+### Optional customization
+
+```ts
+import { configureWasm } from '@senlinz/import-export';
+
+configureWasm({ url: '/assets/imexport_wasm_bg.wasm' });
+```
+
+- `configureWasm(...)` also accepts `{ bytes }`, `{ module }`, or `{ source }`.
+- `configureViteWasm(...)` is kept as an alias of `configureWasm(...)` for compatibility.
+
 
 ## Supported API
 
