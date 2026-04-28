@@ -25,16 +25,17 @@ const workbook = await toExcel({
 }, [{ name: 'Tom' }]);
 ```
 
-### Optional customization
+### Optional pre-initialization
 
 ```ts
-import { configureWasm } from '@senlinz/import-export';
+import { initializeWasm } from '@senlinz/import-export';
+import wasmUrl from './imexport_wasm_bg.wasm?url';
 
-configureWasm({ url: '/assets/imexport_wasm_bg.wasm' });
+await initializeWasm({ url: wasmUrl });
 ```
 
-- `configureWasm(...)` also accepts `{ bytes }`, `{ module }`, or `{ source }`.
-- `configureViteWasm(...)` is kept as an alias of `configureWasm(...)` for compatibility.
+- In Vite, prefer `?url` when you want to host or preload the WASM asset yourself.
+- `initializeWasm(...)` also accepts `{ bytes }`, `{ module }`, or `{ source }`.
 
 
 ## Supported API
@@ -178,7 +179,7 @@ These advanced features are supported and considered part of the public API:
 - `downloadExcelTemplate`, `exportExcel`, `importExcel`, and `importExcelDynamic` require DOM/browser APIs.
 - `fromExcel`, `toExcel`, and `generateExcelTemplate` can be used in other runtimes when browser-compatible globals are available.
 - `fromExcelDynamic` can also be used in other runtimes when browser-compatible globals are available.
-- `initializeWasm` can be used to pre-initialize the runtime with caller-managed `source`, `bytes`, or `module`.
+- `initializeWasm` can be used to pre-initialize the runtime with caller-managed `url`, `source`, `bytes`, or `module`.
 
 ## Examples
 

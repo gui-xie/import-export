@@ -56,20 +56,17 @@ const rows = await importExcel(definition);
 ### 高级模式
 
 - 在使用同一套顶层 API 之前先调用 `initializeWasm(...)`。
-- 适用于希望自己控制 WASM 的 source / bytes / module 加载方式的场景，例如自定义托管、bundler 控制或性能敏感初始化。
+- 适用于希望自己控制 WASM 资源的场景，例如自定义托管、bundler 集成或性能敏感初始化。
 
 ```ts
 import { initializeWasm, exportExcel } from '@senlinz/import-export';
+import wasmUrl from './imexport_wasm_bg.wasm?url';
 
-const wasmBytes = new Uint8Array(
-  await (await fetch('/assets/imexport_wasm_bg.wasm')).arrayBuffer()
-);
-
-initializeWasm({ bytes: wasmBytes });
+await initializeWasm({ url: wasmUrl });
 await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:00:00', category: 'Cat' }]);
 ```
 
-手动初始化支持 `source`、`bytes`、`module` 三种输入，并会在输入无效时返回明确的错误。
+在 Vite 中，优先使用 `?url`。手动初始化也支持 `source`、`bytes`、`module`，并会在输入无效时返回明确的错误。
 
 ## 稳定支持的 Schema
 
@@ -84,7 +81,7 @@ await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:
 - 依赖的浏览器 API：`Blob`、`FileReader`、`URL.createObjectURL`、`atob`。
 - 当运行时提供兼容的浏览器全局对象时，也可以在非 DOM 环境下使用 `fromExcel`、`fromExcelDynamic`、`toExcel`、`generateExcelTemplate`。
 - `importExcelDynamic` 提供与 `fromExcelDynamic` 对应的浏览器文件选择导入能力。
-- `initializeWasm` 允许高级用户提供自己的 WASM source、bytes 或编译后的 module。
+- `initializeWasm` 允许高级用户提供自己的 WASM URL、source、bytes 或编译后的 module。
 
 ## 已知限制
 

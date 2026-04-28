@@ -160,6 +160,28 @@ test.describe('import-export core', () => {
     await expect(page.locator('#importError')).toHaveText('');
   });
 
+  test('supports URL-based WASM initialization before using the browser API', async ({ page }) => {
+    await page.goto('/examples/basic-browser.html');
+
+    const wasmAssetName = fs.readdirSync(path.join(__dirname, '../dist/assets')).find(name => name.endsWith('.wasm'));
+    expect(wasmAssetName).toBeTruthy();
+
+    const result = await page.evaluate(async wasmUrl => {
+      const mod = await import('../dist/index.js');
+      await mod.initializeWasm({ url: wasmUrl });
+      const workbook = await mod.toExcel({
+        name: 'UrlInit',
+        columns: [
+          { key: 'name', name: 'Name', dataType: 'text' }
+        ]
+      }, [{ name: 'Tom' }]);
+
+      return Array.from(workbook.slice(0, 4));
+    }, `/dist/assets/${wasmAssetName}`);
+
+    expect(result).toEqual([80, 75, 3, 4]);
+  });
+
   test('supports dynamic import without a predefined schema', async ({ page }) => {
     await page.goto('/examples/basic-browser.html');
 
@@ -265,6 +287,7 @@ test.describe('import-export core', () => {
       return {
         bundledWasmSourceType: typeof mod.bundledWasmSource,
         exportPresence: exportNames.map(name => [name, typeof mod[name as keyof typeof mod] !== 'undefined']),
+        removedExports: [typeof mod.configureWasm === 'undefined', typeof mod.configureViteWasm === 'undefined'],
         invalidSourceError,
         templateHeader: Array.from(template.slice(0, 4)),
         templateLength: template.length,
@@ -284,6 +307,7 @@ test.describe('import-export core', () => {
       ['initializeWasm', true],
       ['bundledWasmSource', true]
     ]);
+    expect(result.removedExports).toEqual([true, true]);
     expect(result.invalidSourceError).toContain('Invalid WASM source provided to initializeWasm({ source })');
     expect(result.templateHeader).toEqual([80, 75, 3, 4]);
     expect(result.templateLength).toBeGreaterThan(0);

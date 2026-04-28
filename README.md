@@ -56,20 +56,17 @@ const rows = await importExcel(definition);
 ### Advanced mode
 
 - Call `initializeWasm(...)` before using the same top-level APIs.
-- Use this when you want to load the WASM bytes/module/source yourself for custom hosting, bundler control, or performance-sensitive setups.
+- Use this when you want to control the WASM asset yourself for custom hosting, bundler integration, or performance-sensitive setups.
 
 ```ts
 import { initializeWasm, exportExcel } from '@senlinz/import-export';
+import wasmUrl from './imexport_wasm_bg.wasm?url';
 
-const wasmBytes = new Uint8Array(
-  await (await fetch('/assets/imexport_wasm_bg.wasm')).arrayBuffer()
-);
-
-initializeWasm({ bytes: wasmBytes });
+await initializeWasm({ url: wasmUrl });
 await exportExcel(definition, [{ name: 'Tom', age: 12, birthday: '2024-11-01 00:00:00', category: 'Cat' }]);
 ```
 
-Manual initialization accepts `source`, `bytes`, or `module` and throws a clear error for invalid input.
+In Vite, prefer `?url`. Manual initialization also accepts `source`, `bytes`, or `module` and throws a clear error for invalid input.
 
 ## Stable supported schema
 
@@ -84,7 +81,7 @@ Manual initialization accepts `source`, `bytes`, or `module` and throws a clear 
 - Required browser APIs: `Blob`, `FileReader`, `URL.createObjectURL`, and `atob`.
 - `fromExcel`, `fromExcelDynamic`, `toExcel`, and `generateExcelTemplate` can also be used in non-DOM runtimes when those browser-compatible globals are available.
 - `importExcelDynamic` provides the same schema-less import flow as `fromExcelDynamic`, but through the default browser file picker.
-- `initializeWasm` lets advanced users provide their own WASM source, bytes, or compiled module.
+- `initializeWasm` lets advanced users provide their own WASM URL, source, bytes, or compiled module.
 
 ## Known limitations
 

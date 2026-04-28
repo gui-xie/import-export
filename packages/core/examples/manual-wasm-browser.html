@@ -38,7 +38,7 @@
       imageFetcher: fetchImage
     };
 
-    initializeWasm({ source: bundledWasmSource });
+    await initializeWasm({ source: bundledWasmSource });
     statusOutput.innerText = 'Manual WASM initialization completed.';
     document.body.dataset.ready = 'true';
 
