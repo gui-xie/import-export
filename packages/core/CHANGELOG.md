@@ -6,6 +6,9 @@
 
 - Simplify to a single main entrypoint (`@senlinz/import-export`) with runtime WASM auto-initialization and optional `configureWasm(...)` customization.
 - Remove separate `vite` / `lite` entry files and align docs to the consolidated API.
+- Fix the release build so Rollup emits the packaged default WASM asset while keeping `bundledWasmSource` available for manual initialization.
+- Updated dependencies
+  - @senlinz/import-export-wasm@0.1.3
 
 ## 0.1.2
 

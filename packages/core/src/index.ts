@@ -13,6 +13,7 @@ import {
   testUtils,
 } from './utils.js';
 import { initSync } from '@senlinz/import-export-wasm';
+import bundledWasmSource from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm';
 import { gunzipSync } from 'fflate';
 import defaultWasmUrl from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm?url';
 
@@ -206,6 +207,7 @@ async function _generateExcelTemplate(definition: ExcelDefinition): Promise<Uint
 export {
   configureWasm,
   configureViteWasm,
+  bundledWasmSource,
   ensureWasmInitialized,
   initializeWasm,
   _importExcel as importExcel,

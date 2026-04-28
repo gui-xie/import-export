@@ -5,6 +5,7 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
+    "dist/**/*.wasm",
     "README.md",
     "README.zh.md"
   ],
