@@ -9,23 +9,16 @@ import {
   ExcelRowData,
   ExcelColumnData,
   ExcelColumnInfo,
-  ExcelCellFormat
+  ExcelCellFormat,
 } from '@senlinz/import-export-wasm';
-import {
-  ExcelColumnDefinition,
-  ExcelDefinition,
-  ExcelCellFormatDefinition,
-  ExcelColumnDataType,
-  DynamicExcelImportOptions,
-  DynamicExcelImportResult
-} from './ExcelDefinition';
+import { ExcelColumnDefinition, ExcelDefinition, ExcelCellFormatDefinition, ExcelColumnDataType, DynamicExcelImportOptions, DynamicExcelImportResult } from './ExcelDefinition';
 const SUPPORTED_DATA_TYPES = ['text', 'number', 'date', 'image'] as const;
 const DEFAULT_MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
-const FORMULA_PREFIX_CHARS = new Set(['=', '+', '-', '@', '\t', '\r', '\n']);
+const FORMULA_PREFIX_CHARS = new Set(['=', '+', '-', '@', '\t', '\r', '\n', '|', ';']);
 const DOWNLOAD_LINK_ID = 'senlinzImportExportDownload';
 let pendingDownloadObjectUrl: string | null = null;
 let downloadCleanupListenersRegistered = false;
-type NormalizedDataType = typeof SUPPORTED_DATA_TYPES[number];
+type NormalizedDataType = (typeof SUPPORTED_DATA_TYPES)[number];
 type NormalizedExcelColumnDefinition = Omit<ExcelColumnDefinition, 'dataType'> & {
   dataType?: NormalizedDataType;
 };
@@ -56,9 +49,7 @@ function normalizeDataType(dataType: ExcelColumnDataType | undefined, columnKey:
   const normalized = rawDataType.trim().toLowerCase();
   const canonical = normalized;
   if (!SUPPORTED_DATA_TYPES.includes(canonical as NormalizedDataType)) {
-    throw new Error(
-      `Invalid dataType '${dataType}' for column '${columnKey}'. Supported values are: ${SUPPORTED_DATA_TYPES.join(', ')}.`
-    );
+    throw new Error(`Invalid dataType '${dataType}' for column '${columnKey}'. Supported values are: ${SUPPORTED_DATA_TYPES.join(', ')}.`);
   }
   return canonical as NormalizedDataType;
 }
@@ -106,9 +97,7 @@ function formatByteSize(bytes: number): string {
 
 function enforceFileSizeLimit(file: File, maxFileSizeBytes: number) {
   if (file.size > maxFileSizeBytes) {
-    throw new Error(
-      `Selected file '${file.name}' exceeds the ${formatByteSize(maxFileSizeBytes)} limit (received ${formatByteSize(file.size)}).`
-    );
+    throw new Error(`Selected file '${file.name}' exceeds the ${formatByteSize(maxFileSizeBytes)} limit (received ${formatByteSize(file.size)}).`);
   }
 }
 
@@ -125,7 +114,7 @@ function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefini
   const normalizedName = definition.name.trim();
   const maxFileSizeBytes = normalizeMaxFileSizeBytes(definition.maxFileSizeBytes, `definition '${normalizedName}'`);
   const escapeFormulas = normalizeEscapeFormulas(definition.escapeFormulas, `definition '${normalizedName}'`);
-  const columns = definition.columns.map((column) => {
+  const columns = definition.columns.map(column => {
     const key = column.key?.trim();
     const name = column.name?.trim();
     if (!key) {
@@ -180,9 +169,7 @@ function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefini
         throw new Error(`Column '${key}' cannot reference its own dataGroup '${dataGroupParent}' as dataGroupParent.`);
       }
       if (!knownGroups.has(dataGroupParent)) {
-        throw new Error(
-          `Column '${key}' references dataGroupParent '${dataGroupParent}', but grouped parents must be declared before dependent columns.`
-        );
+        throw new Error(`Column '${key}' references dataGroupParent '${dataGroupParent}', but grouped parents must be declared before dependent columns.`);
       }
       normalizedColumn.dataGroupParent = dataGroupParent;
     }
@@ -285,7 +272,7 @@ function getItems(data: ExcelData, columns: NormalizedExcelColumnDefinition[]): 
 }
 
 function getDynamicItems(data: DynamicExcelData): DynamicImportedRow[] {
-  return data.rows.map((row) => {
+  return data.rows.map(row => {
     const item: DynamicImportedRow = {};
     for (const column of row.columns) {
       item[column.key] = column.value;
@@ -308,28 +295,19 @@ function normalizeDynamicImportOptions(options: DynamicExcelImportOptions = {}):
   };
 }
 
-async function fromExcelWithNormalizedDefinition<T>(
-  normalizedDefinition: NormalizedExcelDefinition,
-  buffer: Uint8Array,
-): Promise<T[]> {
+async function fromExcelWithNormalizedDefinition<T>(normalizedDefinition: NormalizedExcelDefinition, buffer: Uint8Array): Promise<T[]> {
   const info = getInfo(normalizedDefinition);
   const data = importData(info, buffer);
   const items = getItems(data, normalizedDefinition.columns);
   return items as T[];
 }
 
-async function _fromExcel<T>(
-  definition: ExcelDefinition,
-  buffer: Uint8Array,
-): Promise<T[]> {
+async function _fromExcel<T>(definition: ExcelDefinition, buffer: Uint8Array): Promise<T[]> {
   const normalizedDefinition = normalizeDefinition(definition);
   return fromExcelWithNormalizedDefinition<T>(normalizedDefinition, buffer);
 }
 
-async function fromExcelDynamicWithOptions(
-  buffer: Uint8Array,
-  options: NormalizedDynamicImportOptions,
-): Promise<DynamicExcelImportResult> {
+async function fromExcelDynamicWithOptions(buffer: Uint8Array, options: NormalizedDynamicImportOptions): Promise<DynamicExcelImportResult> {
   const data = importDynamicData(options.sheetName, options.headerRow, buffer);
   return {
     sheetName: data.sheet_name,
@@ -338,18 +316,12 @@ async function fromExcelDynamicWithOptions(
   };
 }
 
-async function _fromExcelDynamic(
-  buffer: Uint8Array,
-  options?: DynamicExcelImportOptions,
-): Promise<DynamicExcelImportResult> {
+async function _fromExcelDynamic(buffer: Uint8Array, options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult> {
   const normalizedOptions = normalizeDynamicImportOptions(options);
   return fromExcelDynamicWithOptions(buffer, normalizedOptions);
 }
 
-function readFileFromUpload<T>(
-  load: (buffer: Uint8Array) => Promise<T>,
-  maxFileSizeBytes: number = DEFAULT_MAX_FILE_SIZE_BYTES
-): Promise<T> {
+function readFileFromUpload<T>(load: (buffer: Uint8Array) => Promise<T>, maxFileSizeBytes: number = DEFAULT_MAX_FILE_SIZE_BYTES): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     document.querySelector('#senlinzImportExportInput')?.remove();
     const fileInput = document.createElement('input');
@@ -470,10 +442,7 @@ function getColumnMap(info: ExcelInfo): ColumnInfoMap {
   return columnMap;
 }
 
-async function toExcelWithNormalizedDefinition<T>(
-  definition: NormalizedExcelDefinition,
-  data: T[]
-) {
+async function toExcelWithNormalizedDefinition<T>(definition: NormalizedExcelDefinition, data: T[]) {
   const info = getInfo(definition);
   const columnMap = getColumnMap(info);
   const rows = mapExcelData(data as ExportRow[], columnMap, definition.escapeFormulas);
@@ -481,10 +450,7 @@ async function toExcelWithNormalizedDefinition<T>(
   return exportData(info, excelData);
 }
 
-async function _toExcel<T>(
-  definition: ExcelDefinition,
-  data: T[]
-) {
+async function _toExcel<T>(definition: ExcelDefinition, data: T[]) {
   const normalizedDefinition = normalizeDefinition(definition);
   return toExcelWithNormalizedDefinition(normalizedDefinition, data);
 }
@@ -499,10 +465,7 @@ async function downloadExcelTemplate(definition: ExcelDefinition) {
   download(excelData, excelName);
 }
 
-function download(
-  data: Uint8Array | string,
-  name: string,
-  type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+function download(data: Uint8Array | string, name: string, type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
   cleanupPendingDownloadObjectUrl();
   document.querySelector(`#${DOWNLOAD_LINK_ID}`)?.remove();
   const linkInput = document.createElement('a');
@@ -514,6 +477,8 @@ function download(
   registerDownloadCleanupListeners();
   pendingDownloadObjectUrl = objectUrl;
   linkInput.click();
+  // Schedule cleanup after browser has started the download
+  setTimeout(() => cleanupPendingDownloadObjectUrl(), 60000);
 }
 
 function cleanupPendingDownloadObjectUrl() {
@@ -577,13 +542,7 @@ function getInfo(definition: NormalizedExcelDefinition): ExcelInfo {
     return column;
   });
 
-  let info = new ExcelInfo(
-    definition.name,
-    definition.sheetName ?? 'sheet1',
-    columns,
-    definition.author ?? '',
-    toDatetimeString(definition.createTime ?? new Date())
-  );
+  let info = new ExcelInfo(definition.name, definition.sheetName ?? 'sheet1', columns, definition.author ?? '', toDatetimeString(definition.createTime ?? new Date()));
   const dx = definition.dx ?? 0;
   const dy = definition.dy ?? 0;
   info = info.withOffset(dx, dy);
@@ -608,24 +567,18 @@ function toDatetimeString(date: Date | string) {
   const hours = date.getHours();
   const minutes = date.getMinutes();
   const seconds = date.getSeconds();
-  const pad = (num: number) => num < 10 ? `0${num}` : num.toString();
+  const pad = (num: number) => (num < 10 ? `0${num}` : num.toString());
   return `${year}-${pad(month)}-${pad(day)} ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
 function importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
   const normalizedDefinition = normalizeDefinition(definition);
-  return readFileFromUpload(
-    (buffer) => fromExcelWithNormalizedDefinition<T>(normalizedDefinition, buffer),
-    normalizedDefinition.maxFileSizeBytes
-  );
+  return readFileFromUpload(buffer => fromExcelWithNormalizedDefinition<T>(normalizedDefinition, buffer), normalizedDefinition.maxFileSizeBytes);
 }
 
 function importExcelDynamic(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult> {
   const normalizedOptions = normalizeDynamicImportOptions(options);
-  return readFileFromUpload(
-    (buffer) => fromExcelDynamicWithOptions(buffer, normalizedOptions),
-    normalizedOptions.maxFileSizeBytes
-  );
+  return readFileFromUpload(buffer => fromExcelDynamicWithOptions(buffer, normalizedOptions), normalizedOptions.maxFileSizeBytes);
 }
 
 async function exportExcel<T>(definition: ExcelDefinition, data: T[]) {
@@ -643,5 +596,5 @@ export {
   _toExcel as toExcel,
   generateExcelTemplate,
   download,
-  testUtils
+  testUtils,
 };

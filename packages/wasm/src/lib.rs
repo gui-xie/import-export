@@ -629,6 +629,15 @@ impl ExcelColumnPosition {
     }
 }
 
+fn validate_image_data(image_data: &[u8], url: &str) -> Result<Image, Box<dyn std::error::Error>> {
+    if image_data.is_empty() {
+        return Err(format!("Image fetcher returned empty data for URL: {}", url).into());
+    }
+    let image = Image::new_from_buffer(image_data)
+        .map_err(|e| format!("Failed to parse image from URL '{}': {}", url, e))?;
+    Ok(image)
+}
+
 async fn write_single_cell(
     worksheet: &mut Worksheet,
     x: u16,
@@ -655,7 +664,7 @@ async fn write_single_cell(
 
                 if result.is_object() {
                     let image_data: Vec<u8> = js_sys::Uint8Array::new(&result).to_vec();
-                    let image = Image::new_from_buffer(&image_data)?;
+                    let image = validate_image_data(&image_data, v)?;
 
                     worksheet.insert_image_fit_to_cell(y, x, &image, true)?;
                     return Ok(());
