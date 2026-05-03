@@ -19,7 +19,7 @@
     "nx": "^19.8.9",
     "@playwright/test": "^1.59.1",
     "husky": "^9.1.7",
-    "lint-staged": "^15.4.3",
+    "lint-staged": "^16.4.0",
     "serve": "^14.2.4"
   },
   "pnpm": {
