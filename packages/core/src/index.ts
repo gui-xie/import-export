@@ -1,22 +1,15 @@
 export type * from './ExcelDefinition';
 import { ExcelDefinition } from './ExcelDefinition';
 import type { DynamicExcelImportOptions, DynamicExcelImportResult } from './ExcelDefinition';
-import {
-  importExcel,
-  importExcelDynamic,
-  exportExcel,
-  downloadExcelTemplate,
-  fromExcel,
-  fromExcelDynamic,
-  toExcel,
-  generateExcelTemplate,
-  testUtils,
-} from './utils.js';
+import { importExcel, importExcelDynamic, exportExcel, downloadExcelTemplate, fromExcel, fromExcelDynamic, toExcel, generateExcelTemplate, testUtils } from './utils.js';
 import { initSync } from '@senlinz/import-export-wasm';
 import defaultWasmUrl from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm?url';
 
 let runtimeReady = false;
 let initializePromise: Promise<void> | null = null;
+
+const WASM_INIT_MAX_RETRIES = 2;
+const WASM_INIT_BASE_DELAY_MS = 500;
 
 function resolveFetch(): typeof fetch {
   if (typeof fetch !== 'function') {
@@ -33,6 +26,25 @@ async function loadDefaultWasmBytes(): Promise<Uint8Array> {
   return new Uint8Array(await response.arrayBuffer());
 }
 
+async function loadDefaultWasmBytesWithRetry(): Promise<Uint8Array> {
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt <= WASM_INIT_MAX_RETRIES; attempt++) {
+    try {
+      return await loadDefaultWasmBytes();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt < WASM_INIT_MAX_RETRIES) {
+        await delay(WASM_INIT_BASE_DELAY_MS * Math.pow(2, attempt));
+      }
+    }
+  }
+  throw new Error(`Failed to initialize WASM runtime after ${WASM_INIT_MAX_RETRIES + 1} attempts. Last error: ${lastError!.message}`);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function ensureWasmInitialized() {
   if (runtimeReady) {
     return;
@@ -40,7 +52,7 @@ async function ensureWasmInitialized() {
   if (!initializePromise) {
     initializePromise = (async () => {
       try {
-        const bytes = await loadDefaultWasmBytes();
+        const bytes = await loadDefaultWasmBytesWithRetry();
         initSync({ module: bytes });
         runtimeReady = true;
       } catch (error) {

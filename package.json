@@ -6,6 +6,7 @@
   "author": "",
   "license": "MIT",
   "scripts": {
+    "prepare": "husky",
     "changeset": "changeset",
     "release:version": "changeset version",
     "release:build": "corepack pnpm --filter @senlinz/import-export-wasm build && corepack pnpm --filter @senlinz/import-export build",
@@ -17,7 +18,12 @@
     "@nx/js": "^19.8.9",
     "nx": "^19.8.9",
     "@playwright/test": "^1.48.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
     "serve": "^14.2.4"
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs}": "prettier --check"
   },
   "engines": {
     "node": ">=16"
