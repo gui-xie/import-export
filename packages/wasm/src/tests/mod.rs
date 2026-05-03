@@ -2,7 +2,7 @@
 mod tests {
     use crate::{
         create_template_buffer, excel_structs::*, export_data_buffer, import_data_buffer,
-        import_dynamic_data_buffer,
+        import_dynamic_data_buffer, validate_image_data,
     };
 
     use excel_column_data::*;
@@ -516,5 +516,49 @@ mod tests {
         assert!(result.is_ok());
         let result = result.unwrap();
         assert_binary_snapshot!("export_pokemon_skill_success.xlsx", result);
+    }
+
+    #[test]
+    fn validate_image_data_empty_bytes_returns_error_with_url() {
+        let url = "https://example.com/photo.png";
+        let empty_bytes: &[u8] = &[];
+
+        let result = validate_image_data(empty_bytes, url);
+
+        assert!(result.is_err());
+        let error = result.err().unwrap().to_string();
+        assert!(
+            error.contains(url),
+            "Error should contain the URL '{}', got: {}",
+            url,
+            error
+        );
+        assert!(
+            error.contains("empty"),
+            "Error should mention empty data, got: {}",
+            error
+        );
+    }
+
+    #[test]
+    fn validate_image_data_invalid_bytes_returns_error_with_url_and_parse_details() {
+        let url = "https://example.com/broken.jpg";
+        let invalid_bytes: &[u8] = b"this is not an image";
+
+        let result = validate_image_data(invalid_bytes, url);
+
+        assert!(result.is_err());
+        let error = result.err().unwrap().to_string();
+        assert!(
+            error.contains(url),
+            "Error should contain the URL '{}', got: {}",
+            url,
+            error
+        );
+        assert!(
+            error.contains("Failed to parse image"),
+            "Error should mention parse failure, got: {}",
+            error
+        );
     }
 }

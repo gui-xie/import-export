@@ -1,0 +1,5 @@
+# Rust formatting check
+cargo fmt --manifest-path packages/wasm/Cargo.toml --check
+
+# TypeScript/JavaScript formatting check via lint-staged
+npx lint-staged

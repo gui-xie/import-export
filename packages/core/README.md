@@ -148,6 +148,27 @@ const rows = await importExcel(definition);
 - Grouped export objects must use `{ value?, children: [...] }` for configured `dataGroup` columns.
 - Image columns require `imageFetcher`.
 
+## Image fetcher with URL validation
+
+When using `imageFetcher` for image columns, validate URLs before fetching to avoid requests to untrusted origins. The example below enforces HTTPS and checks the HTTP response status:
+
+```typescript
+const imageFetcher = async (url: string): Promise<Uint8Array> => {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`Refusing to fetch image from non-HTTPS URL: ${url}`);
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+  }
+  const buffer = await response.arrayBuffer();
+  return new Uint8Array(buffer);
+};
+```
+
+For server-side contexts, also consider restricting URLs to trusted domains and rejecting private/internal network addresses. See [SECURITY.md](../../SECURITY.md) for the full image fetcher trust model and additional guidance.
+
 ## Advanced supported features
 
 These advanced features are supported and considered part of the public API:
@@ -175,6 +196,23 @@ These advanced features are supported and considered part of the public API:
 - [Definition validation example](./examples/definition-errors.html)
 
 These examples are covered by Playwright tests in [`./tests/import-export.spec.ts`](./tests/import-export.spec.ts).
+
+## Test utilities
+
+The package exposes a `testUtils` namespace for use in consumer test suites:
+
+```ts
+import { testUtils } from '@senlinz/import-export';
+```
+
+> **Warning:** `testUtils` is intended for testing purposes only. These helpers are internal implementation details and carry **no stability guarantee** — they may change or be removed in any release without notice.
+
+| Helper | Description |
+|---|---|
+| `normalizeDefinition(definition)` | Normalizes and validates an `ExcelDefinition`, trimming strings and applying defaults. |
+| `normalizeDynamicImportOptions(options?)` | Normalizes and validates dynamic import options (e.g. `headerRow`, `maxFileSizeBytes`). |
+| `sanitizeTextCellValue(value, escapeFormulas?)` | Sanitizes a text cell value to prevent formula injection. Prefixes formula-like values with a single quote when `escapeFormulas` is `true` (the default). |
+| `defaultMaxFileSizeBytes` | The default maximum file size in bytes (25 MB). |
 
 ## Known limitations
 
