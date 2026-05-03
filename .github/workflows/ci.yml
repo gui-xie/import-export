@@ -33,6 +33,7 @@ jobs:
         run: corepack pnpm install --frozen-lockfile
 
       - name: Rust security audit
+        working-directory: packages/wasm
         run: cargo install cargo-audit --locked && cargo audit
 
       - name: Node.js security audit
