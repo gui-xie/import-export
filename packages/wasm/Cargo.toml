@@ -27,7 +27,7 @@ js-sys = "0.3"
 futures = "0.3"
 wasm-bindgen-futures = "0.4"
 calamine = { version = "0.26", features = ["picture"] }
-indexmap = "2.7"
+indexmap = "2.14"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio"] }
