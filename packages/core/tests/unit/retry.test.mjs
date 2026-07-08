@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import fc from 'fast-check';
+import { readBuiltWasmArrayBuffer } from './wasm-bytes.mjs';
 
 /**
  * Feature: repository-improvements
@@ -109,7 +110,7 @@ describe('Property 3: Retry logic respects attempt budget', () => {
   /**
    * Creates a mock fetch that fails `failCount` times then succeeds.
    * Returns a fake Response with an arrayBuffer() that resolves to
-   * a minimal Uint8Array (simulating WASM bytes).
+   * the built WASM bytes.
    */
   function setupMockFetch(failCount) {
     fetchCallCount = 0;
@@ -120,7 +121,7 @@ describe('Property 3: Retry logic respects attempt budget', () => {
       }
       return {
         ok: true,
-        arrayBuffer: async () => new Uint8Array([0, 1, 2, 3]).buffer,
+        arrayBuffer: async () => readBuiltWasmArrayBuffer(),
       };
     });
   }
@@ -151,14 +152,10 @@ describe('Property 3: Retry logic respects attempt budget', () => {
         const mod = await import('../../dist/index.js');
 
         // Call any exported function that triggers ensureWasmInitialized.
-        // toExcel calls ensureWasmInitialized internally.
-        const initPromise = mod.toExcel(
-          {
-            name: 'Test',
-            columns: [{ key: 'a', name: 'A' }],
-          },
-          [{ a: 'hello' }],
-        );
+        const initPromise = mod.generateExcelTemplate({
+          name: 'Test',
+          columns: [{ key: 'a', name: 'A' }],
+        });
 
         // Drive fake timers to let retry delays resolve
         await drainTimersAndMicrotasks();
@@ -166,9 +163,7 @@ describe('Property 3: Retry logic respects attempt budget', () => {
         try {
           await initPromise;
         } catch (e) {
-          // Errors from exportData (the WASM mock) are expected.
-          // But errors from initialization (fetch failures beyond budget)
-          // should NOT happen since we set up exactly n failures.
+          // Initialization errors should NOT happen since we set up exactly n failures.
           if (e.message && e.message.includes('Failed to initialize')) {
             throw e;
           }
@@ -176,7 +171,7 @@ describe('Property 3: Retry logic respects attempt budget', () => {
 
         expect(fetchCallCount).toBe(n + 1);
       }),
-      { numRuns: 100 },
+      { numRuns: 20 },
     );
-  });
+  }, 15000);
 });

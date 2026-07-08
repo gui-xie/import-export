@@ -2,7 +2,7 @@ export type * from './ExcelDefinition';
 import { ExcelDefinition } from './ExcelDefinition';
 import type { DynamicExcelImportOptions, DynamicExcelImportResult } from './ExcelDefinition';
 import { importExcel, importExcelDynamic, exportExcel, downloadExcelTemplate, fromExcel, fromExcelDynamic, toExcel, generateExcelTemplate, testUtils } from './utils.js';
-import { initSync } from '@senlinz/import-export-wasm';
+import initWasm from '@senlinz/import-export-wasm';
 import defaultWasmUrl from '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm?url';
 
 let runtimeReady = false;
@@ -53,7 +53,8 @@ async function ensureWasmInitialized() {
     initializePromise = (async () => {
       try {
         const bytes = await loadDefaultWasmBytesWithRetry();
-        initSync({ module: bytes });
+        // Use wasm-bindgen's async initializer to avoid synchronous WASM compilation on the main thread.
+        await initWasm({ module_or_path: bytes });
         runtimeReady = true;
       } catch (error) {
         throw new Error(`Failed to initialize the bundled Excel WASM runtime. ${error instanceof Error ? error.message : String(error)}`);
