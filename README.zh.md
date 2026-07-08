@@ -83,7 +83,7 @@ const rows = await importExcel(definition);
 
 ## 发布准备
 
-- `1.0.0` 移除了 core 包中的手动 WASM 初始化能力，并统一为自动加载构建产物中的 WASM 资源。
+- `1.0.1` 修复了内置 WASM 的异步初始化路径，确保浏览器优先工作簿操作在首次使用时能够正确初始化。
 - 协同版本发布前，先执行：
 
 ```bash
@@ -94,7 +94,7 @@ corepack pnpm run release:check
 
 - 然后在 GitHub Actions 的 **Publish packages** 工作流里手动发布，并填写：
   - `confirm=publish`
-  - `version=1.0.0`
+  - `version=1.0.1`
 
 ## 开发
 

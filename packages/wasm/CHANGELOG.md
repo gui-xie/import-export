@@ -1,5 +1,12 @@
 # @senlinz/import-export-wasm
 
+## 1.0.1
+
+### Patch Changes
+
+- Republish the coordinated workspace patch release at `1.0.1` so the WASM package stays aligned with `@senlinz/import-export`.
+- Include the bundled WASM initialization fix in the patch release notes.
+
 ## 1.0.0
 
 ### Major Changes

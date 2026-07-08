@@ -83,7 +83,7 @@ const rows = await importExcel(definition);
 
 ## Release preparation
 
-- `1.0.0` removes manual WASM initialization from the core package and standardizes auto-loading of the emitted bundled WASM asset.
+- `1.0.1` fixes the bundled WASM async initialization path so browser-first workbook operations initialize correctly on first use.
 - Prepare the coordinated release:
 
 ```bash
@@ -94,7 +94,7 @@ corepack pnpm run release:check
 
 - Publish from GitHub Actions with **Actions → Publish packages → Run workflow**, then enter:
   - `confirm=publish`
-  - `version=1.0.0`
+  - `version=1.0.1`
 
 ## Development
 
