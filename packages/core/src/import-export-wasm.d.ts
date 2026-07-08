@@ -76,11 +76,14 @@ declare module '@senlinz/import-export-wasm' {
     constructor(sheet_name: string, headers: string[], rows: ExcelRowData[]);
   }
 
+  type InitInput = BufferSource | WebAssembly.Module | Response | RequestInfo | URL;
+
+  export default function init(input?: { module_or_path: InitInput | Promise<InitInput> } | InitInput | Promise<InitInput>): Promise<unknown>;
   export function initSync(input: { module: BufferSource | WebAssembly.Module }): void;
   export function createTemplate(info: ExcelInfo): Uint8Array;
   export function importData(info: ExcelInfo, buffer: Uint8Array): ExcelData;
   export function importDynamicData(sheetName: string | undefined, headerRow: number | undefined, buffer: Uint8Array): DynamicExcelData;
-  export function exportData(info: ExcelInfo, data: ExcelData): Uint8Array;
+  export function exportData(info: ExcelInfo, data: ExcelData): Promise<Uint8Array>;
 }
 
 declare module '@senlinz/import-export-wasm/pkg/imexport_wasm_bg.wasm' {

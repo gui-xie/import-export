@@ -5,6 +5,8 @@
  * can be tested without building the Rust/WASM package.
  */
 
+export default async function init() {}
+
 export function createTemplate() {
   throw new Error('createTemplate is not available in test environment');
 }
