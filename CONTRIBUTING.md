@@ -8,7 +8,7 @@ Thank you for your interest in contributing! This guide covers everything you ne
 |---|---|---|
 | [Node.js](https://nodejs.org/) | ≥ 16 | Required for the TypeScript core package |
 | [pnpm](https://pnpm.io/) | 9.x | Package manager — the repo pins `pnpm@9.15.9` via `packageManager` in `package.json` |
-| [Rust toolchain](https://rustup.rs/) | ≥ 1.80 (MSRV) | Install via `rustup`. The minimum supported Rust version is declared in `Cargo.toml` |
+| [Rust toolchain](https://rustup.rs/) | ≥ 1.88 (MSRV) | Install via `rustup`. The minimum supported Rust version is declared in `Cargo.toml` |
 | [wasm-pack](https://rustwasm.github.io/wasm-pack/) | Latest | Builds the Rust crate into a WebAssembly package |
 
 After cloning the repository, install Node.js dependencies from the repo root:
