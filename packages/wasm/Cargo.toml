@@ -2,7 +2,7 @@
 name = "imexport-wasm"
 version = "0.1.1"
 edition = "2021"
-rust-version = "1.80"
+rust-version = "1.88"
 description = "Rust WebAssembly for import/export Excel files"
 repository = "https://github.com/gui-xie/import-export"
 license = "MIT"

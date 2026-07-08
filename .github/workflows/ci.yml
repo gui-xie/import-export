@@ -41,8 +41,8 @@ jobs:
 
       - name: MSRV check
         run: |
-          rustup toolchain install 1.80 --profile minimal
-          cargo +1.80 check --manifest-path packages/wasm/Cargo.toml
+          rustup toolchain install 1.88 --profile minimal
+          cargo +1.88 check --manifest-path packages/wasm/Cargo.toml
 
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked
