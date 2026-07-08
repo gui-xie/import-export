@@ -12,7 +12,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["console_error_panic_hook"]
-benchmarks = []
+benchmarks = ["dep:criterion"]
 
 [profile.release]
 lto = true
@@ -26,17 +26,18 @@ chrono = "0.4"
 js-sys = "0.3"
 futures = "0.3"
 wasm-bindgen-futures = "0.4"
-calamine = { version = "=0.30.0", features = ["picture"] }
-indexmap = "=2.7.0"
+calamine = { version = "0.30.0", features = ["picture"] }
+indexmap = "2.7.0"
+criterion = { version = "0.4.0", features = ["async_tokio"], optional = true }
 
 [dev-dependencies]
-criterion = { version = "0.8", features = ["async_tokio"] }
-insta = "1.42"
+insta = "1.42.2"
 tokio = { version = "1", features = ["rt", "macros"] }
 
 [[bench]]
 name = "large_dataset"
 harness = false
+required-features = ["benchmarks"]
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 debug-js-glue = true
