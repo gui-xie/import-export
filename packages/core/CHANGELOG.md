@@ -1,5 +1,12 @@
 # @senlinz/import-export
 
+## 1.0.1
+
+### Patch Changes
+
+- Fix the bundled WASM async initialization flow so browser-first workbook operations initialize correctly on first use.
+- Keep the core and WASM package release versions aligned for the coordinated patch release.
+
 ## 1.0.0
 
 ### Major Changes
