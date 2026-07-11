@@ -360,7 +360,7 @@ function parseKnownWasmError(message: string): ParsedWasmError | undefined {
     return { code: 'DYNAMIC_HEADER_EMPTY', params: { cell: match[1] } };
   }
 
-  match = /^Dynamic import requires unique header names\. Duplicate header '(.*)' found at (.+)\.$/.exec(message);
+  match = /^Dynamic import requires unique header names\. Duplicate header '(.*?)' found at (.+)\.$/.exec(message);
   if (match) {
     return { code: 'DYNAMIC_HEADER_DUPLICATE', params: { header: match[1], cell: match[2] } };
   }
