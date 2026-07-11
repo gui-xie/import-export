@@ -157,6 +157,82 @@ describe('Image fetcher returns empty Uint8Array', () => {
 
     const promise = mod.toExcel(definition, [{ img: 'https://example.com/image.png' }]);
 
-    await expect(promise).rejects.toMatch(/Image fetcher returned empty data/);
+    await expect(promise).rejects.toThrow(/Image fetcher returned empty data/);
+  });
+});
+
+describe('localized WASM errors', () => {
+  let originalFetch;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    jest.resetModules();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  test('localizes header mismatch errors and preserves parsed params', async () => {
+    globalThis.fetch = jest.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => readBuiltWasmArrayBuffer(),
+    }));
+
+    const mod = await import('../../dist/index.js');
+    const workbook = await mod.generateExcelTemplate({
+      name: 'HeaderSource',
+      columns: [{ key: 'name', name: 'Name' }],
+    });
+
+    let caughtError;
+    try {
+      await mod.fromExcel(
+        {
+          name: 'HeaderTarget',
+          locale: 'zh',
+          columns: [{ key: 'name', name: '姓名' }],
+        },
+        workbook,
+      );
+    } catch (error) {
+      caughtError = error;
+    }
+
+    expect(caughtError).toBeDefined();
+    expect(caughtError.code).toBe('HEADER_MISMATCH');
+    expect(caughtError.params).toMatchObject({
+      expected: '姓名',
+      actual: 'Name',
+      sheetName: 'sheet1',
+    });
+    expect(caughtError.message).toContain('表头不匹配');
+    expect(caughtError.message).toContain("期望 '姓名'");
+  });
+
+  test('customizes parsed WASM error messages with params', async () => {
+    globalThis.fetch = jest.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => readBuiltWasmArrayBuffer(),
+    }));
+
+    const mod = await import('../../dist/index.js');
+    const workbook = await mod.generateExcelTemplate({
+      name: 'HeaderSource',
+      columns: [{ key: 'name', name: 'Name' }],
+    });
+
+    await expect(
+      mod.fromExcel(
+        {
+          name: 'HeaderTarget',
+          columns: [{ key: 'name', name: '姓名' }],
+          errorMessages: {
+            HEADER_MISMATCH: ({ params }) => `bad header ${params.cell}: ${params.expected} != ${params.actual}`,
+          },
+        },
+        workbook,
+      ),
+    ).rejects.toThrow('bad header A1: 姓名 != Name');
   });
 });

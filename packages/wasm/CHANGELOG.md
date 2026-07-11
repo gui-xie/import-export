@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 1.0.2
+
+### Patch Changes
+
+- 59924a8: Fix the bundled WASM async initialization flow for the first browser workbook operation and publish the coordinated patch release.
+
 ## 1.0.1
 
 ### Patch Changes

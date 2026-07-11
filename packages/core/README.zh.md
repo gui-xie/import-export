@@ -27,6 +27,36 @@ const workbook = await toExcel({
 
 ## 支持的 API
 
+### 错误消息多语言
+
+为了兼容现有使用方式，错误消息默认仍为英文。在 `ExcelDefinition` 或 `DynamicExcelImportOptions` 中设置 `locale: 'zh'` 或 `locale: 'zh-CN'` 后，会使用内置中文错误消息。
+
+你也可以按稳定错误码覆盖消息，支持字符串模板或函数。函数会收到错误码、规范化后的语言、默认消息、原始 cause 以及结构化参数。
+
+```ts
+import { fromExcel, ImportExportError } from '@senlinz/import-export';
+
+const definition = {
+  name: 'LocalizedImport',
+  locale: 'zh-CN',
+  columns: [{ key: 'name', name: '姓名', dataType: 'text' }],
+  errorMessages: {
+    HEADER_MISMATCH: ({ params }) => `表头错误：${params.cell} 需要 ${params.expected}，实际是 ${params.actual}`,
+    INVALID_DATA_TYPE: "列 {columnKey} 的类型 {dataType} 不支持，可选值：{supportedDataTypes}",
+  },
+};
+
+try {
+  await fromExcel(definition, workbookBytes);
+} catch (error) {
+  if (error instanceof ImportExportError) {
+    console.log(error.code, error.params, error.message);
+  }
+}
+```
+
+包内导出 `ImportExportError`、`ValidationError`、`ImportError`、`ExportError`、`WasmInitError`。每个错误都包含 `code`、`params`、`locale` 和 `cause`。
+
 ### 稳定的 definition 字段
 
 - `name`：模板 / 导出下载时使用的文件名
@@ -42,6 +72,8 @@ const workbook = await toExcel({
 - `progressCallback`：长时间导入 / 导出过程中的进度回调
 - `imageFetcher`：导出 `image` 列时必需的图片数据解析回调
 - `escapeFormulas`：导出时自动转义类似公式的文本，默认开启，可显式关闭以允许公式
+- `locale`：内置错误消息语言（`en`、`zh` 或 `zh-CN`，默认 `en`）
+- `errorMessages` / `messages`：按稳定错误码自定义错误消息
 
 ### 稳定的列字段
 
@@ -120,6 +152,7 @@ const result = await fromExcelDynamic(fileBytes, {
 - `sheetName` 可选，未提供或不存在时会回退到第一个工作表。
 - `headerRow` 可选，使用从 `1` 开始的行号，默认会自动选择首个非空行。
 - `maxFileSizeBytes` 可选，与 schema 导入相同，默认 25 MiB。
+- `locale` 与 `errorMessages` 可用于自定义动态导入错误。
 - 返回值结构为 `{ sheetName, headers, rows }`。
 
 ## 导入行为

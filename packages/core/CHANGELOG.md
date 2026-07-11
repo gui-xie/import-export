@@ -1,5 +1,17 @@
 # @senlinz/import-export
 
+## 1.1.0
+
+### Minor Changes
+
+- Add localized core error messages with built-in English and Chinese output, stable error codes and params, and per-call custom message overrides.
+
+### Patch Changes
+
+- 59924a8: Fix the bundled WASM async initialization flow for the first browser workbook operation and publish the coordinated patch release.
+- Updated dependencies [59924a8]
+  - @senlinz/import-export-wasm@1.0.2
+
 ## 1.0.1
 
 ### Patch Changes

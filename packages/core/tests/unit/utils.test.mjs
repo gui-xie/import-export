@@ -1,4 +1,4 @@
-import { testUtils } from '../../dist/index.js';
+import { testUtils, ValidationError } from '../../dist/index.js';
 import fc from 'fast-check';
 
 const { normalizeDefinition, normalizeDynamicImportOptions, sanitizeTextCellValue, defaultMaxFileSizeBytes } = testUtils;
@@ -45,6 +45,67 @@ describe('core normalization helpers', () => {
         columns: [{ key: 'name', name: 'Name', dataType: 'string' }],
       }),
     ).toThrow("Invalid dataType 'string'");
+  });
+
+  test('localizes validation errors to Chinese and preserves code params', () => {
+    let caughtError;
+
+    try {
+      normalizeDefinition({
+        name: 'Broken',
+        locale: 'zh-CN',
+        columns: [{ key: 'name', name: 'Name', dataType: 'string' }],
+      });
+    } catch (error) {
+      caughtError = error;
+    }
+
+    expect(caughtError).toBeInstanceOf(ValidationError);
+    expect(caughtError.name).toBe('ValidationError');
+    expect(caughtError.code).toBe('INVALID_DATA_TYPE');
+    expect(caughtError.params).toMatchObject({
+      columnKey: 'name',
+      dataType: 'string',
+    });
+    expect(caughtError.message).toContain("列 'name' 的 dataType 'string' 无效");
+  });
+
+  test('uses custom function messages with error params', () => {
+    expect(() =>
+      normalizeDefinition({
+        name: 'CustomMessages',
+        columns: [
+          { key: 'name', name: 'Name' },
+          { key: 'name', name: 'Alias' },
+        ],
+        errorMessages: {
+          DUPLICATE_COLUMN_KEY: ({ params }) => `custom duplicate ${params.columnKey} in ${params.definitionName}`,
+        },
+      }),
+    ).toThrow('custom duplicate name in CustomMessages');
+  });
+
+  test('uses custom string templates and falls back for uncovered codes', () => {
+    expect(() =>
+      normalizeDefinition({
+        name: 'EmptyColumns',
+        columns: [],
+        messages: {
+          DEFINITION_COLUMNS_REQUIRED: 'Need at least one column for {definitionName}.',
+        },
+      }),
+    ).toThrow('Need at least one column for EmptyColumns.');
+
+    expect(() =>
+      normalizeDefinition({
+        name: 'StillDefault',
+        locale: 'zh',
+        columns: [{ key: 'name', name: 'Name', dataType: 'bad' }],
+        messages: {
+          DEFINITION_COLUMNS_REQUIRED: 'unused',
+        },
+      }),
+    ).toThrow("列 'name' 的 dataType 'bad' 无效");
   });
 
   test('applies defaults and guards for file size and formula escaping', () => {

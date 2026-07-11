@@ -12,6 +12,8 @@ import {
   ExcelCellFormat,
 } from '@senlinz/import-export-wasm';
 import { ExcelColumnDefinition, ExcelDefinition, ExcelCellFormatDefinition, ExcelColumnDataType, DynamicExcelImportOptions, DynamicExcelImportResult } from './ExcelDefinition';
+import { ExportError, getErrorLocalization, getErrorMessage, ImportError, localizeCaughtError, ValidationError } from './errors.js';
+import type { ErrorLocalizationOptions } from './errors';
 const SUPPORTED_DATA_TYPES = ['text', 'number', 'date', 'image'] as const;
 const DEFAULT_MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 const FORMULA_PREFIX_CHARS = new Set(['=', '+', '-', '@', '\t', '\r', '\n', '|', ';']);
@@ -41,39 +43,39 @@ type GroupedCellValue = {
   children: ExportRow[];
 };
 
-function normalizeDataType(dataType: ExcelColumnDataType | undefined, columnKey: string): NormalizedDataType {
+function normalizeDataType(dataType: ExcelColumnDataType | undefined, columnKey: string, localization: ErrorLocalizationOptions): NormalizedDataType {
   const rawDataType = dataType ?? 'text';
   if (typeof rawDataType !== 'string') {
-    throw new Error(`Invalid dataType '${String(rawDataType)}' for column '${columnKey}'. dataType values must be strings.`);
+    throw new ValidationError('INVALID_DATA_TYPE_TYPE', { dataType: String(rawDataType), columnKey }, localization);
   }
   const normalized = rawDataType.trim().toLowerCase();
   const canonical = normalized;
   if (!SUPPORTED_DATA_TYPES.includes(canonical as NormalizedDataType)) {
-    throw new Error(`Invalid dataType '${dataType}' for column '${columnKey}'. Supported values are: ${SUPPORTED_DATA_TYPES.join(', ')}.`);
+    throw new ValidationError('INVALID_DATA_TYPE', { dataType, columnKey, supportedDataTypes: SUPPORTED_DATA_TYPES }, localization);
   }
   return canonical as NormalizedDataType;
 }
 
-function normalizeMaxFileSizeBytes(value: number | undefined, context: string): number {
+function normalizeMaxFileSizeBytes(value: number | undefined, context: string, localization: ErrorLocalizationOptions): number {
   if (value === undefined) {
     return DEFAULT_MAX_FILE_SIZE_BYTES;
   }
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new Error(`Invalid maxFileSizeBytes '${String(value)}' for ${context}. Expected a positive finite number in bytes.`);
+    throw new ValidationError('INVALID_MAX_FILE_SIZE_BYTES', { value: String(value), context }, localization);
   }
   const normalized = Math.trunc(value);
   if (normalized <= 0) {
-    throw new Error(`Invalid maxFileSizeBytes '${value}' for ${context}. Expected a positive finite number in bytes.`);
+    throw new ValidationError('INVALID_MAX_FILE_SIZE_BYTES', { value, context }, localization);
   }
   return normalized;
 }
 
-function normalizeEscapeFormulas(value: boolean | undefined, context: string): boolean {
+function normalizeEscapeFormulas(value: boolean | undefined, context: string, localization: ErrorLocalizationOptions): boolean {
   if (value === undefined) {
     return true;
   }
   if (typeof value !== 'boolean') {
-    throw new Error(`Invalid escapeFormulas '${String(value)}' for ${context}. Expected a boolean.`);
+    throw new ValidationError('INVALID_ESCAPE_FORMULAS', { value: String(value), context }, localization);
   }
   return value;
 }
@@ -95,55 +97,67 @@ function formatByteSize(bytes: number): string {
   return `${rounded} MB`;
 }
 
-function enforceFileSizeLimit(file: File, maxFileSizeBytes: number) {
+function enforceFileSizeLimit(file: File, maxFileSizeBytes: number, localization: ErrorLocalizationOptions) {
   if (file.size > maxFileSizeBytes) {
-    throw new Error(`Selected file '${file.name}' exceeds the ${formatByteSize(maxFileSizeBytes)} limit (received ${formatByteSize(file.size)}).`);
+    throw new ImportError(
+      'FILE_TOO_LARGE',
+      {
+        fileName: file.name,
+        maxFileSizeBytes,
+        fileSizeBytes: file.size,
+        maxFileSize: formatByteSize(maxFileSizeBytes),
+        fileSize: formatByteSize(file.size),
+      },
+      localization,
+    );
   }
 }
 
 function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefinition {
+  const localization = getErrorLocalization(definition);
   if (!definition.name?.trim()) {
-    throw new Error('Excel definition must include a non-empty name.');
+    throw new ValidationError('DEFINITION_NAME_REQUIRED', {}, localization);
   }
   if (!Array.isArray(definition.columns) || definition.columns.length === 0) {
-    throw new Error(`Excel definition '${definition.name}' must include at least one column.`);
+    throw new ValidationError('DEFINITION_COLUMNS_REQUIRED', { definitionName: definition.name }, localization);
   }
 
   const knownColumnKeys = new Set<string>();
   const knownGroups = new Set<string>();
   const normalizedName = definition.name.trim();
-  const maxFileSizeBytes = normalizeMaxFileSizeBytes(definition.maxFileSizeBytes, `definition '${normalizedName}'`);
-  const escapeFormulas = normalizeEscapeFormulas(definition.escapeFormulas, `definition '${normalizedName}'`);
+  const context = `definition '${normalizedName}'`;
+  const maxFileSizeBytes = normalizeMaxFileSizeBytes(definition.maxFileSizeBytes, context, localization);
+  const escapeFormulas = normalizeEscapeFormulas(definition.escapeFormulas, context, localization);
   const columns = definition.columns.map(column => {
     const key = column.key?.trim();
     const name = column.name?.trim();
     if (!key) {
-      throw new Error(`Excel definition '${definition.name}' contains a column with an empty key.`);
+      throw new ValidationError('COLUMN_KEY_REQUIRED', { definitionName: definition.name }, localization);
     }
     if (!name) {
-      throw new Error(`Column '${key}' in definition '${definition.name}' must include a non-empty name.`);
+      throw new ValidationError('COLUMN_NAME_REQUIRED', { columnKey: key, definitionName: definition.name }, localization);
     }
     if (knownColumnKeys.has(key)) {
-      throw new Error(`Duplicate column key '${key}' found in definition '${definition.name}'.`);
+      throw new ValidationError('DUPLICATE_COLUMN_KEY', { columnKey: key, definitionName: definition.name }, localization);
     }
 
     const normalizedColumn: NormalizedExcelColumnDefinition = {
       ...column,
       key,
       name,
-      dataType: normalizeDataType(column.dataType, key),
+      dataType: normalizeDataType(column.dataType, key, localization),
     };
 
     if (normalizedColumn.parent) {
       const parent = normalizedColumn.parent.trim();
       if (!parent) {
-        throw new Error(`Column '${key}' has an empty parent reference.`);
+        throw new ValidationError('COLUMN_PARENT_EMPTY', { columnKey: key }, localization);
       }
       if (parent === key) {
-        throw new Error(`Column '${key}' cannot reference itself as a parent.`);
+        throw new ValidationError('COLUMN_PARENT_SELF', { columnKey: key }, localization);
       }
       if (!knownColumnKeys.has(parent)) {
-        throw new Error(`Column '${key}' references parent '${parent}', but parent columns must be declared before their children.`);
+        throw new ValidationError('COLUMN_PARENT_ORDER', { columnKey: key, parentKey: parent }, localization);
       }
       normalizedColumn.parent = parent;
     }
@@ -151,10 +165,10 @@ function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefini
     if (normalizedColumn.dataGroup) {
       const dataGroup = normalizedColumn.dataGroup.trim();
       if (!dataGroup) {
-        throw new Error(`Column '${key}' has an empty dataGroup value.`);
+        throw new ValidationError('DATA_GROUP_EMPTY', { columnKey: key }, localization);
       }
       if (knownGroups.has(dataGroup)) {
-        throw new Error(`Duplicate dataGroup '${dataGroup}' found in definition '${definition.name}'.`);
+        throw new ValidationError('DUPLICATE_DATA_GROUP', { dataGroup, definitionName: definition.name }, localization);
       }
       knownGroups.add(dataGroup);
       normalizedColumn.dataGroup = dataGroup;
@@ -163,13 +177,13 @@ function normalizeDefinition(definition: ExcelDefinition): NormalizedExcelDefini
     if (normalizedColumn.dataGroupParent) {
       const dataGroupParent = normalizedColumn.dataGroupParent.trim();
       if (!dataGroupParent) {
-        throw new Error(`Column '${key}' has an empty dataGroupParent value.`);
+        throw new ValidationError('DATA_GROUP_PARENT_EMPTY', { columnKey: key }, localization);
       }
       if (normalizedColumn.dataGroup === dataGroupParent) {
-        throw new Error(`Column '${key}' cannot reference its own dataGroup '${dataGroupParent}' as dataGroupParent.`);
+        throw new ValidationError('DATA_GROUP_PARENT_SELF', { columnKey: key, dataGroupParent }, localization);
       }
       if (!knownGroups.has(dataGroupParent)) {
-        throw new Error(`Column '${key}' references dataGroupParent '${dataGroupParent}', but grouped parents must be declared before dependent columns.`);
+        throw new ValidationError('DATA_GROUP_PARENT_ORDER', { columnKey: key, dataGroupParent }, localization);
       }
       normalizedColumn.dataGroupParent = dataGroupParent;
     }
@@ -202,21 +216,21 @@ const testUtils: TestingUtils = {
   defaultMaxFileSizeBytes: DEFAULT_MAX_FILE_SIZE_BYTES,
 };
 
-function parseImportedValue(column: NormalizedExcelColumnDefinition, value: string): number | string | null {
+function parseImportedValue(column: NormalizedExcelColumnDefinition, value: string, localization: ErrorLocalizationOptions): number | string | null {
   if (value === '') {
     return column.dataType === 'number' || column.dataType === 'date' ? null : value;
   }
   if (column.dataType === 'number') {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
-      throw new Error(`Failed to parse imported number '${value}' for column '${column.key}'.`);
+      throw new ImportError('IMPORT_NUMBER_PARSE_FAILED', { value, columnKey: column.key }, localization);
     }
     return parsed;
   }
   return value;
 }
 
-function serializeCellValue(column: ExcelColumnInfo, value: unknown, escapeFormulas: boolean): string {
+function serializeCellValue(column: ExcelColumnInfo, value: unknown, escapeFormulas: boolean, localization: ErrorLocalizationOptions): string {
   if (value === null || value === undefined) {
     return '';
   }
@@ -225,7 +239,7 @@ function serializeCellValue(column: ExcelColumnInfo, value: unknown, escapeFormu
   if (dataType === 'number') {
     const numericValue = typeof value === 'number' ? value : Number(value);
     if (!Number.isFinite(numericValue)) {
-      throw new Error(`Column '${column.key}' expects a finite number value.`);
+      throw new ExportError('EXPORT_NUMBER_VALUE_INVALID', { columnKey: column.key, value }, localization);
     }
     return numericValue.toString();
   }
@@ -241,7 +255,7 @@ function serializeCellValue(column: ExcelColumnInfo, value: unknown, escapeFormu
       }
       return trimmed;
     }
-    throw new Error(`Column '${column.key}' expects a date string or Date instance.`);
+    throw new ExportError('EXPORT_DATE_VALUE_INVALID', { columnKey: column.key, value }, localization);
   }
 
   if (dataType === 'text') {
@@ -251,7 +265,7 @@ function serializeCellValue(column: ExcelColumnInfo, value: unknown, escapeFormu
   return value.toString();
 }
 
-function getItems(data: ExcelData, columns: NormalizedExcelColumnDefinition[]): ImportedRow[] {
+function getItems(data: ExcelData, columns: NormalizedExcelColumnDefinition[], localization: ErrorLocalizationOptions): ImportedRow[] {
   const result: ImportedRow[] = [];
   const columnMap: ColumnDefinitionMap = {};
   for (const column of columns) {
@@ -264,7 +278,7 @@ function getItems(data: ExcelData, columns: NormalizedExcelColumnDefinition[]): 
       if (!definition) {
         continue;
       }
-      item[column.key] = parseImportedValue(definition, column.value);
+      item[column.key] = parseImportedValue(definition, column.value, localization);
     }
     result.push(item);
   }
@@ -282,24 +296,31 @@ function getDynamicItems(data: DynamicExcelData): DynamicImportedRow[] {
 }
 
 function normalizeDynamicImportOptions(options: DynamicExcelImportOptions = {}): NormalizedDynamicImportOptions {
+  const localization = getErrorLocalization(options);
   if (options.headerRow !== undefined) {
     if (!Number.isInteger(options.headerRow) || options.headerRow < 1) {
-      throw new Error("Dynamic import option 'headerRow' must be an integer greater than or equal to 1.");
+      throw new ValidationError('DYNAMIC_HEADER_ROW_INVALID', {}, localization);
     }
   }
 
   return {
+    ...options,
     sheetName: options.sheetName?.trim() || undefined,
     headerRow: options.headerRow,
-    maxFileSizeBytes: normalizeMaxFileSizeBytes(options.maxFileSizeBytes, 'dynamic import options'),
+    maxFileSizeBytes: normalizeMaxFileSizeBytes(options.maxFileSizeBytes, 'dynamic import options', localization),
   };
 }
 
 async function fromExcelWithNormalizedDefinition<T>(normalizedDefinition: NormalizedExcelDefinition, buffer: Uint8Array): Promise<T[]> {
-  const info = getInfo(normalizedDefinition);
-  const data = importData(info, buffer);
-  const items = getItems(data, normalizedDefinition.columns);
-  return items as T[];
+  const localization = getErrorLocalization(normalizedDefinition);
+  try {
+    const info = getInfo(normalizedDefinition);
+    const data = importData(info, buffer);
+    const items = getItems(data, normalizedDefinition.columns, localization);
+    return items as T[];
+  } catch (error) {
+    throw localizeCaughtError(error, localization, 'IMPORT_WORKBOOK_FAILED', { definitionName: normalizedDefinition.name, reason: getErrorMessage(error) }, ImportError);
+  }
 }
 
 async function _fromExcel<T>(definition: ExcelDefinition, buffer: Uint8Array): Promise<T[]> {
@@ -308,12 +329,17 @@ async function _fromExcel<T>(definition: ExcelDefinition, buffer: Uint8Array): P
 }
 
 async function fromExcelDynamicWithOptions(buffer: Uint8Array, options: NormalizedDynamicImportOptions): Promise<DynamicExcelImportResult> {
-  const data = importDynamicData(options.sheetName, options.headerRow, buffer);
-  return {
-    sheetName: data.sheet_name,
-    headers: [...data.headers],
-    rows: getDynamicItems(data),
-  };
+  const localization = getErrorLocalization(options);
+  try {
+    const data = importDynamicData(options.sheetName, options.headerRow, buffer);
+    return {
+      sheetName: data.sheet_name,
+      headers: [...data.headers],
+      rows: getDynamicItems(data),
+    };
+  } catch (error) {
+    throw localizeCaughtError(error, localization, 'IMPORT_DYNAMIC_WORKBOOK_FAILED', { reason: getErrorMessage(error) }, ImportError);
+  }
 }
 
 async function _fromExcelDynamic(buffer: Uint8Array, options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult> {
@@ -321,7 +347,11 @@ async function _fromExcelDynamic(buffer: Uint8Array, options?: DynamicExcelImpor
   return fromExcelDynamicWithOptions(buffer, normalizedOptions);
 }
 
-function readFileFromUpload<T>(load: (buffer: Uint8Array) => Promise<T>, maxFileSizeBytes: number = DEFAULT_MAX_FILE_SIZE_BYTES): Promise<T> {
+function readFileFromUpload<T>(
+  load: (buffer: Uint8Array) => Promise<T>,
+  maxFileSizeBytes: number = DEFAULT_MAX_FILE_SIZE_BYTES,
+  localization: ErrorLocalizationOptions = {},
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     document.querySelector('#senlinzImportExportInput')?.remove();
     const fileInput = document.createElement('input');
@@ -344,7 +374,7 @@ function readFileFromUpload<T>(load: (buffer: Uint8Array) => Promise<T>, maxFile
       }
       settled = true;
       cleanup();
-      reject(error instanceof Error ? error : new Error(String(error)));
+      reject(localizeCaughtError(error, localization, 'IMPORT_WORKBOOK_FAILED', { reason: getErrorMessage(error) }, ImportError));
     };
 
     const resolveWithValue = (value: T) => {
@@ -357,7 +387,7 @@ function readFileFromUpload<T>(load: (buffer: Uint8Array) => Promise<T>, maxFile
     };
 
     const cancelHandler = () => {
-      rejectWithError(new Error('File selection cancelled.'));
+      rejectWithError(new ImportError('FILE_SELECTION_CANCELLED', {}, localization));
     };
 
     fileInput.addEventListener('change', fileHandler);
@@ -367,22 +397,22 @@ function readFileFromUpload<T>(load: (buffer: Uint8Array) => Promise<T>, maxFile
     function fileHandler(event: Event) {
       const target = event.target as HTMLInputElement;
       if (!target || !target.files || target.files.length === 0) {
-        rejectWithError(new Error('File selection cancelled.'));
+        rejectWithError(new ImportError('FILE_SELECTION_CANCELLED', {}, localization));
         return;
       }
       const file = target.files[0];
       try {
-        enforceFileSizeLimit(file, maxFileSizeBytes);
+        enforceFileSizeLimit(file, maxFileSizeBytes, localization);
       } catch (error) {
         rejectWithError(error);
         return;
       }
       const reader = new FileReader();
       reader.onerror = () => {
-        rejectWithError(reader.error ?? new Error('Failed to read import file.'));
+        rejectWithError(new ImportError('FILE_READ_FAILED', { reason: reader.error?.message ?? '' }, localization, { cause: reader.error }));
       };
       reader.onabort = () => {
-        rejectWithError(new Error('Import file read was aborted.'));
+        rejectWithError(new ImportError('FILE_READ_ABORTED', {}, localization));
       };
       reader.onload = async () => {
         try {
@@ -402,7 +432,7 @@ function isGroupedCellValue(value: unknown): value is GroupedCellValue {
   return typeof value === 'object' && value !== null && Array.isArray((value as GroupedCellValue).children);
 }
 
-function mapExcelData(items: ExportRow[], columnMap: ColumnInfoMap, escapeFormulas: boolean, parentKey: string = ''): ExcelRowData[] {
+function mapExcelData(items: ExportRow[], columnMap: ColumnInfoMap, escapeFormulas: boolean, localization: ErrorLocalizationOptions, parentKey: string = ''): ExcelRowData[] {
   const rows: ExcelRowData[] = [];
   for (const item of items) {
     const columnData: ExcelColumnData[] = [];
@@ -411,21 +441,21 @@ function mapExcelData(items: ExportRow[], columnMap: ColumnInfoMap, escapeFormul
       const v = item[columnKey];
       if (!column || v === undefined) continue;
       if (!column.data_group) {
-        columnData.push(new ExcelColumnData(columnKey, serializeCellValue(column, v, escapeFormulas)));
+        columnData.push(new ExcelColumnData(columnKey, serializeCellValue(column, v, escapeFormulas, localization)));
         continue;
       }
       if (v === null) {
         continue;
       }
       if (!isGroupedCellValue(v)) {
-        throw new Error(`Grouped column '${columnKey}' must be an object with a children array.`);
+        throw new ExportError('GROUPED_COLUMN_INVALID', { columnKey }, localization);
       }
       if (v.children.length) {
-        const children = mapExcelData(v.children, columnMap, escapeFormulas, columnKey);
+        const children = mapExcelData(v.children, columnMap, escapeFormulas, localization, columnKey);
         if (!parentKey) {
           columnData.push(ExcelColumnData.newRootGroup(columnKey, children));
         } else {
-          columnData.push(ExcelColumnData.newGroup(columnKey, serializeCellValue(column, v.value, escapeFormulas), children));
+          columnData.push(ExcelColumnData.newGroup(columnKey, serializeCellValue(column, v.value, escapeFormulas, localization), children));
         }
       }
     }
@@ -443,11 +473,16 @@ function getColumnMap(info: ExcelInfo): ColumnInfoMap {
 }
 
 async function toExcelWithNormalizedDefinition<T>(definition: NormalizedExcelDefinition, data: T[]) {
-  const info = getInfo(definition);
-  const columnMap = getColumnMap(info);
-  const rows = mapExcelData(data as ExportRow[], columnMap, definition.escapeFormulas);
-  const excelData = new ExcelData(rows);
-  return exportData(info, excelData);
+  const localization = getErrorLocalization(definition);
+  try {
+    const info = getInfo(definition);
+    const columnMap = getColumnMap(info);
+    const rows = mapExcelData(data as ExportRow[], columnMap, definition.escapeFormulas, localization);
+    const excelData = new ExcelData(rows);
+    return await exportData(info, excelData);
+  } catch (error) {
+    throw localizeCaughtError(error, localization, 'EXPORT_WORKBOOK_FAILED', { definitionName: definition.name, reason: getErrorMessage(error) }, ExportError);
+  }
 }
 
 async function _toExcel<T>(definition: ExcelDefinition, data: T[]) {
@@ -456,7 +491,13 @@ async function _toExcel<T>(definition: ExcelDefinition, data: T[]) {
 }
 
 async function generateExcelTemplate(definition: ExcelDefinition) {
-  return createTemplate(getInfo(normalizeDefinition(definition)));
+  const normalizedDefinition = normalizeDefinition(definition);
+  const localization = getErrorLocalization(normalizedDefinition);
+  try {
+    return createTemplate(getInfo(normalizedDefinition));
+  } catch (error) {
+    throw localizeCaughtError(error, localization, 'TEMPLATE_WORKBOOK_FAILED', { definitionName: normalizedDefinition.name, reason: getErrorMessage(error) }, ExportError);
+  }
 }
 
 async function downloadExcelTemplate(definition: ExcelDefinition) {
@@ -573,12 +614,16 @@ function toDatetimeString(date: Date | string) {
 
 function importExcel<T>(definition: ExcelDefinition): Promise<T[]> {
   const normalizedDefinition = normalizeDefinition(definition);
-  return readFileFromUpload(buffer => fromExcelWithNormalizedDefinition<T>(normalizedDefinition, buffer), normalizedDefinition.maxFileSizeBytes);
+  return readFileFromUpload(
+    buffer => fromExcelWithNormalizedDefinition<T>(normalizedDefinition, buffer),
+    normalizedDefinition.maxFileSizeBytes,
+    getErrorLocalization(normalizedDefinition),
+  );
 }
 
 function importExcelDynamic(options?: DynamicExcelImportOptions): Promise<DynamicExcelImportResult> {
   const normalizedOptions = normalizeDynamicImportOptions(options);
-  return readFileFromUpload(buffer => fromExcelDynamicWithOptions(buffer, normalizedOptions), normalizedOptions.maxFileSizeBytes);
+  return readFileFromUpload(buffer => fromExcelDynamicWithOptions(buffer, normalizedOptions), normalizedOptions.maxFileSizeBytes, getErrorLocalization(normalizedOptions));
 }
 
 async function exportExcel<T>(definition: ExcelDefinition, data: T[]) {

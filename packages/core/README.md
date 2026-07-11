@@ -27,6 +27,36 @@ const workbook = await toExcel({
 
 ## Supported API
 
+### Error localization
+
+Errors default to English for compatibility. Set `locale: 'zh'` or `locale: 'zh-CN'` on an `ExcelDefinition` or `DynamicExcelImportOptions` object to use built-in Chinese messages.
+
+You can override messages by stable error code with either a string template or a function. Message functions receive the error code, normalized locale, default message, original cause, and structured params.
+
+```ts
+import { fromExcel, ImportExportError } from '@senlinz/import-export';
+
+const definition = {
+  name: 'LocalizedImport',
+  locale: 'zh-CN',
+  columns: [{ key: 'name', name: '姓名', dataType: 'text' }],
+  errorMessages: {
+    HEADER_MISMATCH: ({ params }) => `表头错误：${params.cell} 需要 ${params.expected}，实际是 ${params.actual}`,
+    INVALID_DATA_TYPE: "列 {columnKey} 的类型 {dataType} 不支持，可选值：{supportedDataTypes}",
+  },
+};
+
+try {
+  await fromExcel(definition, workbookBytes);
+} catch (error) {
+  if (error instanceof ImportExportError) {
+    console.log(error.code, error.params, error.message);
+  }
+}
+```
+
+The package exports `ImportExportError`, `ValidationError`, `ImportError`, `ExportError`, and `WasmInitError`. Each error includes `code`, `params`, `locale`, and `cause`.
+
 ### Stable definition fields
 
 - `name` - file name used for template/export downloads
@@ -42,6 +72,8 @@ const workbook = await toExcel({
 - `progressCallback` - progress hook for long-running import/export work
 - `imageFetcher` - required resolver for `image` columns during export
 - `escapeFormulas` - escapes formula-like text during export to block Excel formula injection (default: enabled)
+- `locale` - built-in error language (`en`, `zh`, or `zh-CN`; default `en`)
+- `errorMessages` / `messages` - custom error messages keyed by stable error code
 
 ### Schema-less import
 
@@ -77,6 +109,7 @@ console.log(result.rows);
 - `sheetName` is optional and falls back to the first worksheet when missing.
 - `headerRow` is optional, 1-based, and defaults to the first non-empty row in the selected sheet.
 - `maxFileSizeBytes` is optional and uses the same default 25 MiB browser upload limit as schema-based import.
+- `locale` and `errorMessages` can customize dynamic import errors.
 - The result shape is `{ sheetName, headers, rows }`.
 - Dynamic import requires non-empty, unique header names in the selected header row.
 
