@@ -49,7 +49,7 @@ fn create_structured_error_message(code: &str, params: &[(&str, String)]) -> Str
         params_obj.push('"');
     }
     params_obj.push('}');
-    
+
     format!("{{\"code\":\"{}\",\"params\":{}}}", code, params_obj)
 }
 
@@ -334,7 +334,7 @@ fn validate_headers(
                 "HEADER_MISMATCH",
                 &[
                     ("cell", cell_ref),
-                    ("sheetName", actual_sheet_name.clone()),
+                    ("sheetName", actual_sheet_name.to_string()),
                     ("expected", expected_header.to_string()),
                     ("actual", actual_header),
                 ],
@@ -700,23 +700,19 @@ async fn write_single_cell(
             let values: Vec<&str> = value.split(",").collect();
             for v in values.iter() {
                 let url_value = JsValue::from_str(v);
-                let result = fetcher
-                    .call1(&JsValue::NULL, &url_value)
-                    .map_err(|e| {
-                        create_structured_error_message(
-                            "IMAGE_FETCHER_CALL_FAILED",
-                            &[("reason", format!("{:?}", e))],
-                        )
-                    })?;
+                let result = fetcher.call1(&JsValue::NULL, &url_value).map_err(|e| {
+                    create_structured_error_message(
+                        "IMAGE_FETCHER_CALL_FAILED",
+                        &[("reason", format!("{:?}", e))],
+                    )
+                })?;
                 let promise = js_sys::Promise::resolve(&result);
-                let result = JsFuture::from(promise)
-                    .await
-                    .map_err(|e| {
-                        create_structured_error_message(
-                            "IMAGE_FETCHER_WAIT_FAILED",
-                            &[("reason", format!("{:?}", e))],
-                        )
-                    })?;
+                let result = JsFuture::from(promise).await.map_err(|e| {
+                    create_structured_error_message(
+                        "IMAGE_FETCHER_WAIT_FAILED",
+                        &[("reason", format!("{:?}", e))],
+                    )
+                })?;
 
                 if result.is_object() {
                     let image_data: Vec<u8> = js_sys::Uint8Array::new(&result).to_vec();
@@ -1000,10 +996,7 @@ fn find_column<'a>(
         .iter()
         .find(|column| column.key == key)
         .ok_or_else(|| {
-            create_structured_error_message(
-                "COLUMN_KEY_MISSING",
-                &[("columnKey", key.to_string())],
-            )
-            .into()
+            create_structured_error_message("COLUMN_KEY_MISSING", &[("columnKey", key.to_string())])
+                .into()
         })
 }
