@@ -23,6 +23,36 @@ pub use excel_structs::excel_row_data::ExcelRowData;
 
 const SECONDS_IN_A_DAY: f64 = 86400.0;
 const EXCEL_BASE_DATE: i64 = 25569; // Number of days from 1899-12-30 to 1970-01-01
+
+/// Helper function to create a structured error message with code and params
+fn create_structured_error_message(code: &str, params: &[(&str, String)]) -> String {
+    let mut params_obj = String::from("{");
+    for (i, (key, value)) in params.iter().enumerate() {
+        if i > 0 {
+            params_obj.push(',');
+        }
+        params_obj.push('"');
+        params_obj.push_str(key);
+        params_obj.push_str("\":");
+        // Escape the value for JSON
+        params_obj.push('"');
+        for ch in value.chars() {
+            match ch {
+                '"' => params_obj.push_str("\\\""),
+                '\\' => params_obj.push_str("\\\\"),
+                '\n' => params_obj.push_str("\\n"),
+                '\r' => params_obj.push_str("\\r"),
+                '\t' => params_obj.push_str("\\t"),
+                _ => params_obj.push(ch),
+            }
+        }
+        params_obj.push('"');
+    }
+    params_obj.push('}');
+
+    format!("{{\"code\":\"{}\",\"params\":{}}}", code, params_obj)
+}
+
 static DEFAULT_FORMAT: LazyLock<Format> = LazyLock::new(|| {
     Format::new()
         .set_align(FormatAlign::VerticalCenter)
@@ -291,15 +321,23 @@ fn validate_headers(
             .iter()
             .find(|column| column.key == position.key)
             .map(|column| column.name.as_str())
-            .ok_or_else(|| format!("Column key '{}' is missing in definition", position.key))?;
+            .ok_or_else(|| {
+                create_structured_error_message(
+                    "COLUMN_KEY_MISSING",
+                    &[("columnKey", position.key.clone())],
+                )
+            })?;
         let actual_header = format_header_value(range.get_value((position.y1, position.x1 as u32)));
         if actual_header != expected_header.trim() {
-            return Err(format!(
-                "Header mismatch at {} in sheet '{}': expected '{}', found '{}'",
-                get_excel_cell_ref(position.x1, position.y1),
-                actual_sheet_name,
-                expected_header,
-                actual_header
+            let cell_ref = get_excel_cell_ref(position.x1, position.y1);
+            return Err(create_structured_error_message(
+                "HEADER_MISMATCH",
+                &[
+                    ("cell", cell_ref),
+                    ("sheetName", actual_sheet_name.to_string()),
+                    ("expected", expected_header.to_string()),
+                    ("actual", actual_header),
+                ],
             )
             .into());
         }
@@ -631,10 +669,18 @@ impl ExcelColumnPosition {
 
 fn validate_image_data(image_data: &[u8], url: &str) -> Result<Image, Box<dyn std::error::Error>> {
     if image_data.is_empty() {
-        return Err(format!("Image fetcher returned empty data for URL: {}", url).into());
+        return Err(create_structured_error_message(
+            "IMAGE_FETCHER_EMPTY_DATA",
+            &[("url", url.to_string())],
+        )
+        .into());
     }
-    let image = Image::new_from_buffer(image_data)
-        .map_err(|e| format!("Failed to parse image from URL '{}': {}", url, e))?;
+    let image = Image::new_from_buffer(image_data).map_err(|e| {
+        create_structured_error_message(
+            "IMAGE_PARSE_FAILED",
+            &[("url", url.to_string()), ("reason", e.to_string())],
+        )
+    })?;
     Ok(image)
 }
 
@@ -654,13 +700,19 @@ async fn write_single_cell(
             let values: Vec<&str> = value.split(",").collect();
             for v in values.iter() {
                 let url_value = JsValue::from_str(v);
-                let result = fetcher
-                    .call1(&JsValue::NULL, &url_value)
-                    .map_err(|e| format!("Error calling image fetcher: {:?}", e))?;
+                let result = fetcher.call1(&JsValue::NULL, &url_value).map_err(|e| {
+                    create_structured_error_message(
+                        "IMAGE_FETCHER_CALL_FAILED",
+                        &[("reason", format!("{:?}", e))],
+                    )
+                })?;
                 let promise = js_sys::Promise::resolve(&result);
-                let result = JsFuture::from(promise)
-                    .await
-                    .map_err(|e| format!("Error waiting for image fetcher: {:?}", e))?;
+                let result = JsFuture::from(promise).await.map_err(|e| {
+                    create_structured_error_message(
+                        "IMAGE_FETCHER_WAIT_FAILED",
+                        &[("reason", format!("{:?}", e))],
+                    )
+                })?;
 
                 if result.is_object() {
                     let image_data: Vec<u8> = js_sys::Uint8Array::new(&result).to_vec();
@@ -669,9 +721,11 @@ async fn write_single_cell(
                     worksheet.insert_image_fit_to_cell(y, x, &image, true)?;
                     return Ok(());
                 } else {
-                    return Err(
-                        format!("Image fetcher returned invalid data for URL: {}", v).into(),
-                    );
+                    return Err(create_structured_error_message(
+                        "IMAGE_FETCHER_INVALID_DATA",
+                        &[("url", v.to_string())],
+                    )
+                    .into());
                 }
             }
         } else {
@@ -682,9 +736,13 @@ async fn write_single_cell(
             worksheet.write_string(y, x, "")?;
         } else {
             let parsed_number = trimmed_value.parse::<f64>().map_err(|error| {
-                format!(
-                    "Invalid number value '{}' for column '{}': {}",
-                    value, column.key, error
+                create_structured_error_message(
+                    "EXPORT_NUMBER_VALUE_INVALID",
+                    &[
+                        ("value", value.to_string()),
+                        ("columnKey", column.key.clone()),
+                        ("reason", error.to_string()),
+                    ],
                 )
             })?;
             worksheet.write_number(y, x, parsed_number)?;
@@ -694,9 +752,13 @@ async fn write_single_cell(
             worksheet.write_string(y, x, "")?;
         } else {
             let date_time = ExcelDateTime::parse_from_str(trimmed_value).map_err(|error| {
-                format!(
-                    "Invalid date value '{}' for column '{}': {}",
-                    value, column.key, error
+                create_structured_error_message(
+                    "EXPORT_DATE_VALUE_INVALID",
+                    &[
+                        ("value", value.to_string()),
+                        ("columnKey", column.key.clone()),
+                        ("reason", error.to_string()),
+                    ],
                 )
             })?;
             worksheet.write_datetime(y, x, date_time)?;
@@ -934,10 +996,7 @@ fn find_column<'a>(
         .iter()
         .find(|column| column.key == key)
         .ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                format!("Column key '{}' is missing in definition", key),
-            )
-            .into()
+            create_structured_error_message("COLUMN_KEY_MISSING", &[("columnKey", key.to_string())])
+                .into()
         })
 }
