@@ -60,7 +60,7 @@ try {
 ### 稳定的 definition 字段
 
 - `name`：模板 / 导出下载时使用的文件名
-- `sheetName`：导出时使用、导入时优先匹配的工作表名称
+- `sheetName`：模板 / 导出时使用的工作表名称；schema 导入会读取第一个工作表
 - `columns`：表头、校验和行映射使用的稳定列定义
 - `author`：可选的工作簿作者元数据
 - `createTime`：可选的工作簿创建时间，支持 `Date` 或日期字符串
@@ -158,6 +158,7 @@ const result = await fromExcelDynamic(fileBytes, {
 ## 导入行为
 
 - 表头必须与 `columns[].name` 完全一致。
+- Schema 导入会读取工作簿中的第一个工作表。
 - `number` 列导入后返回数字。
 - 空的 `number` / `date` 单元格导入后返回 `null`。
 - `date` 列导入后返回格式化字符串。

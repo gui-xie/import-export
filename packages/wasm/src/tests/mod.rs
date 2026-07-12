@@ -106,6 +106,34 @@ mod tests {
     }
 
     #[test]
+    fn import_pokemon_uses_first_sheet_even_when_named_sheet_exists_later() {
+        // Arrange
+        let source_info = ExcelInfo::new(
+            "Pokemon",
+            "t",
+            create_excel_info().columns,
+            "senlinz",
+            "2024-11-01T08:00:00",
+        )
+        .expect("test schema should be valid");
+        let (mut workbook, _) = crate::create_template_workbook(&source_info).unwrap();
+        let second_sheet = workbook.add_worksheet();
+        second_sheet.set_name("sheet1").unwrap();
+        second_sheet.write_string(0, 0, "Wrong").unwrap();
+        let excel_bytes = workbook.save_to_buffer().unwrap();
+        let mut import_info = create_excel_info();
+        import_info.sheet_name = "sheet1".into();
+
+        // Act
+        let result = import_data_buffer(import_info, &excel_bytes);
+
+        // Assert
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(result.rows.is_empty());
+    }
+
+    #[test]
     fn import_pokemon_missing_header_fails() {
         // Arrange
         let source_info = create_excel_info();

@@ -568,7 +568,7 @@ fn import_data_buffer(
     let cursor = Cursor::new(excel_bytes);
     let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor)?;
     let mut excel_data = ExcelData { rows: Vec::new() };
-    let sheet_name = resolve_sheet_name(&workbook, Some(info.sheet_name.as_str()))?;
+    let sheet_name = resolve_sheet_name(&workbook, None)?;
     let range = workbook.worksheet_range(sheet_name.as_str())?;
     let column_positions = get_column_positions(&info);
     validate_headers(&info, &range, &column_positions, sheet_name.as_str())?;

@@ -60,7 +60,7 @@ The package exports `ImportExportError`, `ValidationError`, `ImportError`, `Expo
 ### Stable definition fields
 
 - `name` - file name used for template/export downloads
-- `sheetName` - worksheet name used for export and preferred during import
+- `sheetName` - worksheet name used for template/export generation; schema-based import reads the first worksheet
 - `columns` - stable schema for headers, validation, and row mapping
 - `author` - optional workbook author metadata
 - `createTime` - optional workbook creation time as a `Date` or date string
@@ -165,6 +165,7 @@ const rows = await importExcel(definition);
 ## Import behavior
 
 - Headers must match the configured `columns[].name` values exactly.
+- Schema-based import reads the first worksheet in the workbook.
 - Imported `number` columns are returned as numbers.
 - Empty imported `number` and `date` cells are returned as `null`.
 - Imported `date` values are returned as formatted strings.

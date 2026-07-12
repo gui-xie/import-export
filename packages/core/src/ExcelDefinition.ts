@@ -18,7 +18,7 @@ type ExcelColumnDataType = 'text' | 'number' | 'date' | 'image';
 interface ExcelDefinition extends ErrorLocalizationOptions {
   /** File name used for template/export downloads. */
   name: string;
-  /** Worksheet name used for export and preferred during import. */
+  /** Worksheet name used for template/export generation. Schema-based import reads the first worksheet. */
   sheetName?: string;
   /** Stable schema definition for worksheet columns. */
   columns: ExcelColumnDefinition[];
