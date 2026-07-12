@@ -316,7 +316,24 @@ function getStructuredCode(value: unknown): ImportExportErrorCode | undefined {
 }
 
 function parseKnownWasmError(message: string): ParsedWasmError | undefined {
-  let match = /^Header mismatch at (.+) in sheet '(.+)': expected '(.*)', found '(.*)'$/.exec(message);
+  // Try to parse structured JSON error format first
+  try {
+    const trimmed = message.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === 'object' && isErrorCode(parsed.code) && typeof parsed.params === 'object') {
+        return { code: parsed.code, params: parsed.params as ErrorParams };
+      }
+    }
+  } catch {
+    // Not JSON, continue with regex parsing
+  }
+
+  // Use non-greedy matching and handle newlines with [\s\S]*
+  let match: RegExpExecArray | null;
+
+  // For patterns with quoted strings that might contain special chars, extract just the first line or quoted portion
+  match = /^Header mismatch at ([^\n]+) in sheet '([^\n']+)': expected '([^'\n]*)', found '([^'\n]*)'(?:[\s\S])*$/.exec(message);
   if (match) {
     return {
       code: 'HEADER_MISMATCH',
@@ -329,7 +346,7 @@ function parseKnownWasmError(message: string): ParsedWasmError | undefined {
     };
   }
 
-  match = /^Column key '(.*)' is missing in definition$/.exec(message);
+  match = /^Column key '([^'\n]*)' is missing in definition$/.exec(message);
   if (match) {
     return { code: 'COLUMN_KEY_MISSING', params: { columnKey: match[1] } };
   }
@@ -346,7 +363,7 @@ function parseKnownWasmError(message: string): ParsedWasmError | undefined {
     return { code: 'DYNAMIC_HEADER_ROW_MIN', params: {} };
   }
 
-  match = /^Dynamic import option 'headerRow' must point to a row within the used range\. Received (\d+)\.$/.exec(message);
+  match = /^Dynamic import option 'headerRow' must point to a row within the used range\. Received (\d+)\./.exec(message);
   if (match) {
     return { code: 'DYNAMIC_HEADER_ROW_RANGE', params: { headerRow: Number(match[1]) } };
   }
@@ -355,37 +372,37 @@ function parseKnownWasmError(message: string): ParsedWasmError | undefined {
     return { code: 'DYNAMIC_HEADER_ROW_NOT_FOUND', params: {} };
   }
 
-  match = /^Dynamic import requires non-empty header names\. Found an empty header at (.+)\.$/.exec(message);
+  match = /^Dynamic import requires non-empty header names\. Found an empty header at ([^\n.]+)\./.exec(message);
   if (match) {
     return { code: 'DYNAMIC_HEADER_EMPTY', params: { cell: match[1] } };
   }
 
-  match = /^Dynamic import requires unique header names\. Duplicate header '(.*)' found at (.+)\.$/.exec(message);
+  match = /^Dynamic import requires unique header names\. Duplicate header '(.*?)' found at ([^\n.]+)\./.exec(message);
   if (match) {
     return { code: 'DYNAMIC_HEADER_DUPLICATE', params: { header: match[1], cell: match[2] } };
   }
 
-  match = /^Image fetcher returned empty data for URL: (.*)$/.exec(message);
+  match = /^Image fetcher returned empty data for URL: ([^\n]*)$/.exec(message);
   if (match) {
     return { code: 'IMAGE_FETCHER_EMPTY_DATA', params: { url: match[1] } };
   }
 
-  match = /^Failed to parse image from URL '(.*)': (.*)$/.exec(message);
+  match = /^Failed to parse image from URL '([^'\n]*)': ([^\n]*)(?:[\s\S])*$/.exec(message);
   if (match) {
     return { code: 'IMAGE_PARSE_FAILED', params: { url: match[1], reason: match[2] } };
   }
 
-  match = /^Error calling image fetcher: (.*)$/.exec(message);
+  match = /^Error calling image fetcher: ([^\n]*)(?:[\s\S])*$/.exec(message);
   if (match) {
     return { code: 'IMAGE_FETCHER_CALL_FAILED', params: { reason: match[1] } };
   }
 
-  match = /^Error waiting for image fetcher: (.*)$/.exec(message);
+  match = /^Error waiting for image fetcher: ([^\n]*)(?:[\s\S])*$/.exec(message);
   if (match) {
     return { code: 'IMAGE_FETCHER_WAIT_FAILED', params: { reason: match[1] } };
   }
 
-  match = /^Image fetcher returned invalid data for URL: (.*)$/.exec(message);
+  match = /^Image fetcher returned invalid data for URL: ([^\n]*)$/.exec(message);
   if (match) {
     return { code: 'IMAGE_FETCHER_INVALID_DATA', params: { url: match[1] } };
   }
@@ -394,7 +411,7 @@ function parseKnownWasmError(message: string): ParsedWasmError | undefined {
     return { code: 'IMAGE_FETCHER_REQUIRED', params: {} };
   }
 
-  match = /^Invalid number value '(.*)' for column '(.*)': (.*)$/.exec(message);
+  match = /^Invalid number value '([^'\n]*)' for column '([^'\n]*)': ([^\n]*)$/.exec(message);
   if (match) {
     return {
       code: 'EXPORT_NUMBER_VALUE_INVALID',
@@ -402,7 +419,7 @@ function parseKnownWasmError(message: string): ParsedWasmError | undefined {
     };
   }
 
-  match = /^Invalid date value '(.*)' for column '(.*)': (.*)$/.exec(message);
+  match = /^Invalid date value '([^'\n]*)' for column '([^'\n]*)': ([^\n]*)$/.exec(message);
   if (match) {
     return {
       code: 'EXPORT_DATE_VALUE_INVALID',
@@ -410,7 +427,7 @@ function parseKnownWasmError(message: string): ParsedWasmError | undefined {
     };
   }
 
-  match = /^Invalid definition: (.*)$/.exec(message);
+  match = /^Invalid definition: ([^\n]*)$/.exec(message);
   if (match) {
     return { code: 'INVALID_DEFINITION', params: { reason: match[1] } };
   }
