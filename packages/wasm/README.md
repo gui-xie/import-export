@@ -24,7 +24,7 @@ import init, {
   ExcelData,
   ExcelRowData,
   ExcelColumnData,
-} from '@senlinz/import-export-wasm';
+} from "@senlinz/import-export-wasm";
 
 await init();
 ```
@@ -33,24 +33,27 @@ await init();
 
 ```ts
 const info = new ExcelInfo(
-  'TomAndJerry',
-  'sheet1',
+  "TomAndJerry",
+  "sheet1",
   [
-    new ExcelColumnInfo('name', 'Name'),
-    new ExcelColumnInfo('age', 'Age').withDataType('number'),
-    new ExcelColumnInfo('category', 'Category').withAllowedValues(['Cat', 'Mouse']),
+    new ExcelColumnInfo("name", "Name"),
+    new ExcelColumnInfo("age", "Age").withDataType("number"),
+    new ExcelColumnInfo("category", "Category").withAllowedValues([
+      "Cat",
+      "Mouse",
+    ]),
   ],
-  'senlinz',
-  '2024-11-01T08:00:00',
+  "senlinz",
+  "2024-11-01T08:00:00"
 );
 
 const template = createTemplate(info);
 
 const data = new ExcelData([
   new ExcelRowData([
-    new ExcelColumnData('name', 'Tom'),
-    new ExcelColumnData('age', '12'),
-    new ExcelColumnData('category', 'Cat'),
+    new ExcelColumnData("name", "Tom"),
+    new ExcelColumnData("age", "12"),
+    new ExcelColumnData("category", "Cat"),
   ]),
 ]);
 
@@ -77,6 +80,7 @@ The browser example is covered by Playwright tests in [`./tests/wasm.test.js`](.
 - Browser usage requires the generated JS/WASM assets from `wasm-pack build`.
 - The generated `pkg/` directory is a build artifact and is not tracked in git.
 - Image export requires `.withImageFetcher(...)`.
+- Known WASM failures throw JavaScript `Error` objects with stable `code` and `params` fields. Localize user-facing messages in your application or use `@senlinz/import-export`.
 - Invalid schemas and invalid exported number/date values now fail with explicit errors.
 
 ## Development

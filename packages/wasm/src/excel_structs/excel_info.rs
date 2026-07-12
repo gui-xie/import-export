@@ -1,4 +1,4 @@
-use js_sys::Function;
+use js_sys::{Function, Object, Reflect};
 use std::collections::{HashMap, HashSet};
 use wasm_bindgen::prelude::*;
 
@@ -169,6 +169,30 @@ impl ExcelInfo {
     }
 }
 
+fn invalid_definition_error_to_js(reason: &str) -> JsValue {
+    let error = js_sys::Error::new(reason);
+    let value: JsValue = error.into();
+    let params = Object::new();
+
+    let _ = Reflect::set(
+        &value,
+        &JsValue::from_str("name"),
+        &JsValue::from_str("ImportExportWasmError"),
+    );
+    let _ = Reflect::set(
+        &value,
+        &JsValue::from_str("code"),
+        &JsValue::from_str("INVALID_DEFINITION"),
+    );
+    let _ = Reflect::set(
+        &params,
+        &JsValue::from_str("reason"),
+        &JsValue::from_str(reason),
+    );
+    let _ = Reflect::set(&value, &JsValue::from_str("params"), &params);
+    value
+}
+
 #[wasm_bindgen]
 impl ExcelInfo {
     #[wasm_bindgen(constructor)]
@@ -180,7 +204,7 @@ impl ExcelInfo {
         create_time: String,
     ) -> Result<ExcelInfo, JsValue> {
         ExcelInfo::new(name, sheet_name, columns, author, create_time)
-            .map_err(|error| JsValue::from_str(&error))
+            .map_err(|error| invalid_definition_error_to_js(&error))
     }
 
     #[wasm_bindgen(js_name = withTitle)]

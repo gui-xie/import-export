@@ -1,5 +1,11 @@
 # @senlinz/import-export-wasm
 
+## 1.1.0
+
+### Minor Changes
+
+- Return structured JavaScript errors with stable `code` and `params` fields for known WASM failures, leaving localization to callers and the core package.
+
 ## 1.0.2
 
 ### Patch Changes

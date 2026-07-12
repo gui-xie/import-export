@@ -315,18 +315,33 @@ function getStructuredCode(value: unknown): ImportExportErrorCode | undefined {
   return isErrorCode(code) ? code : undefined;
 }
 
-function parseKnownWasmError(message: string): ParsedWasmError | undefined {
-  // Try to parse structured JSON error format first
+function parseStructuredWasmPayload(value: string): ParsedWasmError | undefined {
   try {
-    const trimmed = message.trim();
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-      const parsed = JSON.parse(trimmed);
-      if (parsed && typeof parsed === 'object' && isErrorCode(parsed.code) && typeof parsed.params === 'object') {
-        return { code: parsed.code, params: parsed.params as ErrorParams };
-      }
+    const parsed = JSON.parse(value);
+    if (parsed && typeof parsed === 'object' && isErrorCode(parsed.code) && typeof parsed.params === 'object') {
+      return { code: parsed.code, params: parsed.params as ErrorParams };
     }
   } catch {
-    // Not JSON, continue with regex parsing
+    return undefined;
+  }
+  return undefined;
+}
+
+function parseKnownWasmError(message: string): ParsedWasmError | undefined {
+  const trimmed = message.trim();
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    const parsed = parseStructuredWasmPayload(trimmed);
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  const structuredLineStart = trimmed.lastIndexOf('\n{');
+  if (structuredLineStart >= 0) {
+    const parsed = parseStructuredWasmPayload(trimmed.slice(structuredLineStart + 1).trim());
+    if (parsed) {
+      return parsed;
+    }
   }
 
   // Use non-greedy matching and handle newlines with [\s\S]*

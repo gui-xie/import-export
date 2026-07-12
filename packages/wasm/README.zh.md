@@ -24,7 +24,7 @@ import init, {
   ExcelData,
   ExcelRowData,
   ExcelColumnData,
-} from '@senlinz/import-export-wasm';
+} from "@senlinz/import-export-wasm";
 
 await init();
 ```
@@ -33,24 +33,27 @@ await init();
 
 ```ts
 const info = new ExcelInfo(
-  'TomAndJerry',
-  'sheet1',
+  "TomAndJerry",
+  "sheet1",
   [
-    new ExcelColumnInfo('name', 'Name'),
-    new ExcelColumnInfo('age', 'Age').withDataType('number'),
-    new ExcelColumnInfo('category', 'Category').withAllowedValues(['Cat', 'Mouse']),
+    new ExcelColumnInfo("name", "Name"),
+    new ExcelColumnInfo("age", "Age").withDataType("number"),
+    new ExcelColumnInfo("category", "Category").withAllowedValues([
+      "Cat",
+      "Mouse",
+    ]),
   ],
-  'senlinz',
-  '2024-11-01T08:00:00',
+  "senlinz",
+  "2024-11-01T08:00:00"
 );
 
 const template = createTemplate(info);
 
 const data = new ExcelData([
   new ExcelRowData([
-    new ExcelColumnData('name', 'Tom'),
-    new ExcelColumnData('age', '12'),
-    new ExcelColumnData('category', 'Cat'),
+    new ExcelColumnData("name", "Tom"),
+    new ExcelColumnData("age", "12"),
+    new ExcelColumnData("category", "Cat"),
   ]),
 ]);
 
@@ -77,6 +80,7 @@ const imported = importData(info, workbook);
 - 浏览器使用前需要通过 `wasm-pack build` 生成 JS / WASM 产物。
 - 生成的 `pkg/` 目录属于构建产物，不会提交到 git。
 - 图片导出需要 `.withImageFetcher(...)`。
+- 已知 WASM 失败会抛出带稳定 `code` 和 `params` 字段的 JavaScript `Error` 对象。用户可在应用中自行本地化，或使用 `@senlinz/import-export`。
 - 非法 schema、非法数字值、非法日期值都会返回明确错误。
 
 ## 开发

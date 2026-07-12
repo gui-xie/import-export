@@ -1,7 +1,9 @@
 use calamine::{open_workbook_from_rs, Data, Reader, Xlsx};
 use excel_structs::excel_info::ExcelCellFormat;
+use js_sys::{Object, Reflect};
 use rust_xlsxwriter::*;
 use std::collections::HashMap;
+use std::fmt;
 use std::future::Future;
 use std::io::Cursor;
 use std::pin::Pin;
@@ -24,34 +26,70 @@ pub use excel_structs::excel_row_data::ExcelRowData;
 const SECONDS_IN_A_DAY: f64 = 86400.0;
 const EXCEL_BASE_DATE: i64 = 25569; // Number of days from 1899-12-30 to 1970-01-01
 
-/// Helper function to create a structured error message with code and params
-/// Includes both a human-readable message and structured JSON data
-fn create_structured_error_message(message: &str, code: &str, params: &[(&str, String)]) -> String {
-    let mut params_obj = String::from("{");
-    for (i, (key, value)) in params.iter().enumerate() {
-        if i > 0 {
-            params_obj.push(',');
-        }
-        params_obj.push('"');
-        params_obj.push_str(key);
-        params_obj.push_str("\":");
-        // Escape the value for JSON
-        params_obj.push('"');
-        for ch in value.chars() {
-            match ch {
-                '"' => params_obj.push_str("\\\""),
-                '\\' => params_obj.push_str("\\\\"),
-                '\n' => params_obj.push_str("\\n"),
-                '\r' => params_obj.push_str("\\r"),
-                '\t' => params_obj.push_str("\\t"),
-                _ => params_obj.push(ch),
-            }
-        }
-        params_obj.push('"');
-    }
-    params_obj.push('}');
+#[derive(Debug)]
+struct StructuredWasmError {
+    message: String,
+    code: &'static str,
+    params: Vec<(String, String)>,
+}
 
-    format!("{}\n{{\"code\":\"{}\",\"params\":{}}}", message, code, params_obj)
+impl StructuredWasmError {
+    fn new(message: String, code: &'static str, params: &[(&str, String)]) -> Self {
+        Self {
+            message,
+            code,
+            params: params
+                .iter()
+                .map(|(key, value)| ((*key).to_string(), value.clone()))
+                .collect(),
+        }
+    }
+}
+
+impl fmt::Display for StructuredWasmError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for StructuredWasmError {}
+
+fn create_structured_error(
+    message: impl AsRef<str>,
+    code: &'static str,
+    params: &[(&str, String)],
+) -> StructuredWasmError {
+    StructuredWasmError::new(message.as_ref().to_string(), code, params)
+}
+
+fn structured_error_to_js(error: &StructuredWasmError) -> JsValue {
+    let js_error = js_sys::Error::new(&error.message);
+    let js_value: JsValue = js_error.into();
+    let params = Object::new();
+
+    for (key, value) in &error.params {
+        let _ = Reflect::set(&params, &JsValue::from_str(key), &JsValue::from_str(value));
+    }
+
+    let _ = Reflect::set(
+        &js_value,
+        &JsValue::from_str("name"),
+        &JsValue::from_str("ImportExportWasmError"),
+    );
+    let _ = Reflect::set(
+        &js_value,
+        &JsValue::from_str("code"),
+        &JsValue::from_str(error.code),
+    );
+    let _ = Reflect::set(&js_value, &JsValue::from_str("params"), &params);
+    js_value
+}
+
+fn error_to_js_value(error: &(dyn std::error::Error + 'static)) -> JsValue {
+    if let Some(structured_error) = error.downcast_ref::<StructuredWasmError>() {
+        return structured_error_to_js(structured_error);
+    }
+    JsError::new(&error.to_string()).into()
 }
 
 static DEFAULT_FORMAT: LazyLock<Format> = LazyLock::new(|| {
@@ -76,13 +114,13 @@ static DEFAULT_HEADER_FORMAT: LazyLock<Format> = LazyLock::new(|| {
 });
 
 #[wasm_bindgen(js_name= createTemplate)]
-pub fn create_template(info: ExcelInfo) -> Result<Vec<u8>, JsError> {
-    create_template_buffer(&info).map_err(|e| JsError::new(&e.to_string()))
+pub fn create_template(info: ExcelInfo) -> Result<Vec<u8>, JsValue> {
+    create_template_buffer(&info).map_err(|e| error_to_js_value(e.as_ref()))
 }
 
 #[wasm_bindgen(js_name = importData)]
-pub fn import_data(info: ExcelInfo, excel_bytes: &[u8]) -> Result<ExcelData, JsError> {
-    import_data_buffer(info, excel_bytes).map_err(|e| JsError::new(&e.to_string()))
+pub fn import_data(info: ExcelInfo, excel_bytes: &[u8]) -> Result<ExcelData, JsValue> {
+    import_data_buffer(info, excel_bytes).map_err(|e| error_to_js_value(e.as_ref()))
 }
 
 #[wasm_bindgen(js_name = importDynamicData)]
@@ -90,9 +128,9 @@ pub fn import_dynamic_data(
     sheet_name: Option<String>,
     header_row: Option<u32>,
     excel_bytes: &[u8],
-) -> Result<DynamicExcelData, JsError> {
+) -> Result<DynamicExcelData, JsValue> {
     import_dynamic_data_buffer(sheet_name, header_row, excel_bytes)
-        .map_err(|e| JsError::new(&e.to_string()))
+        .map_err(|e| error_to_js_value(e.as_ref()))
 }
 
 #[wasm_bindgen(js_name = exportData)]
@@ -103,7 +141,7 @@ pub fn export_data(info: ExcelInfo, data: ExcelData) -> js_sys::Promise {
                 let uint8array = js_sys::Uint8Array::from(&buffer[..]);
                 Ok(uint8array.into())
             }
-            Err(e) => Err(JsValue::from(e.to_string())),
+            Err(e) => Err(error_to_js_value(e.as_ref())),
         }
     };
     future_to_promise(future)
@@ -323,7 +361,7 @@ fn validate_headers(
             .find(|column| column.key == position.key)
             .map(|column| column.name.as_str())
             .ok_or_else(|| {
-                create_structured_error_message(
+                create_structured_error(
                     &format!("Column key missing: {}", position.key),
                     "COLUMN_KEY_MISSING",
                     &[("columnKey", position.key.clone())],
@@ -332,8 +370,14 @@ fn validate_headers(
         let actual_header = format_header_value(range.get_value((position.y1, position.x1 as u32)));
         if actual_header != expected_header.trim() {
             let cell_ref = get_excel_cell_ref(position.x1, position.y1);
-            return Err(create_structured_error_message(
-                &format!("Header mismatch at {} in sheet '{}': expected '{}', got '{}'", cell_ref, actual_sheet_name, expected_header.trim(), actual_header),
+            return Err(create_structured_error(
+                &format!(
+                    "Header mismatch at {} in sheet '{}': expected '{}', got '{}'",
+                    cell_ref,
+                    actual_sheet_name,
+                    expected_header.trim(),
+                    actual_header
+                ),
                 "HEADER_MISMATCH",
                 &[
                     ("cell", cell_ref),
@@ -366,9 +410,10 @@ fn resolve_sheet_name(
     }
 
     workbook.sheet_names().first().cloned().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
+        create_structured_error(
             "Workbook contains no worksheets",
+            "WORKBOOK_NO_WORKSHEETS",
+            &[],
         )
         .into()
     })
@@ -379,31 +424,34 @@ fn resolve_dynamic_header_row(
     header_row: Option<u32>,
 ) -> Result<u32, Box<dyn std::error::Error>> {
     let Some((range_start_y, range_start_x)) = range.start() else {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "Worksheet contains no cells",
-        )
-        .into());
+        return Err(
+            create_structured_error("Worksheet contains no cells", "WORKSHEET_EMPTY", &[]).into(),
+        );
     };
     let Some((range_end_y, range_end_x)) = range.end() else {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "Worksheet contains no cells",
-        )
-        .into());
+        return Err(
+            create_structured_error("Worksheet contains no cells", "WORKSHEET_EMPTY", &[]).into(),
+        );
     };
 
     if let Some(header_row) = header_row {
         if header_row == 0 {
-            return Err(
-                "Dynamic import option 'headerRow' must be greater than or equal to 1".into(),
-            );
+            return Err(create_structured_error(
+                "Dynamic import option 'headerRow' must be greater than or equal to 1",
+                "DYNAMIC_HEADER_ROW_MIN",
+                &[],
+            )
+            .into());
         }
         let zero_based_row = header_row - 1;
         if zero_based_row < range_start_y || zero_based_row > range_end_y {
-            return Err(format!(
-                "Dynamic import option 'headerRow' must point to a row within the used range. Received {}.",
-                header_row
+            return Err(create_structured_error(
+                &format!(
+                    "Dynamic import option 'headerRow' must point to a row within the used range. Received {}.",
+                    header_row
+                ),
+                "DYNAMIC_HEADER_ROW_RANGE",
+                &[("headerRow", header_row.to_string())],
             )
             .into());
         }
@@ -419,7 +467,12 @@ fn resolve_dynamic_header_row(
         }
     }
 
-    Err("Dynamic import could not find a non-empty header row in the worksheet".into())
+    Err(create_structured_error(
+        "Dynamic import could not find a non-empty header row in the worksheet",
+        "DYNAMIC_HEADER_ROW_NOT_FOUND",
+        &[],
+    )
+    .into())
 }
 
 fn get_dynamic_headers(
@@ -427,18 +480,14 @@ fn get_dynamic_headers(
     header_row: u32,
 ) -> Result<Vec<(String, u32)>, Box<dyn std::error::Error>> {
     let Some((_, range_start_x)) = range.start() else {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "Worksheet contains no cells",
-        )
-        .into());
+        return Err(
+            create_structured_error("Worksheet contains no cells", "WORKSHEET_EMPTY", &[]).into(),
+        );
     };
     let Some((_, range_end_x)) = range.end() else {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "Worksheet contains no cells",
-        )
-        .into());
+        return Err(
+            create_structured_error("Worksheet contains no cells", "WORKSHEET_EMPTY", &[]).into(),
+        );
     };
 
     let mut seen_headers = std::collections::HashSet::new();
@@ -447,17 +496,26 @@ fn get_dynamic_headers(
     for column_index in range_start_x..=range_end_x {
         let header = format_header_value(range.get_value((header_row, column_index)));
         if header.is_empty() {
-            return Err(format!(
-                "Dynamic import requires non-empty header names. Found an empty header at {}.",
-                get_excel_cell_ref(column_index as u16, header_row)
+            let cell_ref = get_excel_cell_ref(column_index as u16, header_row);
+            return Err(create_structured_error(
+                &format!(
+                    "Dynamic import requires non-empty header names. Found an empty header at {}.",
+                    cell_ref
+                ),
+                "DYNAMIC_HEADER_EMPTY",
+                &[("cell", cell_ref)],
             )
             .into());
         }
         if !seen_headers.insert(header.clone()) {
-            return Err(format!(
-                "Dynamic import requires unique header names. Duplicate header '{}' found at {}.",
-                header,
-                get_excel_cell_ref(column_index as u16, header_row)
+            let cell_ref = get_excel_cell_ref(column_index as u16, header_row);
+            return Err(create_structured_error(
+                &format!(
+                    "Dynamic import requires unique header names. Duplicate header '{}' found at {}.",
+                    header, cell_ref
+                ),
+                "DYNAMIC_HEADER_DUPLICATE",
+                &[("header", header), ("cell", cell_ref)],
             )
             .into());
         }
@@ -672,7 +730,7 @@ impl ExcelColumnPosition {
 
 fn validate_image_data(image_data: &[u8], url: &str) -> Result<Image, Box<dyn std::error::Error>> {
     if image_data.is_empty() {
-        return Err(create_structured_error_message(
+        return Err(create_structured_error(
             &format!("Image data is empty for URL: {}", url),
             "IMAGE_FETCHER_EMPTY_DATA",
             &[("url", url.to_string())],
@@ -680,7 +738,7 @@ fn validate_image_data(image_data: &[u8], url: &str) -> Result<Image, Box<dyn st
         .into());
     }
     let image = Image::new_from_buffer(image_data).map_err(|e| {
-        create_structured_error_message(
+        create_structured_error(
             &format!("Failed to parse image from URL {}: {}", url, e.to_string()),
             "IMAGE_PARSE_FAILED",
             &[("url", url.to_string()), ("reason", e.to_string())],
@@ -706,7 +764,7 @@ async fn write_single_cell(
             for v in values.iter() {
                 let url_value = JsValue::from_str(v);
                 let result = fetcher.call1(&JsValue::NULL, &url_value).map_err(|e| {
-                    create_structured_error_message(
+                    create_structured_error(
                         &format!("Failed to call image fetcher: {:?}", e),
                         "IMAGE_FETCHER_CALL_FAILED",
                         &[("reason", format!("{:?}", e))],
@@ -714,7 +772,7 @@ async fn write_single_cell(
                 })?;
                 let promise = js_sys::Promise::resolve(&result);
                 let result = JsFuture::from(promise).await.map_err(|e| {
-                    create_structured_error_message(
+                    create_structured_error(
                         &format!("Failed to wait for image fetcher promise: {:?}", e),
                         "IMAGE_FETCHER_WAIT_FAILED",
                         &[("reason", format!("{:?}", e))],
@@ -728,7 +786,7 @@ async fn write_single_cell(
                     worksheet.insert_image_fit_to_cell(y, x, &image, true)?;
                     return Ok(());
                 } else {
-                    return Err(create_structured_error_message(
+                    return Err(create_structured_error(
                         &format!("Image fetcher returned invalid data for URL: {}", v),
                         "IMAGE_FETCHER_INVALID_DATA",
                         &[("url", v.to_string())],
@@ -737,14 +795,19 @@ async fn write_single_cell(
                 }
             }
         } else {
-            return Err("Image fetcher is not defined".into());
+            return Err(create_structured_error(
+                "Image fetcher is not defined",
+                "IMAGE_FETCHER_REQUIRED",
+                &[],
+            )
+            .into());
         }
     } else if data_type.eq_ignore_ascii_case("number") {
         if trimmed_value.is_empty() {
             worksheet.write_string(y, x, "")?;
         } else {
             let parsed_number = trimmed_value.parse::<f64>().map_err(|error| {
-                create_structured_error_message(
+                create_structured_error(
                     &format!("Invalid number value '{}'", value),
                     "EXPORT_NUMBER_VALUE_INVALID",
                     &[
@@ -761,7 +824,7 @@ async fn write_single_cell(
             worksheet.write_string(y, x, "")?;
         } else {
             let date_time = ExcelDateTime::parse_from_str(trimmed_value).map_err(|error| {
-                create_structured_error_message(
+                create_structured_error(
                     &format!("Invalid date value '{}'", value),
                     "EXPORT_DATE_VALUE_INVALID",
                     &[
@@ -1006,7 +1069,11 @@ fn find_column<'a>(
         .iter()
         .find(|column| column.key == key)
         .ok_or_else(|| {
-            create_structured_error_message(&format!("Column key missing: {}", key), "COLUMN_KEY_MISSING", &[("columnKey", key.to_string())])
-                .into()
+            create_structured_error(
+                &format!("Column key missing: {}", key),
+                "COLUMN_KEY_MISSING",
+                &[("columnKey", key.to_string())],
+            )
+            .into()
         })
 }

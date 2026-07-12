@@ -5,6 +5,7 @@
 ### Minor Changes
 
 - Add localized core error messages with built-in English and Chinese output, stable error codes and params, and per-call custom message overrides.
+- Consume structured WASM errors through stable `code` and `params` fields while retaining compatibility with earlier string-encoded WASM errors.
 
 ### Patch Changes
 
