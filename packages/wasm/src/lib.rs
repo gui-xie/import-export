@@ -25,7 +25,8 @@ const SECONDS_IN_A_DAY: f64 = 86400.0;
 const EXCEL_BASE_DATE: i64 = 25569; // Number of days from 1899-12-30 to 1970-01-01
 
 /// Helper function to create a structured error message with code and params
-fn create_structured_error_message(code: &str, params: &[(&str, String)]) -> String {
+/// Includes both a human-readable message and structured JSON data
+fn create_structured_error_message(message: &str, code: &str, params: &[(&str, String)]) -> String {
     let mut params_obj = String::from("{");
     for (i, (key, value)) in params.iter().enumerate() {
         if i > 0 {
@@ -50,7 +51,7 @@ fn create_structured_error_message(code: &str, params: &[(&str, String)]) -> Str
     }
     params_obj.push('}');
 
-    format!("{{\"code\":\"{}\",\"params\":{}}}", code, params_obj)
+    format!("{}\n{{\"code\":\"{}\",\"params\":{}}}", message, code, params_obj)
 }
 
 static DEFAULT_FORMAT: LazyLock<Format> = LazyLock::new(|| {
@@ -323,6 +324,7 @@ fn validate_headers(
             .map(|column| column.name.as_str())
             .ok_or_else(|| {
                 create_structured_error_message(
+                    &format!("Column key missing: {}", position.key),
                     "COLUMN_KEY_MISSING",
                     &[("columnKey", position.key.clone())],
                 )
@@ -331,6 +333,7 @@ fn validate_headers(
         if actual_header != expected_header.trim() {
             let cell_ref = get_excel_cell_ref(position.x1, position.y1);
             return Err(create_structured_error_message(
+                &format!("Header mismatch at {} in sheet '{}': expected '{}', got '{}'", cell_ref, actual_sheet_name, expected_header.trim(), actual_header),
                 "HEADER_MISMATCH",
                 &[
                     ("cell", cell_ref),
@@ -670,6 +673,7 @@ impl ExcelColumnPosition {
 fn validate_image_data(image_data: &[u8], url: &str) -> Result<Image, Box<dyn std::error::Error>> {
     if image_data.is_empty() {
         return Err(create_structured_error_message(
+            &format!("Image data is empty for URL: {}", url),
             "IMAGE_FETCHER_EMPTY_DATA",
             &[("url", url.to_string())],
         )
@@ -677,6 +681,7 @@ fn validate_image_data(image_data: &[u8], url: &str) -> Result<Image, Box<dyn st
     }
     let image = Image::new_from_buffer(image_data).map_err(|e| {
         create_structured_error_message(
+            &format!("Failed to parse image from URL {}: {}", url, e.to_string()),
             "IMAGE_PARSE_FAILED",
             &[("url", url.to_string()), ("reason", e.to_string())],
         )
@@ -702,6 +707,7 @@ async fn write_single_cell(
                 let url_value = JsValue::from_str(v);
                 let result = fetcher.call1(&JsValue::NULL, &url_value).map_err(|e| {
                     create_structured_error_message(
+                        &format!("Failed to call image fetcher: {:?}", e),
                         "IMAGE_FETCHER_CALL_FAILED",
                         &[("reason", format!("{:?}", e))],
                     )
@@ -709,6 +715,7 @@ async fn write_single_cell(
                 let promise = js_sys::Promise::resolve(&result);
                 let result = JsFuture::from(promise).await.map_err(|e| {
                     create_structured_error_message(
+                        &format!("Failed to wait for image fetcher promise: {:?}", e),
                         "IMAGE_FETCHER_WAIT_FAILED",
                         &[("reason", format!("{:?}", e))],
                     )
@@ -722,6 +729,7 @@ async fn write_single_cell(
                     return Ok(());
                 } else {
                     return Err(create_structured_error_message(
+                        &format!("Image fetcher returned invalid data for URL: {}", v),
                         "IMAGE_FETCHER_INVALID_DATA",
                         &[("url", v.to_string())],
                     )
@@ -737,6 +745,7 @@ async fn write_single_cell(
         } else {
             let parsed_number = trimmed_value.parse::<f64>().map_err(|error| {
                 create_structured_error_message(
+                    &format!("Invalid number value '{}'", value),
                     "EXPORT_NUMBER_VALUE_INVALID",
                     &[
                         ("value", value.to_string()),
@@ -753,6 +762,7 @@ async fn write_single_cell(
         } else {
             let date_time = ExcelDateTime::parse_from_str(trimmed_value).map_err(|error| {
                 create_structured_error_message(
+                    &format!("Invalid date value '{}'", value),
                     "EXPORT_DATE_VALUE_INVALID",
                     &[
                         ("value", value.to_string()),
@@ -996,7 +1006,7 @@ fn find_column<'a>(
         .iter()
         .find(|column| column.key == key)
         .ok_or_else(|| {
-            create_structured_error_message("COLUMN_KEY_MISSING", &[("columnKey", key.to_string())])
+            create_structured_error_message(&format!("Column key missing: {}", key), "COLUMN_KEY_MISSING", &[("columnKey", key.to_string())])
                 .into()
         })
 }
