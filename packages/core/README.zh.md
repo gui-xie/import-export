@@ -19,10 +19,13 @@ pnpm add @senlinz/import-export
 ```ts
 import { toExcel } from '@senlinz/import-export';
 
-const workbook = await toExcel({
-  name: 'TomAndJerry',
-  columns: [{ key: 'name', name: 'Name', dataType: 'text' }],
-}, [{ name: 'Tom' }]);
+const workbook = await toExcel(
+  {
+    name: 'TomAndJerry',
+    columns: [{ key: 'name', name: 'Name', dataType: 'text' }],
+  },
+  [{ name: 'Tom' }],
+);
 ```
 
 ## 支持的 API
@@ -42,7 +45,7 @@ const definition = {
   columns: [{ key: 'name', name: '姓名', dataType: 'text' }],
   errorMessages: {
     HEADER_MISMATCH: ({ params }) => `表头错误：${params.cell} 需要 ${params.expected}，实际是 ${params.actual}`,
-    INVALID_DATA_TYPE: "列 {columnKey} 的类型 {dataType} 不支持，可选值：{supportedDataTypes}",
+    INVALID_DATA_TYPE: '列 {columnKey} 的类型 {dataType} 不支持，可选值：{supportedDataTypes}',
   },
 };
 
@@ -154,6 +157,7 @@ const result = await fromExcelDynamic(fileBytes, {
 - `maxFileSizeBytes` 可选，与 schema 导入相同，默认 25 MiB。
 - `locale` 与 `errorMessages` 可用于自定义动态导入错误。
 - 返回值结构为 `{ sheetName, headers, rows }`。
+- 动态导入要求选中的表头行中表头名称非空且唯一。
 
 ## 导入行为
 
@@ -174,6 +178,27 @@ const result = await fromExcelDynamic(fileBytes, {
 - 文本列默认会转义看起来像公式的值；如需导出公式，可设置 `escapeFormulas: false`。
 - 分组导出对象必须使用 `{ value?, children: [...] }` 结构。
 - 图片列必须提供 `imageFetcher`。
+
+## 带 URL 校验的 imageFetcher
+
+为 `image` 列使用 `imageFetcher` 时，应先校验 URL 再发起请求，避免访问不可信来源。下面的示例只允许 HTTPS，并检查 HTTP 响应状态：
+
+```typescript
+const imageFetcher = async (url: string): Promise<Uint8Array> => {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`Refusing to fetch image from non-HTTPS URL: ${url}`);
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+  }
+  const buffer = await response.arrayBuffer();
+  return new Uint8Array(buffer);
+};
+```
+
+在服务端场景中，还应限制可信域名，并拒绝私有或内网地址。完整的图片拉取信任模型和额外建议见 [SECURITY.md](../../SECURITY.md)。
 
 ## 已支持的高级能力
 
@@ -201,6 +226,23 @@ const result = await fromExcelDynamic(fileBytes, {
 - [Definition 校验示例](./examples/definition-errors.html)
 
 这些示例由 [`./tests/import-export.spec.ts`](./tests/import-export.spec.ts) 中的 Playwright 用例覆盖。
+
+## 测试工具
+
+包内导出 `testUtils` 命名空间，供消费者测试套件使用：
+
+```ts
+import { testUtils } from '@senlinz/import-export';
+```
+
+> **警告：** `testUtils` 仅用于测试。这些 helper 是内部实现细节，**不提供稳定性保证**，可能在任意版本中变更或移除。
+
+| Helper                                          | 说明                                                                                                    |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `normalizeDefinition(definition)`               | 规范化并校验 `ExcelDefinition`，包括裁剪字符串和应用默认值。                                            |
+| `normalizeDynamicImportOptions(options?)`       | 规范化并校验动态导入选项，例如 `headerRow`、`maxFileSizeBytes`。                                        |
+| `sanitizeTextCellValue(value, escapeFormulas?)` | 清洗文本单元格值以避免公式注入；当 `escapeFormulas` 为 `true`（默认）时，会给类似公式的值加单引号前缀。 |
+| `defaultMaxFileSizeBytes`                       | 默认最大文件大小，单位为字节（25 MB）。                                                                 |
 
 ## 已知限制
 

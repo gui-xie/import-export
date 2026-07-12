@@ -19,10 +19,13 @@ pnpm add @senlinz/import-export
 ```ts
 import { toExcel } from '@senlinz/import-export';
 
-const workbook = await toExcel({
-  name: 'TomAndJerry',
-  columns: [{ key: 'name', name: 'Name', dataType: 'text' }],
-}, [{ name: 'Tom' }]);
+const workbook = await toExcel(
+  {
+    name: 'TomAndJerry',
+    columns: [{ key: 'name', name: 'Name', dataType: 'text' }],
+  },
+  [{ name: 'Tom' }],
+);
 ```
 
 ## Supported API
@@ -42,7 +45,7 @@ const definition = {
   columns: [{ key: 'name', name: '姓名', dataType: 'text' }],
   errorMessages: {
     HEADER_MISMATCH: ({ params }) => `表头错误：${params.cell} 需要 ${params.expected}，实际是 ${params.actual}`,
-    INVALID_DATA_TYPE: "列 {columnKey} 的类型 {dataType} 不支持，可选值：{supportedDataTypes}",
+    INVALID_DATA_TYPE: '列 {columnKey} 的类型 {dataType} 不支持，可选值：{supportedDataTypes}',
   },
 };
 
@@ -241,12 +244,12 @@ import { testUtils } from '@senlinz/import-export';
 
 > **Warning:** `testUtils` is intended for testing purposes only. These helpers are internal implementation details and carry **no stability guarantee** — they may change or be removed in any release without notice.
 
-| Helper | Description |
-|---|---|
-| `normalizeDefinition(definition)` | Normalizes and validates an `ExcelDefinition`, trimming strings and applying defaults. |
-| `normalizeDynamicImportOptions(options?)` | Normalizes and validates dynamic import options (e.g. `headerRow`, `maxFileSizeBytes`). |
+| Helper                                          | Description                                                                                                                                               |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `normalizeDefinition(definition)`               | Normalizes and validates an `ExcelDefinition`, trimming strings and applying defaults.                                                                    |
+| `normalizeDynamicImportOptions(options?)`       | Normalizes and validates dynamic import options (e.g. `headerRow`, `maxFileSizeBytes`).                                                                   |
 | `sanitizeTextCellValue(value, escapeFormulas?)` | Sanitizes a text cell value to prevent formula injection. Prefixes formula-like values with a single quote when `escapeFormulas` is `true` (the default). |
-| `defaultMaxFileSizeBytes` | The default maximum file size in bytes (25 MB). |
+| `defaultMaxFileSizeBytes`                       | The default maximum file size in bytes (25 MB).                                                                                                           |
 
 ## Known limitations
 

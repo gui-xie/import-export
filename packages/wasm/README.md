@@ -83,6 +83,24 @@ The browser example is covered by Playwright tests in [`./tests/wasm.test.js`](.
 - Known WASM failures throw JavaScript `Error` objects with stable `code` and `params` fields. Localize user-facing messages in your application or use `@senlinz/import-export`.
 - Invalid schemas and invalid exported number/date values now fail with explicit errors.
 
+### Structured errors
+
+Known failures expose a stable JavaScript error shape:
+
+```ts
+try {
+  const imported = importData(info, workbook);
+} catch (error) {
+  if (error instanceof Error) {
+    console.log(error.name); // ImportExportWasmError
+    console.log((error as Error & { code?: string }).code);
+    console.log((error as Error & { params?: Record<string, unknown> }).params);
+  }
+}
+```
+
+The WASM package does not translate messages. Use `@senlinz/import-export` when you want built-in English/Chinese messages or per-call message overrides.
+
 ## Development
 
 ```bash

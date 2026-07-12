@@ -24,23 +24,27 @@ pnpm add @senlinz/import-export-wasm
 ## Quick start
 
 ```ts
-import { exportExcel, importExcel, downloadExcelTemplate } from '@senlinz/import-export';
+import {
+  exportExcel,
+  importExcel,
+  downloadExcelTemplate,
+} from "@senlinz/import-export";
 
 const definition = {
-  name: 'TomAndJerry',
-  sheetName: 'sheet1',
+  name: "TomAndJerry",
+  sheetName: "sheet1",
   columns: [
-    { key: 'name', name: 'Name', dataType: 'text' },
-    { key: 'age', name: 'Age', dataType: 'number' },
-    { key: 'birthday', name: 'Birthday', dataType: 'date' },
-    { key: 'category', name: 'Category', allowedValues: ['Cat', 'Mouse'] },
+    { key: "name", name: "Name", dataType: "text" },
+    { key: "age", name: "Age", dataType: "number" },
+    { key: "birthday", name: "Birthday", dataType: "date" },
+    { key: "category", name: "Category", allowedValues: ["Cat", "Mouse"] },
   ],
 };
 
 await downloadExcelTemplate(definition);
 await exportExcel(definition, [
-  { name: 'Tom', age: 12, birthday: '2024-11-01 00:00:00', category: 'Cat' },
-  { name: 'Jerry', age: null, birthday: null, category: 'Mouse' },
+  { name: "Tom", age: 12, birthday: "2024-11-01 00:00:00", category: "Cat" },
+  { name: "Jerry", age: null, birthday: null, category: "Mouse" },
 ]);
 
 const rows = await importExcel(definition);
@@ -51,6 +55,14 @@ const rows = await importExcel(definition);
 - `@senlinz/import-export` auto-loads its emitted bundled WASM asset on first use.
 - In Vite and other browser ESM bundlers, no separate `initializeWasm(...)` or `?url` wiring is needed in the core package.
 - If you need direct low-level WASM control, use `@senlinz/import-export-wasm` instead of the high-level wrapper.
+
+## Error handling
+
+- `@senlinz/import-export` wraps known validation, import, export, and WASM initialization failures in `ImportExportError` subclasses.
+- Errors expose stable `code`, structured `params`, normalized `locale`, and the original `cause`.
+- Error messages default to English. Set `locale: 'zh'` or `locale: 'zh-CN'` on `ExcelDefinition` or dynamic import options for built-in Chinese messages.
+- Use `errorMessages` or `messages` to override messages by stable error code.
+- Direct `@senlinz/import-export-wasm` calls throw JavaScript `Error` objects with stable `code` and `params`; application-level localization belongs in your app or in the core wrapper.
 
 ## Stable supported schema
 
@@ -83,7 +95,8 @@ const rows = await importExcel(definition);
 
 ## Release preparation
 
-- `1.0.1` fixes the bundled WASM async initialization path so browser-first workbook operations initialize correctly on first use.
+- Current package version: `1.1.0`.
+- `1.1.0` adds localized core error messages, stable error codes and params, per-call custom message overrides, and structured WASM error consumption while keeping compatibility with earlier string-encoded WASM errors.
 - Prepare the coordinated release:
 
 ```bash
@@ -94,7 +107,7 @@ corepack pnpm run release:check
 
 - Publish from GitHub Actions with **Actions → Publish packages → Run workflow**, then enter:
   - `confirm=publish`
-  - `version=1.0.1`
+  - `version=1.1.0`
 
 ## Development
 

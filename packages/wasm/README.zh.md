@@ -83,10 +83,29 @@ const imported = importData(info, workbook);
 - 已知 WASM 失败会抛出带稳定 `code` 和 `params` 字段的 JavaScript `Error` 对象。用户可在应用中自行本地化，或使用 `@senlinz/import-export`。
 - 非法 schema、非法数字值、非法日期值都会返回明确错误。
 
+### 结构化错误
+
+已知失败会暴露稳定的 JavaScript 错误结构：
+
+```ts
+try {
+  const imported = importData(info, workbook);
+} catch (error) {
+  if (error instanceof Error) {
+    console.log(error.name); // ImportExportWasmError
+    console.log((error as Error & { code?: string }).code);
+    console.log((error as Error & { params?: Record<string, unknown> }).params);
+  }
+}
+```
+
+WASM 包不负责翻译错误消息。如果需要内置中英文消息或单次调用级别的消息覆盖，请使用 `@senlinz/import-export`。
+
 ## 开发
 
 ```bash
 cargo test --lib
+cargo bench --features benchmarks
 wasm-pack build --release --target web
 corepack pnpm install
 corepack pnpm exec playwright install chromium
