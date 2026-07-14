@@ -4,15 +4,27 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    pull-request-branch-name:
+      separator: "/"
+    open-pull-requests-limit: 0
   - package-ecosystem: "npm"
     directory: "/packages/core"
     schedule:
       interval: "weekly"
+    pull-request-branch-name:
+      separator: "/"
+    open-pull-requests-limit: 0
   - package-ecosystem: "npm"
     directory: "/packages/wasm"
     schedule:
       interval: "weekly"
+    pull-request-branch-name:
+      separator: "/"
+    open-pull-requests-limit: 0
   - package-ecosystem: "cargo"
     directory: "/packages/wasm"
     schedule:
       interval: "weekly"
+    pull-request-branch-name:
+      separator: "/"
+    open-pull-requests-limit: 0
